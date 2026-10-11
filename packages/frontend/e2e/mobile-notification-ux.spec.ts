@@ -113,7 +113,10 @@ test.describe('Mobile notification UX — iOS', () => {
   })
 
   test('iOS install hint sits above the bottom nav', async ({ page }) => {
-    await page.goto('/en')
+    // Not on /en: the home route is today's box (daily-first), where passive
+    // install prompts stay hidden like on /play. The leaderboard keeps both
+    // the hint and the bottom nav.
+    await page.goto('/en/leaderboard')
 
     // The hint mounts after a short delay; only on a Safari iOS UA.
     const hint = page.locator('dialog:has(#ios-install-title)').first()

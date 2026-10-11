@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trophy, Crown, Calendar, CalendarDays, Crosshair, Play, Users, Globe } from 'lucide-react'
+import { Trophy, Crown, Calendar, CalendarDays, Crosshair, Play, Users, Globe, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { GeoGamersSeasonPanel } from '@/components/leaderboard/GeoGamersSeasonPanel'
@@ -22,11 +22,17 @@ import {
 import { PlayerAnswersDialog } from '@/components/leaderboard/PlayerAnswersDialog'
 import { useSession } from '@/lib/auth-client'
 import type { GameSessionDetailsResponse } from '@the-box/types'
+import { visibleLeaderboardTabs, type LeaderboardTab } from '@/lib/dailyFirst'
 
 const formatDateForApi = (date: Date) => format(date, 'yyyy-MM-dd')
 
-const TABS = ['daily', 'monthly', 'achievements', 'geogamers'] as const
-type LeaderboardTab = (typeof TABS)[number]
+const TABS = ['daily', 'monthly', 'achievements', 'geogamers'] as const satisfies readonly LeaderboardTab[]
+const TAB_TRIGGERS: Record<LeaderboardTab, { icon: LucideIcon; label: string }> = {
+  daily: { icon: Calendar, label: 'leaderboard.daily' },
+  monthly: { icon: CalendarDays, label: 'leaderboard.monthly' },
+  achievements: { icon: Crown, label: 'profile.achievements' },
+  geogamers: { icon: Crosshair, label: 'leaderboard.geogamers.tab' },
+}
 const parseTab = (value: string | null): LeaderboardTab =>
   (TABS as ReadonlyArray<string>).includes(value ?? '') ? (value as LeaderboardTab) : 'daily'
 
@@ -353,22 +359,19 @@ export default function LeaderboardPage() {
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full mb-6">
-            <TabsTrigger value="daily" className="gap-2">
-              <Calendar className="hidden size-4 sm:block" aria-hidden="true" />
-              {t('leaderboard.daily')}
-            </TabsTrigger>
-            <TabsTrigger value="monthly" className="gap-2">
-              <CalendarDays className="hidden size-4 sm:block" aria-hidden="true" />
-              {t('leaderboard.monthly')}
-            </TabsTrigger>
-            <TabsTrigger value="achievements" className="gap-2">
-              <Crown className="hidden size-4 sm:block" aria-hidden="true" />
-              {t('profile.achievements')}
-            </TabsTrigger>
-            <TabsTrigger value="geogamers" className="gap-2">
-              <Crosshair className="hidden size-4 sm:block" aria-hidden="true" />
-              {t('leaderboard.geogamers.tab')}
-            </TabsTrigger>
+            {/* "Results" (D9) ranks today's box and the month. The achievements
+                and Panorama boards leave the tab bar but stay deep-linkable
+                (?tab=achievements / ?tab=geogamers): their trigger only shows
+                while one of them is the active tab. */}
+            {visibleLeaderboardTabs(activeTab).map((tab) => {
+              const { icon: Icon, label } = TAB_TRIGGERS[tab]
+              return (
+                <TabsTrigger key={tab} value={tab} className="gap-2">
+                  <Icon className="hidden size-4 sm:block" aria-hidden="true" />
+                  {t(label)}
+                </TabsTrigger>
+              )
+            })}
           </TabsList>
 
           <TabsContent value="daily">
@@ -387,7 +390,7 @@ export default function LeaderboardPage() {
               emptyAction={
                 isToday(selectedDate) ? (
                   <Button asChild variant="gaming" size="lg" className="w-full sm:w-auto">
-                    <Link to={localizedPath('/play')}>
+                    <Link to={localizedPath('/')}>
                       <Play aria-hidden="true" />
                       {t('history.empty.cta')}
                     </Link>

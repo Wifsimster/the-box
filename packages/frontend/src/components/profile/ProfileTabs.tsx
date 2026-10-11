@@ -1,11 +1,10 @@
 import { lazy, Suspense, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Trophy, Sparkles, Shield } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Trophy, Shield } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
 import { AchievementGrid } from '@/components/achievement'
 import { ReferralCard } from './ReferralCard'
 import { EmailConsentCard } from './EmailConsentCard'
@@ -13,8 +12,6 @@ import { EditProfileCard } from './EditProfileCard'
 import { AccountDataCard } from './AccountDataCard'
 import { PushNotificationCard } from './PushNotificationCard'
 import { ProfileSection } from './ProfileSection'
-import { clearTourCompleted, markTourPending } from '@/components/onboarding/tour-storage'
-import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useFeatures } from '@/hooks/useFeatures'
 import type { AchievementWithProgress, User as UserType } from '@the-box/types'
 import { isThemeKey, type ThemeKey } from '@/lib/themes'
@@ -100,8 +97,6 @@ export function ProfileTabs({
   onProfileUpdated,
 }: ProfileTabsProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { localizedPath } = useLocalizedPath()
   const { geoCommunity } = useFeatures()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -126,12 +121,6 @@ export function ProfileTabs({
     },
     [setSearchParams],
   )
-
-  const handleReplayTour = useCallback(() => {
-    clearTourCompleted()
-    markTourPending()
-    navigate(localizedPath('/'))
-  }, [navigate, localizedPath])
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -299,23 +288,6 @@ export function ProfileTabs({
                 isPremium={isPremium}
                 onChange={onThemeChange}
               />
-            </ProfileSection>
-            <ProfileSection delay={0.1}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="size-5 text-neon-purple" aria-hidden="true" />
-                    {t('tour.replayTitle')}
-                  </CardTitle>
-                  <CardDescription>{t('tour.replayDescription')}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" onClick={handleReplayTour} className="w-full sm:w-auto">
-                    <Sparkles aria-hidden="true" />
-                    {t('tour.replayCta')}
-                  </Button>
-                </CardContent>
-              </Card>
             </ProfileSection>
           </Suspense>
         )}

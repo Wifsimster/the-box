@@ -169,10 +169,8 @@ test.describe('End-of-game dialog ordering', () => {
 
     await page.goto('/en/play')
 
-    // Start the daily game from the intro screen.
-    const startButton = page.getByRole('button', {
-      name: /start|commencer|play/i,
-    })
+    // Open the daily box (one tap from the closed box, no intro screen).
+    const startButton = page.getByTestId('today-open-box')
     await expect(startButton).toBeVisible({ timeout: 15000 })
     await startButton.click()
 

@@ -43,6 +43,7 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
                         variant="ghost"
                         onClick={openRewardModal}
                         aria-label={label}
+                        data-testid="daily-reward-badge"
                         className={cn(
                             'relative flex items-center gap-1.5 px-2 sm:px-3',
                             className

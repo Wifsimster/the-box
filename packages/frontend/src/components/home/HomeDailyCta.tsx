@@ -126,8 +126,7 @@ export function HomeDailyCta({
             variant="gaming"
             size="xl"
             disabled={!isOnline}
-            onClick={() => navigate(localizedPath('/play'))}
-            data-tour="play-cta"
+            onClick={() => navigate(localizedPath('/'))}
             className="w-full gap-3 sm:w-auto sm:px-12"
           >
             <Play className="size-5" aria-hidden="true" />
@@ -146,11 +145,12 @@ export function HomeDailyCta({
         )}
       </div>
 
-      {/* Public teaser — renders today's first screenshot for anonymous visitors */}
+      {/* Public teaser — today's first screenshot for anonymous visitors,
+          blurred (D1): nobody studies screenshot 1 before its clock starts. */}
       {!hasSession && previewAvailable && !isTodayCompleted && (
         <button
           type="button"
-          onClick={() => navigate(localizedPath('/play'))}
+          onClick={() => navigate(localizedPath('/'))}
           disabled={!isOnline}
           className="group mt-2 block w-full overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 text-left backdrop-blur-sm transition-colors hover:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60"
         >
@@ -158,11 +158,12 @@ export function HomeDailyCta({
             <img
               src="/api/game/preview/image"
               alt={t('home.previewAlt')}
+              data-keep-blur
               loading="lazy"
               decoding="async"
               width={1280}
               height={720}
-              className="size-full object-cover transition-transform motion-safe:group-hover:scale-105"
+              className="size-full scale-110 object-cover blur-xl"
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/10 to-transparent" />
             <span className="absolute left-3 top-3 rounded bg-black/60 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-white">

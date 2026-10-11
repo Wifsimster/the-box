@@ -58,7 +58,12 @@
     "goToItem": "Aller à l'élément {{index}}",
     "previousMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
-    "pickMonth": "Choisir un mois"
+    "pickMonth": "Choisir un mois",
+    "today": "Aujourd’hui",
+    "results": "Résultats",
+    "about": "Découvrir The Box",
+    "otherModes": "Plus",
+    "rules": "Règles du jeu"
   },
   "nav": {
     "primary": "Navigation principale",
@@ -69,7 +74,9 @@
       "home": "Accueil",
       "play": "Jouer",
       "leaderboard": "Classement",
-      "profile": "Profil"
+      "profile": "Profil",
+      "today": "Aujourd’hui",
+      "results": "Résultats"
     }
   },
   "achievements": {
@@ -363,8 +370,6 @@
         "skipped_other": "{{count}} passées"
       }
     },
-    "dailyChallenge": "Défi quotidien",
-    "startChallenge": "Commencer le défi",
     "challengeComplete": "Défi terminé !",
     "screenshotAlt": {
       "current": "Capture {{position}} sur {{total}}",
@@ -454,17 +459,13 @@
     "catchUpNotice": "Ceci est une session de rattrapage. Ton score n'apparaîtra pas au classement.",
     "noChallenge": "Aucun défi disponible",
     "noChallengeAvailable": "Aucun défi disponible pour le {{date}}. Reviens plus tard !",
-    "guestWarning": "Tu n'es pas connecté. Ton score ne sera pas sauvegardé.",
     "rules": {
       "title": "Comment jouer",
       "screenshots": "{{count}} captures à deviner",
-      "screenshotsShort": "{{count}} captures",
       "explore": "Observe attentivement la capture d'écran",
       "guess": "Devine le nom du jeu vidéo",
       "matchingTips": "Tape le nom du jeu ou le sous-titre (ex: 'Skyrim'). Inclus le numéro pour les suites (ex: 'Dark Souls 3')",
       "time": "Plus tu réponds vite, plus tu gagnes de points",
-      "speedShort": "Vitesse = points",
-      "hintsShort": "Révélation de lettres",
       "quality": "Tous les jeux ont un Metascore d'au moins 85"
     },
     "scoring": {
@@ -652,6 +653,43 @@
         "Même les ninjas du screenshot tombent parfois. À demain. 💀"
       ]
     }
+  },
+  "today": {
+    "boxOf": "La boîte du {{date}}",
+    "rules": "{{count}} captures · 45 s chacune · plus tu es rapide, plus tu marques",
+    "startHint": "Le chrono démarre quand tu ouvres la boîte.",
+    "guestHint": "Pas besoin de compte pour jouer. Tu pourras garder ton score à la fin.",
+    "openCatchUp": "Ouvrir cette boîte",
+    "streak_one": "{{count}} boîte d’affilée",
+    "streak_other": "{{count}} boîtes d’affilée",
+    "doneTitle": "Boîte ouverte",
+    "doneScore": "{{score}} pts · {{found}}/{{total}} captures",
+    "nextIn": "Prochaine boîte dans",
+    "seeResults": "Voir mes réponses",
+    "seeRanking": "Voir le classement",
+    "yesterdayTitle": "La boîte d’hier",
+    "yesterday": {
+      "answers": {
+        "body": "Tu l’as finie. Revois tes réponses.",
+        "cta": "Voir mes réponses"
+      },
+      "resume": {
+        "body": "Tu ne l’as pas finie. Termine-la, hors classement.",
+        "cta": "Reprendre la boîte d’hier"
+      },
+      "catchUp": {
+        "body": "Tu l’as manquée. Rattrape-la, hors classement.",
+        "cta": "Ouvrir la boîte d’hier"
+      }
+    },
+    "rewardReady": "Ta récompense du jour t’attend.",
+    "rewardCta": "Récupérer",
+    "guestSaveTitle": "Garde ton score",
+    "guestSaveBody": "Crée ton compte en 10 s : ta boîte du jour, ta série et ta place au classement sont conservées.",
+    "guestSaveCta": "Créer mon compte",
+    "moreTitle": "Encore envie de jouer ?",
+    "panoramaLine": "Panorama : devine le jeu caché, puis place la scène sur sa carte.",
+    "premiumLine": "Premium : toutes les boîtes passées, sans limite de 7 jours."
   },
   "leaderboard": {
     "title": "Classement",
@@ -2603,48 +2641,6 @@
     "next": "Suivant",
     "start": "C'est parti !"
   },
-  "tour": {
-    "ariaLabel": "Visite guidée du produit",
-    "next": "Suivant",
-    "prev": "Retour",
-    "finish": "Compris",
-    "close": "Fermer la visite",
-    "progress": "Étape {{current}} sur {{total}}",
-    "replayTitle": "Rejouer la visite",
-    "replayDescription": "Revois en un coup d'œil la boîte du jour, le mode geo, le classement et les récompenses.",
-    "replayCta": "Rejouer la visite",
-    "steps": {
-      "play": {
-        "title": "La boîte du jour",
-        "body": "Tout commence ici. Dix captures, un jeu par capture, plus tu réponds vite plus le score grimpe."
-      },
-      "geo": {
-        "title": "Mode geo (alpha)",
-        "body": "Place une capture sur la carte du monde à partir d'indices visuels. Mode bonus — n'affecte pas ton score quotidien."
-      },
-      "leaderboard": {
-        "title": "Classement",
-        "body": "Vois ta place du jour et du mois. Mis à jour en direct quand les autres joueurs ferment leur boîte."
-      },
-      "dailyReward": {
-        "title": "Récompense quotidienne",
-        "body": "Connecte-toi chaque jour pour garder ta série et débloquer indices, power-ups et cosmétiques."
-      },
-      "profile": {
-        "title": "Profil & historique",
-        "body": "Statistiques, succès et historique des boîtes sont accessibles depuis ton menu profil."
-      }
-    }
-  },
-  "guestGate": {
-    "title": "Prêt à jouer ?",
-    "subtitle": "Crée un compte en 10 secondes pour garder tes progrès.",
-    "benefitStreak": "Suis ta série de victoires jour après jour",
-    "benefitLeaderboard": "Entre sur le classement mondial",
-    "benefitHints": "Reçois 3 indices offerts pour ta première boîte",
-    "createAccount": "Créer un compte (10 s)",
-    "continueGuest": "Continuer en invité"
-  },
   "streakRisk": {
     "title": "Ta série de {{count}} jours est en danger !",
     "subtitle": "Ouvre la boîte du jour avant minuit UTC pour la prolonger.",
@@ -3073,6 +3069,10 @@
     "play": {
       "title": "Défi du jour — The Box",
       "description": "Devinez le jeu mystère du jour à partir de 10 screenshots. Plus vous répondez vite, plus vous marquez. Affrontez le classement quotidien."
+    },
+    "about": {
+      "title": "Découvrir The Box — Le défi quotidien de jeux vidéo",
+      "description": "Chaque jour, 10 screenshots de jeux vidéo à reconnaître. Score à la vitesse, séries, succès et classements. Jouez en invité, sans compte."
     },
     "leaderboard": {
       "title": "Classement — The Box",

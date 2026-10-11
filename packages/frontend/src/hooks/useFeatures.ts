@@ -1,23 +1,23 @@
 import { useEffect, useSyncExternalStore } from 'react'
+import type { FeatureFlags } from '@/lib/dailyFirst'
 
 /**
  * Runtime feature flags served by `GET /api/features`. The SPA bundle is built
  * once into the Docker image, so build-time VITE_ vars can't reflect
  * per-deployment env flips — the backend tells us which optional surfaces to
  * render.
+ *
+ * - geoCommunity: community geo surface (free play + contribution) —
+ *   GEO_COMMUNITY_ENABLED.
+ * - geogamers: GeoGamers ("Panorama") daily mode — GEOGAMERS_ENABLED.
  */
-export interface RuntimeFeatures {
-  /** Community geo surface (free play + contribution) — GEO_COMMUNITY_ENABLED. */
-  geoCommunity: boolean
-  /** GeoGamers daily mode — GEOGAMERS_ENABLED. */
-  geogamers: boolean
-}
+export type RuntimeFeatures = FeatureFlags
 
-// Optimistic defaults matching the backend flag defaults: geoCommunity ships
-// on. A deployment that turned it off hides the entries right after the
-// (cached, 60s) fetch resolves; a failed fetch keeps current behavior rather
-// than blanking navigation.
-const DEFAULT_FEATURES: RuntimeFeatures = { geoCommunity: true, geogamers: true }
+// Defaults until `/api/features` answers. geoCommunity stays optimistic (a
+// failed fetch keeps its entries rather than blanking navigation). Panorama
+// starts hidden (D5): its "NEW" entry must not flash on a deployment where
+// GEOGAMERS_ENABLED is off, which is the backend default.
+const DEFAULT_FEATURES: RuntimeFeatures = { geoCommunity: true, geogamers: false }
 
 let snapshot: RuntimeFeatures = DEFAULT_FEATURES
 let fetchStarted = false

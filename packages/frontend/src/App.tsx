@@ -20,6 +20,8 @@ import {
 import { DailyRewardModal } from '@/components/daily-login'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useAchievementStore } from '@/stores/achievementStore'
+import { useGameStore } from '@/stores/gameStore'
+import { isTodayPath } from '@/lib/dailyFirst'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
 import { useGoatCounterPageviews, useConsentedAnalytics } from '@/lib/analytics'
@@ -38,6 +40,7 @@ import {
 
 // Lazy load pages for better performance
 const HomePage = lazy(() => import('@/pages/HomePage'))
+const TodayPage = lazy(() => import('@/pages/TodayPage'))
 const GamePage = lazy(() => import('@/pages/GamePage'))
 const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage'))
 const ResultsPage = lazy(() => import('@/pages/ResultsPage'))
@@ -116,6 +119,7 @@ function LanguageLayout() {
   const location = useLocation()
   const { data: session } = useSession()
   const { fetchStatus, reset } = useDailyLoginStore()
+  const gamePhase = useGameStore((state) => state.gamePhase)
 
   // Sync i18n language with URL (must be before any early returns).
   // Also sync `<html lang>` so screen readers pick the right pronunciation.
@@ -180,7 +184,11 @@ function LanguageLayout() {
   // page keeps the global Header so the hamburger stays reachable, but hides
   // the footer to preserve an immersive in-game feel.
   const isFullscreen = /\/geo\/?$/.test(location.pathname)
-  const isInGame = location.pathname.endsWith('/play')
+  // The home route *is* the daily game now (TodayPage): while a screenshot is
+  // on screen it behaves exactly like /play.
+  const isTodayRoute = isTodayPath(location.pathname)
+  const isTodayInGame = isTodayRoute && (gamePhase === 'playing' || gamePhase === 'result')
+  const isInGame = location.pathname.endsWith('/play') || isTodayInGame
   const hideFooter = isFullscreen || isInGame
   // The BottomNav is mobile chrome — drop it on the fullscreen Geo route and
   // the in-game /play route, where it would collide with the keyboard-aware
@@ -240,7 +248,10 @@ function App() {
 
         {/* Language-prefixed routes */}
         <Route path="/:lang" element={<LanguageLayout />}>
-          <Route index element={<HomePage />} />
+          {/* Daily-first IA: the home is today's box. The former landing page
+              (hero, modes, premium and achievement teasers) moves to /about. */}
+          <Route index element={<TodayPage />} />
+          <Route path="about" element={<HomePage />} />
           <Route path="play" element={<GamePage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="results" element={<ResultsPage />} />

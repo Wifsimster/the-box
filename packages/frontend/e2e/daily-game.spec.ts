@@ -25,14 +25,13 @@ test.describe('Daily Game - Start Flow', () => {
     await loginAsUser(page)
   })
 
-  test('should display daily intro screen or game when navigating to /play', async ({ page }) => {
+  test('should display the closed box or the game when navigating to /play', async ({ page }) => {
     await page.goto('/en/play')
     await waitForGameLoad(page)
 
     // Game can be in one of two states: intro screen or already playing
-    // Check for intro screen elements
-    const introHeading = page.locator('h1, h2').filter({ hasText: /daily|challenge|quotidien/i }).first()
-    const hasIntro = await introHeading.isVisible().catch(() => false)
+    // Check for the closed box (daily-first: one "Open today's box" button)
+    const hasIntro = await page.getByTestId('today-open-box').isVisible().catch(() => false)
 
     // Or check for game playing state (progress dots, input)
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()

@@ -1,15 +1,22 @@
 import { m, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
-import { DailyIntro } from '@/components/game/TierIntro'
+import { TodayStart } from '@/components/today/TodayStart'
 import { GameErrorState } from '@/components/game/GameErrorState'
 import { ChallengeCompleteScreen } from '@/components/game/ChallengeCompleteScreen'
 import { GamePlayScreen } from '@/components/game/GamePlayScreen'
-import { GuestGateModal } from '@/components/onboarding/GuestGateModal'
 import { useDailyGame } from '@/hooks/useDailyGame'
+import { useOnline } from '@/hooks/useOnline'
 
+/**
+ * `/play`: the daily box outside the home route — catch-up of a past box
+ * (`?date=`), old links and the verification harness. Today's box normally
+ * lives on `/` (TodayPage); both share `useDailyGame` and the closed-box
+ * screen (`TodayStart`).
+ */
 export default function GamePage() {
   const { t } = useTranslation()
+  const isOnline = useOnline()
   const {
     error,
     isResetting,
@@ -30,12 +37,10 @@ export default function GamePage() {
     currentImageUrl,
     worldScore,
     isCatchUp,
-    guestGateOpen,
     handleStartGame,
     handleResetSession,
-    handleGuestContinue,
-    handleGuestCreateAccount,
   } = useDailyGame()
+  const isGuest = Boolean((session?.user as { isAnonymous?: boolean } | undefined)?.isAnonymous)
 
   return (
     <div
@@ -48,11 +53,6 @@ export default function GamePage() {
         paddingBottom: isKeyboardOpen ? keyboardHeight : 0,
       }}
     >
-      <GuestGateModal
-        open={guestGateOpen}
-        onContinueAsGuest={handleGuestContinue}
-        onCreateAccount={handleGuestCreateAccount}
-      />
       <AnimatePresence mode="wait">
         {/* Loading State - also show while waiting for hydration */}
         {(isLoading || !_hasHydrated) && gamePhase === 'idle' && (
@@ -79,14 +79,17 @@ export default function GamePage() {
           />
         )}
 
-        {/* Daily Challenge Intro Screen */}
+        {/* The closed box: one tap opens it (no intro screen, no account gate) */}
         {gamePhase === 'daily_intro' && !error && (
-          <DailyIntro
-            key="daily-intro"
+          <TodayStart
+            key="today-start"
             date={challengeDate || todayDateString}
             totalScreenshots={totalScreenshots}
-            onStart={handleStartGame}
+            isAuthenticated={Boolean(session?.user?.id) && !isGuest}
+            isOnline={isOnline}
+            isStarting={isLoading}
             isCatchUp={isCatchUp}
+            onStart={handleStartGame}
           />
         )}
 

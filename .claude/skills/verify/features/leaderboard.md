@@ -31,4 +31,4 @@ Preconditions:
 
 - **There is no socket.io push for the leaderboard.** The page fetches REST data on load (see `docs/realtime.md`). To verify "live" behavior, reload and compare.
 - Catch-up sessions and anonymous play are excluded (`leaderboard.repository.ts`).
-- The daily-reward modal can cover the page. `$C leaderboard` dismisses it before the screenshot.
+- A dialog (changelog, reward opened from the badge) can cover the page. `$C leaderboard` dismisses it before the screenshot.

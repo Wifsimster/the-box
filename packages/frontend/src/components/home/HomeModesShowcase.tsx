@@ -8,6 +8,7 @@ import { GradientIcon } from '@/components/ui/gradient-icon'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { useFeatures, type RuntimeFeatures } from '@/hooks/useFeatures'
+import { filterByFeatures } from '@/lib/dailyFirst'
 import { cn } from '@/lib/utils'
 
 interface ModeCard {
@@ -42,6 +43,7 @@ const MODES: ModeCard[] = [
     titleKey: 'common.geogamers',
     descriptionKey: 'home.modes.geogamers.description',
     badgeKey: 'common.new',
+    feature: 'geogamers',
   },
 ]
 
@@ -59,7 +61,7 @@ export function HomeModesShowcase() {
   const motionProps = (props: MotionProps): MotionProps =>
     reducedMotion ? {} : props
 
-  const modes = MODES.filter((mode) => !mode.feature || features[mode.feature])
+  const modes = filterByFeatures(MODES, features)
   if (modes.length === 0) return null
 
   return (
@@ -105,7 +107,6 @@ export function HomeModesShowcase() {
             <Link
               key={mode.key}
               to={localizedPath(mode.path)}
-              data-tour={mode.key === 'geo' ? 'geo-cta' : undefined}
               className="group relative flex flex-col overflow-hidden rounded-xl border border-neon-purple/30 bg-card/60 backdrop-blur-sm p-(--card-padding) transition-colors hover:border-neon-pink/60 active:border-neon-pink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <div

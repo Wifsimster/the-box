@@ -15,7 +15,7 @@ Players register and sign in with email and password (Better Auth). They can add
 
 - The header `Sign in` link → `/en/login`. The link to `/en/register` sits under the form.
 - The user menu (`button "e2e_user"`) → Profile → Security tab (`/en/profile?tab=security`, `data-testid=profile-tab-security`).
-- A protected route such as `/en/profile` redirects a logged-out visitor to `/en/login`. `/en/play` does not: a guest sees "You are not logged in. Your score will not be saved." and can still start the challenge.
+- A protected route such as `/en/profile` redirects a logged-out visitor to `/en/login`. `/en` and `/en/play` do not: a guest opens the box at once and is offered an account after the game.
 
 ## Driving it with control-thebox
 
@@ -36,7 +36,7 @@ Preconditions:
 - The submit button regex must be anchored (`^(log ?in|sign in)$`), or it also matches "Sign in with a passkey".
 - The auth endpoints are rate limited (see the `auth-rate-limit` spec). Repeated bad-password loops will start returning 429.
 - The fake users are inserted directly by `e2e-seed.ts` with a Better Auth-compatible scrypt hash. If Better Auth changes its hash format, `login` fails with 401 while registration still works.
-- Logging in shows the daily-login reward modal. `login` claims or closes it, which is a side effect on the fake user.
+- The daily-login reward modal no longer opens on its own: it opens from the header gift badge or the "Claim" line on the finished box. `login` still closes it if a dialog is up.
 - A CDP virtual authenticator dies with the CDP session that created it, and every `control-thebox` call opens its own session. `passkey add` therefore exports the credential (a fake key for the throwaway RP `localhost`) to `.verify-run/passkey-credentials.json`, and `passkey signin` imports it. Teardown deletes the file.
 - The server rejects a sign counter that does not increase (`verify-authentication` returns 400): this is the cloned-authenticator check. `passkey signin` saves the bumped counter after each sign-in. If you edit the credential file by hand or reuse an old copy, sign-in fails with 400. That is the product working, not a harness bug.
 - `passkey signin` checks the URL and the session. The URL changes before the login card unmounts, so the command waits for `button "Sign in with a passkey"` to detach before it takes the "after" screenshot.

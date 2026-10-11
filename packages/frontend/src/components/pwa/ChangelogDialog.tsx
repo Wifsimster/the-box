@@ -8,6 +8,7 @@ import {
   type ReactElement,
 } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Sparkles, Wrench, Zap } from 'lucide-react'
 import {
@@ -22,6 +23,8 @@ import { cn } from '@/lib/utils'
 import { useChangelogStore } from '@/stores/changelogStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
 import { useWelcomeActive } from '@/components/onboarding/welcome-storage'
+import { isTodayPath } from '@/lib/dailyFirst'
+import { IN_GAME_PATH } from './prompt-timing'
 import {
   CHANGELOG,
   CHANGELOG_SECTIONS,
@@ -72,7 +75,13 @@ export function ChangelogDialog(): ReactElement | null {
   // Queue behind the welcome and daily-reward dialogs instead of stacking.
   const welcomeActive = useWelcomeActive()
   const rewardModalOpen = useDailyLoginStore((s) => s.isModalOpen)
-  const visible = open && !welcomeActive && !rewardModalOpen
+  // Daily-first: an *automatic* opening never lands on today's box or a game
+  // in progress. It waits for the next other route (results, profile…). A
+  // manual opening from the footer chip shows right away.
+  const { pathname } = useLocation()
+  const [autoOpened, setAutoOpened] = useState(false)
+  const onTheBox = isTodayPath(pathname) || IN_GAME_PATH.test(pathname)
+  const visible = open && !welcomeActive && !rewardModalOpen && !(autoOpened && onTheBox)
 
   const release = getLatestRelease()
 
@@ -132,7 +141,10 @@ export function ChangelogDialog(): ReactElement | null {
   // "upgraded" from. Runs once on mount.
   useEffect(() => {
     const decision = resolveChangelogAutoOpen(release?.version, lastSeenVersion)
-    if (decision === 'open') openChangelog()
+    if (decision === 'open') {
+      setAutoOpened(true)
+      openChangelog()
+    }
     else if (decision === 'mark-seen' && release) markSeen(release.version)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -154,7 +166,9 @@ export function ChangelogDialog(): ReactElement | null {
   const activeEntry = CHANGELOG[activeIndex] ?? release
 
   const handleClose = (next: boolean): void => {
-    if (!next) markSeen(release.version)
+    if (next) return
+    setAutoOpened(false)
+    markSeen(release.version)
   }
 
   const formatDate = (iso: string): string => {

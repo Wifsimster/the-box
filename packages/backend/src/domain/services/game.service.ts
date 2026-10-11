@@ -484,6 +484,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
           date: yesterdayDate,
           hasPlayed: !!yesterdaySession,
           isCompleted: yesterdaySession?.is_completed,
+          // Lets the daily-first home link "your answers" for a finished box (D6).
+          sessionId: yesterdaySession?.id ?? null,
         }
         log.debug({ userId, yesterdayDate, hasPlayed: !!yesterdaySession }, 'yesterday challenge info')
       }

@@ -58,7 +58,12 @@
     "goToItem": "Go to item {{index}}",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
-    "pickMonth": "Pick a month"
+    "pickMonth": "Pick a month",
+    "today": "Today",
+    "results": "Results",
+    "about": "About The Box",
+    "otherModes": "More",
+    "rules": "How to play"
   },
   "nav": {
     "primary": "Primary navigation",
@@ -69,7 +74,9 @@
       "home": "Home",
       "play": "Play",
       "leaderboard": "Ranking",
-      "profile": "Profile"
+      "profile": "Profile",
+      "today": "Today",
+      "results": "Results"
     }
   },
   "achievements": {
@@ -363,8 +370,6 @@
         "skipped_other": "{{count}} skipped"
       }
     },
-    "dailyChallenge": "Daily Challenge",
-    "startChallenge": "Start Challenge",
     "challengeComplete": "Challenge Complete!",
     "screenshotAlt": {
       "current": "Screenshot {{position}} of {{total}}",
@@ -454,17 +459,13 @@
     "catchUpNotice": "This is a catch-up session. Your score won't appear on the leaderboard.",
     "noChallenge": "No challenge available",
     "noChallengeAvailable": "No challenge available for {{date}}. Please check back later!",
-    "guestWarning": "You are not logged in. Your score will not be saved.",
     "rules": {
       "title": "How to play",
       "screenshots": "{{count}} screenshots to guess",
-      "screenshotsShort": "{{count}} screenshots",
       "explore": "Look at the screenshot carefully",
       "guess": "Guess the video game name",
       "matchingTips": "Type the game name or subtitle (e.g. 'Skyrim'). Include the number for sequels (e.g. 'Dark Souls 3')",
       "time": "The faster you answer, the more points you earn",
-      "speedShort": "Speed = points",
-      "hintsShort": "Letter reveals",
       "quality": "All games have a Metascore of 85 or higher"
     },
     "scoring": {
@@ -652,6 +653,43 @@
         "Even screenshot ninjas fall sometimes. See you tomorrow. 💀"
       ]
     }
+  },
+  "today": {
+    "boxOf": "The {{date}} box",
+    "rules": "{{count}} screenshots · 45 s each · the faster you are, the more you score",
+    "startHint": "The clock starts when you open the box.",
+    "guestHint": "No account needed to play. You can keep your score at the end.",
+    "openCatchUp": "Open this box",
+    "streak_one": "{{count}} box in a row",
+    "streak_other": "{{count}} boxes in a row",
+    "doneTitle": "Box opened",
+    "doneScore": "{{score}} pts · {{found}}/{{total}} screenshots",
+    "nextIn": "Next box in",
+    "seeResults": "See my answers",
+    "seeRanking": "See the ranking",
+    "yesterdayTitle": "Yesterday’s box",
+    "yesterday": {
+      "answers": {
+        "body": "You finished it. Review your answers.",
+        "cta": "See my answers"
+      },
+      "resume": {
+        "body": "You didn’t finish it. Wrap it up, off the ranking.",
+        "cta": "Resume yesterday’s box"
+      },
+      "catchUp": {
+        "body": "You missed it. Catch up, off the ranking.",
+        "cta": "Open yesterday’s box"
+      }
+    },
+    "rewardReady": "Your daily reward is waiting.",
+    "rewardCta": "Claim",
+    "guestSaveTitle": "Keep your score",
+    "guestSaveBody": "Create your account in 10 s: today’s box, your streak and your rank are kept.",
+    "guestSaveCta": "Create my account",
+    "moreTitle": "Still want to play?",
+    "panoramaLine": "Panorama: guess the hidden game, then pin the scene on its map.",
+    "premiumLine": "Premium: every past box, no 7-day limit."
   },
   "leaderboard": {
     "title": "Leaderboard",
@@ -2603,48 +2641,6 @@
     "next": "Next",
     "start": "Let's go!"
   },
-  "tour": {
-    "ariaLabel": "Guided product tour",
-    "next": "Next",
-    "prev": "Back",
-    "finish": "Got it",
-    "close": "Close tour",
-    "progress": "Step {{current}} of {{total}}",
-    "replayTitle": "Replay the tour",
-    "replayDescription": "Refresh your memory of the daily challenge, geo mode, leaderboard and rewards.",
-    "replayCta": "Replay tour",
-    "steps": {
-      "play": {
-        "title": "Today's box",
-        "body": "Start here every day. Ten screenshots, one game per screenshot, the faster you guess the higher the score."
-      },
-      "geo": {
-        "title": "Geo mode (alpha)",
-        "body": "Pin a location on the world map from in-game screenshots. Casual side mode — does not affect your daily score."
-      },
-      "leaderboard": {
-        "title": "Leaderboard",
-        "body": "See your daily and monthly place. Updated live as other players close their box."
-      },
-      "dailyReward": {
-        "title": "Daily login reward",
-        "body": "Show up every day to keep your streak alive and claim hints, power-ups and cosmetics."
-      },
-      "profile": {
-        "title": "Profile & history",
-        "body": "Stats, achievements and box history live in your profile menu."
-      }
-    }
-  },
-  "guestGate": {
-    "title": "Ready to play?",
-    "subtitle": "Create an account in 10 seconds to keep your progress.",
-    "benefitStreak": "Track your winning streak day after day",
-    "benefitLeaderboard": "Enter the global leaderboard",
-    "benefitHints": "Get 3 free hints for your first box",
-    "createAccount": "Create account (10s)",
-    "continueGuest": "Continue as guest"
-  },
   "streakRisk": {
     "title": "Your {{count}}-day streak is at risk!",
     "subtitle": "Open today's box before midnight UTC to keep it alive.",
@@ -3073,6 +3069,10 @@
     "play": {
       "title": "Daily Challenge — The Box",
       "description": "Spot today's mystery game from 10 screenshots. Faster guesses score more. Compete on the daily leaderboard."
+    },
+    "about": {
+      "title": "Discover The Box — Daily Video Game Guessing Challenge",
+      "description": "Every day, 10 video game screenshots to identify. Speed-based scoring, streaks, achievements and leaderboards. Play as a guest, no account needed."
     },
     "leaderboard": {
       "title": "Leaderboard — The Box",

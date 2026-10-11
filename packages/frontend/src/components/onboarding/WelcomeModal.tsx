@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Sparkles, Gift, ArrowRight } from 'lucide-react'
 import { consumeWelcomeFlag, setWelcomeActive } from './welcome-storage'
-import { markTourCompleted, markTourPending } from './tour-storage'
 
 const STEP_KEYS = ['onboarding.step1', 'onboarding.step2', 'onboarding.step3', 'onboarding.step4'] as const
 
@@ -25,22 +24,12 @@ export function WelcomeModal() {
     return () => setWelcomeActive(false)
   }, [isOpen])
 
-  // Hand off to the interactive home tour so the user immediately sees
-  // where the daily challenge, leaderboard and rewards live.
-  const handleStart = () => {
-    setIsOpen(false)
-    markTourPending()
-  }
-
-  // "Passer" skips the whole onboarding, tour included; it stays replayable
-  // from the user menu.
-  const handleSkip = () => {
-    setIsOpen(false)
-    markTourCompleted()
-  }
+  // The guided tour is gone (daily-first, D8): both buttons just close the
+  // dialog. This modal is only mounted on /about.
+  const handleClose = () => setIsOpen(false)
 
   return (
-    <ResponsiveDialog open={isOpen} onOpenChange={(open) => { if (!open) handleStart() }}>
+    <ResponsiveDialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
       <ResponsiveDialogContent className="sm:max-w-lg">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle className="flex items-center justify-center gap-2 text-xl sm:justify-start">
@@ -77,10 +66,10 @@ export function WelcomeModal() {
         </section>
 
         <ResponsiveDialogFooter className="pt-2">
-          <Button variant="ghost" onClick={handleSkip}>
+          <Button variant="ghost" onClick={handleClose}>
             {t('onboarding.skip')}
           </Button>
-          <Button variant="gaming" size="lg" className="w-full sm:w-auto" onClick={handleStart}>
+          <Button variant="gaming" size="lg" className="w-full sm:w-auto" onClick={handleClose}>
             {t('onboarding.start')}
             <ArrowRight className="size-4" aria-hidden="true" />
           </Button>

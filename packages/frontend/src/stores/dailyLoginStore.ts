@@ -52,11 +52,11 @@ export const useDailyLoginStore = create<DailyLoginState>((set, get) => ({
             const json = await response.json()
             set({ status: json.data, isLoading: false })
 
-            // Auto-open modal if there's a reward to claim
-            // But skip for admin users
-            if (json.data.canClaim && json.data.todayReward && userRole !== 'admin') {
-                set({ isModalOpen: true })
-            }
+            // Daily-first proposal: the reward no longer auto-opens on top of
+            // today's box. It waits behind the header gift badge and the
+            // post-game card (TodayDone) instead. `userRole` is kept in the
+            // signature so callers don't change.
+            void userRole
         } catch (error) {
             console.error('Failed to fetch daily login status:', error)
             set({ isLoading: false })

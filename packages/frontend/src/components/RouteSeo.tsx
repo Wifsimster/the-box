@@ -103,6 +103,8 @@ const ROUTES: RouteDef[] = [
     jsonLd: homeJsonLd,
   },
   { match: exact('/play'), key: 'play' },
+  // The former landing page (daily-first, D7): hero, modes, Premium.
+  { match: exact('/about'), key: 'about' },
   {
     match: exact('/leaderboard'),
     key: 'leaderboard',
