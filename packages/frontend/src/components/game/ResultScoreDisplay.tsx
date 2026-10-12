@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { Clock, Zap, Target } from 'lucide-react'
+import { Clock, Zap, Target, Flame } from 'lucide-react'
 import { cn, calculateSpeedMultiplier } from '@/lib/utils'
 
 interface SpeedFeedback {
@@ -28,6 +28,8 @@ interface ResultScoreDisplayProps {
   hintPenalty?: number
   letterPenalty?: number
   wrongGuessPenalty?: number
+  streakBonus?: number
+  streak?: number
   matchPrecision?: 'exact' | 'partial'
 }
 
@@ -45,6 +47,8 @@ export function ResultScoreDisplay({
   hintPenalty,
   letterPenalty,
   wrongGuessPenalty,
+  streakBonus,
+  streak,
   matchPrecision,
 }: ResultScoreDisplayProps) {
   const { t } = useTranslation()
@@ -125,6 +129,19 @@ export function ResultScoreDisplay({
           {t('game.hints.letterPenaltyApplied', { penalty: letterPenalty })}
         </m.div>
       )}
+
+      {/* In-game streak bonus (computed server-side, already in scoreEarned) */}
+      {isCorrect && streakBonus && streakBonus > 0 && streak ? (
+        <m.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+          className="mt-2 flex items-center justify-center gap-1.5 text-score-mid text-sm font-medium"
+        >
+          <Flame className="size-4" aria-hidden="true" />
+          {t('game.streakBonus', { streak, bonus: streakBonus })}
+        </m.div>
+      ) : null}
 
       {/* Wrong Guess Penalty Display */}
       {wrongGuessPenalty && wrongGuessPenalty > 0 && !isCorrect && (

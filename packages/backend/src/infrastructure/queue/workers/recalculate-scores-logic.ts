@@ -157,6 +157,7 @@ async function recalculateSessionScore(
             'guesses.time_taken_ms',
             'guesses.power_up_used',
             'guesses.hint_from_inventory',
+            'guesses.streak_bonus',
             'guesses.score_earned as old_guess_score'
         )
         .orderBy('guesses.created_at', 'asc')
@@ -172,7 +173,10 @@ async function recalculateSessionScore(
             guess.time_taken_ms || 0,
             guess.power_up_used,
             !!guess.hint_from_inventory
-        )
+        ) + (guess.is_correct ? guess.streak_bonus || 0 : 0)
+        // The in-game streak bonus is stored per guess and re-added as is:
+        // recalculation must never strip it (nor grant it to old sessions,
+        // whose rows are 0).
         newScore += guessScore
 
         if (guessScore !== (guess.old_guess_score || 0)) {

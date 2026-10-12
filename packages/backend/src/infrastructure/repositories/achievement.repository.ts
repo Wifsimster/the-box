@@ -282,12 +282,13 @@ export class AchievementRepository {
     }
 
     async countPerfectSessions(userId: string): Promise<number> {
-        // Perfect = total_score = 2000 (10 screenshots × 200 max). Restrict
-        // to completed sessions so a mid-flight session doesn't count.
+        // Perfect = speed score 2000 (10 screenshots × 200 max), i.e. the
+        // total minus the in-game streak bonus. Restrict to completed
+        // sessions so a mid-flight session doesn't count.
         const row = await db('game_sessions')
             .where('user_id', userId)
             .where('is_completed', true)
-            .where('total_score', 2000)
+            .whereRaw('total_score - streak_bonus_total = 2000')
             .count<{ count: string }>({ count: '*' })
             .first()
         return Number(row?.count ?? 0)

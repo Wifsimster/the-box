@@ -107,7 +107,8 @@ export const playerStatsRepository: PlayerStatsRepository = {
           db.raw('MAX(total_score) as best'),
           db.raw('AVG(total_score) as avg'),
           db.raw('COUNT(*) as total'),
-          db.raw('COUNT(*) FILTER (WHERE total_score = 2000) as perfect'),
+          // Perfect = speed score 2000; the streak bonus is excluded.
+          db.raw('COUNT(*) FILTER (WHERE total_score - streak_bonus_total = 2000) as perfect'),
         )
         .first(),
 

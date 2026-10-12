@@ -36,6 +36,7 @@ import { resolveMatchPrecision, resolveRoundTimer } from './guess-validation.ser
 import {
   SECOND_CHANCE_FLOOR,
   calculateGuessScore,
+  calculateStreakBonus,
 } from './guess-scoring.service.js'
 
 export class GameError extends Error {
@@ -315,6 +316,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
     tierSession: TierSessionWithContextRecord
     newTotalScore: number
     totalScreenshotsFound: number
+    /** Streak bonus points included in newTotalScore. */
+    streakBonusTotal: number
     completionReason: 'all_found'
     screenshot: { gameId: number }
     gameName: string
@@ -327,6 +330,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
       tierSession,
       newTotalScore,
       totalScreenshotsFound,
+      streakBonusTotal,
       completionReason,
       screenshot,
       gameName,
@@ -396,6 +400,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         sessionId: tierSession.game_session_id,
         challengeId: tierSession.daily_challenge_id,
         totalScore: newTotalScore,
+        streakBonusTotal,
         guesses: allGuesses,
         gameGenres,
         currentStreak: updatedStreak.currentStreak,
@@ -882,6 +887,10 @@ export function createGameService(deps: GameServiceDeps): GameService {
     let secondChanceFloorBoost: number | undefined
     // Reported in the telemetry line below; null on a wrong guess.
     let speedMultiplier: number | null = null
+    // In-game streak: run length and bonus. Stay 0 on a wrong guess and on
+    // sessions started before the bonus shipped (no retroactive change).
+    let streak = 0
+    let streakBonus = 0
 
     // Fetch the two modifiers the scoring pipeline needs. Both are only
     // consumed on a correct guess — a miss leaves the reveal and the
@@ -905,6 +914,18 @@ export function createGameService(deps: GameServiceDeps): GameService {
         secondChanceActive = true
       }
 
+      if (tierSession.streak_bonus_enabled) {
+        const streakResult = calculateStreakBonus({
+          position: data.position,
+          firstTry: !hadPriorWrongGuess,
+          firstTrySolvedPositions: await sessionRepository.getFirstTrySolvedPositions(
+            data.tierSessionId
+          ),
+        })
+        streak = streakResult.streak
+        streakBonus = streakResult.streakBonus
+      }
+
       // The scoring pipeline itself (speed -> cap -> partial factor ->
       // letter penalty -> second-chance floor) lives in
       // guess-scoring.service.ts, where the ordering contract is documented
@@ -914,6 +935,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         effectiveTimeTakenMs,
         letterPenaltyPct,
         secondChanceActive,
+        streakBonus,
       })
       scoreEarned = breakdown.scoreEarned
       letterPenalty = breakdown.letterPenalty
@@ -967,6 +989,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
         effectiveTimeTakenMs,
         serverElapsedMs,
         speedMultiplier,
+        streak,
+        streakBonus,
         guessedGame: data.guessText,
         correctGame: gameName,
       },
@@ -992,6 +1016,9 @@ export function createGameService(deps: GameServiceDeps): GameService {
       // Persist the letter-reveal cost (already subtracted from scoreEarned)
       // so the history/recap surfaces can show it without re-deriving it.
       letterPenalty,
+      // Bonus already included in scoreEarned; stored so the admin
+      // recalculation job can add it back instead of erasing it.
+      streakBonus,
     })
 
     if (pendingSecondChanceActivationId !== null) {
@@ -1070,10 +1097,12 @@ export function createGameService(deps: GameServiceDeps): GameService {
 
     // Update game session with locked-in score (includes wrong guess penalty)
     const newTotalScore = Math.max(0, tierSession.game_total_score + scoreEarned - wrongGuessPenalty)
+    const newStreakBonusTotal = (tierSession.game_streak_bonus_total ?? 0) + streakBonus
     await sessionRepository.updateGameSession(tierSession.game_session_id, {
       totalScore: newTotalScore,
       currentPosition: nextPosition ?? data.position,
       isCompleted,
+      streakBonusTotal: streakBonus > 0 ? newStreakBonusTotal : undefined,
     })
 
     if (isCompleted) {
@@ -1083,6 +1112,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         tierSession,
         newTotalScore,
         totalScreenshotsFound,
+        streakBonusTotal: newStreakBonusTotal,
         completionReason: 'all_found',
         screenshot,
         gameName,
@@ -1103,6 +1133,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
         letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
         wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
         secondChanceFloorBoost,
+        streakBonus: streakBonus > 0 ? streakBonus : undefined,
+        streak: streak > 0 ? streak : undefined,
         matchPrecision: isCorrect ? (precision as 'exact' | 'partial') : undefined,
         newlyEarnedAchievements:
           newlyEarnedAchievements.length > 0 ? newlyEarnedAchievements : undefined,
@@ -1172,6 +1204,8 @@ export function createGameService(deps: GameServiceDeps): GameService {
       letterPenalty: letterPenalty > 0 ? letterPenalty : undefined,
       wrongGuessPenalty: wrongGuessPenalty > 0 ? wrongGuessPenalty : undefined,
       secondChanceFloorBoost,
+      streakBonus: streakBonus > 0 ? streakBonus : undefined,
+      streak: streak > 0 ? streak : undefined,
       proximityHint,
       matchPrecision: isCorrect ? (precision as 'exact' | 'partial') : undefined,
     }
@@ -1421,6 +1455,7 @@ export function createGameService(deps: GameServiceDeps): GameService {
         sessionId: sessionId,
         challengeId: session.daily_challenge_id,
         totalScore: finalScore,
+        streakBonusTotal: session.streak_bonus_total,
         guesses: allGuesses,
         gameGenres,
         currentStreak: updatedStreak.currentStreak,

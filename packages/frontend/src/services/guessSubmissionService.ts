@@ -33,6 +33,10 @@ export interface GuessSubmissionResult {
   letterPenalty?: number
   wrongGuessPenalty?: number
   secondChanceFloorBoost?: number
+  /** Streak bonus included in scoreEarned (3 / 5 / 10 first-try answers in a row). */
+  streakBonus?: number
+  /** Length of the first-try run this answer extended. */
+  streak?: number
   /** "Warmer" hint after a wrong guess that relates to the answer. */
   proximityHint?: GuessProximityHint
   /** `partial` when only the franchise was named (reduced score); else `exact`. */

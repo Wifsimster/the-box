@@ -29,6 +29,11 @@ export interface GameCompletionData {
   sessionId: string
   challengeId: number
   totalScore: number
+  /**
+   * In-game streak bonus included in totalScore. "Perfect" is judged on the
+   * speed score (totalScore minus this), which is 2000 at most.
+   */
+  streakBonusTotal?: number
   guesses: GuessData[]
   gameGenres: string[]
   currentStreak: number
@@ -188,7 +193,7 @@ export function createAchievementService(deps: AchievementServiceDeps): Achievem
     achievement: AchievementRow,
     data: GameCompletionData
   ): Promise<boolean> {
-    if (data.totalScore === 2000) {
+    if (data.totalScore - (data.streakBonusTotal ?? 0) === 2000) {
       await achievementRepository.awardAchievement(data.userId, achievement.key, 2000, 2000)
       return true
     }

@@ -560,6 +560,7 @@
     "guessCorrect": "Bonne réponse !",
     "guessIncorrect": "Mauvaise réponse. Réessaie.",
     "wrongGuessPenalty": "Pénalité de mauvaise réponse : -{{penalty}} pts",
+    "streakBonus": "{{streak}} bonnes réponses d'affilée : +{{bonus}} pts",
     "resultDialogLabel": "Résultat du round",
     "resultAnnounce": "{{outcome}}. La réponse était {{answer}}. Tu marques {{score}} points.",
     "errors": {

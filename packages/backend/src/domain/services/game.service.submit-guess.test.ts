@@ -29,7 +29,7 @@ const TOTAL_SCREENSHOTS = 10
  *     `round_position === position`, which is never cleared after a correct
  *     guess), re-banking score and inserting another correct row.
  */
-function buildHarness() {
+function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
   const guesses: Array<{
     position: number
     isCorrect: boolean
@@ -56,6 +56,9 @@ function buildHarness() {
     wrong_guesses: 0,
     game_total_score: 0,
     game_is_completed: false,
+    // Sessions started before the streak bonus shipped carry false.
+    streak_bonus_enabled: opts.streakBonusEnabled ?? false,
+    game_streak_bonus_total: 0,
   }
 
   const sessionRepository = {
@@ -87,6 +90,11 @@ function buildHarness() {
       guesses.some((g) => g.isCorrect && g.position === position),
     hasWrongGuessForPosition: async (_id: string, position: number) =>
       guesses.some((g) => !g.isCorrect && g.position === position),
+    // Mirrors the repository: solved positions with no wrong guess on them.
+    getFirstTrySolvedPositions: async () =>
+      [...new Set(guesses.filter((g) => g.isCorrect).map((g) => g.position))].filter(
+        (position) => !guesses.some((g) => !g.isCorrect && g.position === position)
+      ),
     updateTierSession: async (
       _id: string,
       data: { score: number; correctAnswers: number; wrongGuesses: number }
@@ -95,8 +103,14 @@ function buildHarness() {
       tierSession.correct_answers = data.correctAnswers
       tierSession.wrong_guesses = data.wrongGuesses
     },
-    updateGameSession: async (_id: string, data: { totalScore: number }) => {
+    updateGameSession: async (
+      _id: string,
+      data: { totalScore: number; streakBonusTotal?: number }
+    ) => {
       tierSession.game_total_score = data.totalScore
+      if (data.streakBonusTotal !== undefined) {
+        tierSession.game_streak_bonus_total = data.streakBonusTotal
+      }
     },
     findAchievementGuessData: async () => [],
   }
@@ -388,5 +402,62 @@ describe('game.service submitGuess — session / screenshot binding', () => {
       (err: unknown) => err instanceof GameError && err.code === 'SESSION_ALREADY_COMPLETED',
     )
     assert.equal(h.guesses.length, 0)
+  })
+})
+
+describe('game.service submitGuess — in-game streak bonus', () => {
+  it('adds the tier bonus server-side on a session started after the deploy', async () => {
+    const h = buildHarness({ streakBonusEnabled: true })
+    const scores: number[] = []
+    for (let pos = 1; pos <= TOTAL_SCREENSHOTS; pos++) {
+      const res = await h.submit(pos, 'right')
+      scores.push(res.scoreEarned)
+      if (pos === 3) {
+        assert.equal(res.streakBonus, 25)
+        assert.equal(res.streak, 3)
+      }
+    }
+    // 5 s rounds -> 150 each, + 25 at 3, + 50 at 5, + 100 at 10.
+    assert.deepEqual(scores, [150, 150, 175, 150, 200, 150, 150, 150, 150, 250])
+    assert.equal(h.tierSession.game_total_score, 150 * 10 + 175)
+    // Tracked separately so "perfect game" stays judged on the speed score.
+    assert.equal(h.tierSession.game_streak_bonus_total, 175)
+    // The bonus is persisted inside scoreEarned, so leaderboards (which sum
+    // stored scores) pick it up with no client involvement.
+    assert.equal(h.guesses[2]!.scoreEarned, 175)
+  })
+
+  it('does not change scoring for a session started before the deploy (no retroactive change)', async () => {
+    const h = buildHarness({ streakBonusEnabled: false })
+    for (let pos = 1; pos <= TOTAL_SCREENSHOTS; pos++) {
+      const res = await h.submit(pos, 'right')
+      assert.equal(res.scoreEarned, 150)
+      assert.equal(res.streakBonus, undefined)
+      assert.equal(res.streak, undefined)
+    }
+    assert.equal(h.tierSession.game_total_score, 1500)
+    assert.equal(h.tierSession.game_streak_bonus_total, 0)
+  })
+
+  it('a wrong guess breaks the run', async () => {
+    const h = buildHarness({ streakBonusEnabled: true })
+    await h.submit(1, 'right')
+    await h.submit(2, 'right')
+    await h.submit(3, 'nope')
+    const third = await h.submit(3, 'right')
+    assert.equal(third.streakBonus, undefined, 'not a first try: no bonus')
+    assert.equal(third.scoreEarned, 150)
+    await h.submit(4, 'right')
+    await h.submit(5, 'right')
+    const sixth = await h.submit(6, 'right')
+    assert.equal(sixth.streak, 3, 'the run restarts after the miss')
+    assert.equal(sixth.streakBonus, 25)
+  })
+
+  it('ignores any client-supplied streak fields', async () => {
+    const h = buildHarness({ streakBonusEnabled: true })
+    const res = await h.submit(1, 'right', { streakBonus: 100, streak: 10 })
+    assert.equal(res.scoreEarned, 150)
+    assert.equal(res.streakBonus, undefined)
   })
 })
