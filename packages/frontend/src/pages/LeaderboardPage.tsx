@@ -44,6 +44,8 @@ const parseMonthlyView = (value: string | null): MonthlyView =>
 
 interface BoardsState {
   daily: LeaderboardEntry[]
+  /** Guests who finished the selected day's box (never ranked). */
+  dailyGuests: number
   monthly: MonthlyLeaderboardEntry[]
   achievements: AchievementLeaderboardEntry[]
   dailyLoading: boolean
@@ -58,7 +60,7 @@ interface BoardsState {
 
 type BoardsAction =
   | { type: 'dailyStart' }
-  | { type: 'dailyLoaded'; entries: LeaderboardEntry[] }
+  | { type: 'dailyLoaded'; entries: LeaderboardEntry[]; guests: number }
   | { type: 'monthlyStart' }
   | { type: 'monthlyLoaded'; entries: MonthlyLeaderboardEntry[] }
   | { type: 'achievementsLoaded'; entries: AchievementLeaderboardEntry[] }
@@ -67,6 +69,7 @@ type BoardsAction =
 
 const initialBoards: BoardsState = {
   daily: [],
+  dailyGuests: 0,
   monthly: [],
   achievements: [],
   dailyLoading: true,
@@ -90,7 +93,7 @@ function boardsReducer(state: BoardsState, action: BoardsAction): BoardsState {
     case 'dailyStart':
       return { ...state, dailyLoading: true, dailyFailed: false }
     case 'dailyLoaded':
-      return { ...state, daily: action.entries, dailyLoading: false }
+      return { ...state, daily: action.entries, dailyGuests: action.guests, dailyLoading: false }
     case 'monthlyStart':
       return { ...state, monthlyLoading: true, monthlyFailed: false }
     case 'monthlyLoaded':
@@ -100,7 +103,7 @@ function boardsReducer(state: BoardsState, action: BoardsAction): BoardsState {
     case 'achievementsLoaded':
       return { ...state, achievements: action.entries, achievementLoading: false }
     case 'failed':
-      if (action.board === 'daily') return { ...state, daily: [], dailyLoading: false, dailyFailed: true }
+      if (action.board === 'daily') return { ...state, daily: [], dailyGuests: 0, dailyLoading: false, dailyFailed: true }
       if (action.board === 'monthly') return { ...state, monthly: [], monthlyLoading: false, monthlyFailed: true }
       return { ...state, achievements: [], achievementLoading: false, achievementFailed: true }
     default:
@@ -160,6 +163,7 @@ export default function LeaderboardPage() {
   const [boards, dispatchBoards] = useReducer(boardsReducer, initialBoards)
   const {
     daily: leaderboard,
+    dailyGuests,
     monthly: monthlyLeaderboard,
     achievements: achievementLeaderboard,
     dailyLoading: loading,
@@ -261,6 +265,7 @@ export default function LeaderboardPage() {
         dispatchBoards({
           type: 'dailyLoaded',
           entries: data.success && data.data?.entries ? data.data.entries : [],
+          guests: data.success && typeof data.data?.guestPlayers === 'number' ? data.data.guestPlayers : 0,
         })
       })
       .catch(() => {
@@ -377,6 +382,7 @@ export default function LeaderboardPage() {
           <TabsContent value="daily">
             <DailyLeaderboardPanel
               entries={leaderboard}
+              guestPlayers={dailyGuests}
               loading={loading}
               selectedDate={selectedDate}
               maxDate={today}

@@ -625,6 +625,11 @@ export interface LeaderboardResponse {
   date: string
   challengeId?: number
   entries: LeaderboardEntry[]
+  /**
+   * Guests (no account) who finished this challenge. They are never ranked,
+   * but the board says they played so it doesn't look empty.
+   */
+  guestPlayers?: number
 }
 
 export interface PercentileResponse {

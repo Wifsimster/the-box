@@ -19,6 +19,7 @@ function makeService(opts: {
   challengeForDate?: { id: number } | null
   entries?: LeaderboardEntry[]
   playerCount?: number
+  guestCount?: number
   countryPlayers?: CountryPlayerMonthStats[]
   scoreCounts?: StandingCounts
   sessionCounts?: SessionStandingCounts | null
@@ -44,6 +45,7 @@ function makeService(opts: {
       return opts.entries ?? []
     },
     countPlayersByChallenge: async () => opts.playerCount ?? 0,
+    countGuestPlayersByChallenge: async () => opts.guestCount ?? 0,
     findByMonth: async () => [],
     findCountryPlayerStatsByMonth: async () => opts.countryPlayers ?? [],
     countStandingForScore: async () => opts.scoreCounts ?? { rankedPlayers: 0, playersAbove: 0 },
@@ -89,6 +91,21 @@ describe('leaderboardService.getTodayLeader', () => {
       totalScore: 4820,
     })
     assert.equal(getLastLimit(), 1, 'should ask the repository for a single row')
+  })
+})
+
+describe('leaderboardService.getLeaderboardByDate', () => {
+  it('reports the guests who finished, next to the ranked entries', async () => {
+    const { service } = makeService({ challengeForDate: { id: 7 }, entries: [leaderEntry], guestCount: 3 })
+    const board = await service.getLeaderboardByDate('2026-10-12')
+    assert.equal(board.entries.length, 1)
+    assert.equal(board.guestPlayers, 3)
+  })
+
+  it('has no guest count when there is no challenge that day', async () => {
+    const { service } = makeService({ challengeForDate: null, guestCount: 3 })
+    const board = await service.getLeaderboardByDate('2026-10-12')
+    assert.deepEqual(board, { date: '2026-10-12', entries: [] })
   })
 })
 

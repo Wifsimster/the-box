@@ -111,6 +111,21 @@ export const leaderboardRepository = {
     return Number(result?.count ?? 0)
   },
 
+  async countGuestPlayersByChallenge(challengeId: number): Promise<number> {
+    // Same session filter as the ranked board, but for guests: they finished
+    // today's box without an account, so they stay off the board. The daily
+    // board shows the count ("+ N guests also played").
+    const result = await db('game_sessions')
+      .join('user', 'game_sessions.user_id', 'user.id')
+      .where('game_sessions.daily_challenge_id', challengeId)
+      .andWhere('game_sessions.is_completed', true)
+      .andWhere('game_sessions.is_catch_up', false)
+      .whereRaw('"user"."isAnonymous" = ?', [true])
+      .count('game_sessions.id as count')
+      .first()
+    return Number(result?.count ?? 0)
+  },
+
   async countStandingForScore(challengeId: number, score: number): Promise<StandingCounts> {
     // One statement for both counts (ranked sessions: completed, not
     // catch-up, not anonymous), so rank and total come from the same

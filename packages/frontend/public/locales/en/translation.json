@@ -687,6 +687,8 @@
     "guestSaveTitle": "Keep your score",
     "guestSaveBody": "Create your account in 10 s: today’s box, your streak and your rank are kept.",
     "guestSaveCta": "Create my account",
+    "guestRankTitle": "You’d be #{{rank}} of {{total}} today",
+    "guestRankBody": "Create your account in 10 s to show up on the leaderboard: your score, today’s box and your streak are kept.",
     "moreTitle": "Still want to play?",
     "panoramaLine": "Panorama: guess the hidden game, then pin the scene on its map.",
     "premiumLine": "Premium: every past box, no 7-day limit."
@@ -694,6 +696,8 @@
   "leaderboard": {
     "title": "Leaderboard",
     "subtitle": "The screenshot ninjas, ranked by score.",
+    "guestPlayers_one": "+ {{count}} guest also played without an account, so they’re not ranked.",
+    "guestPlayers_other": "+ {{count}} guests also played without an account, so they’re not ranked.",
     "today": "Today",
     "allTime": "All Time",
     "rank": "Rank",

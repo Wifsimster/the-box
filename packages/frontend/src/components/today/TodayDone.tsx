@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays, Clock, Crosshair, Flame, Gift, ListChecks, Sparkles, Trophy, UserPlus } from 'lucide-react'
+import { CalendarDays, Clock, Crosshair, Flame, Gift, ListChecks, Sparkles, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ShareCard } from '@/components/game/ShareCard'
+import { GuestSaveCard } from '@/components/today/GuestSaveCard'
 import { gameApi } from '@/lib/api/game'
 import { mergeSessionResults } from '@/lib/sessionResults'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -142,20 +143,7 @@ export function TodayDone({ isGuest, streak }: TodayDoneProps) {
         </CardContent>
       </Card>
 
-      {isGuest && (
-        <Card variant="warning">
-          <CardContent className="flex flex-col gap-3 pt-(--card-padding) sm:flex-row sm:items-center">
-            <UserPlus className="size-6 shrink-0 text-warning" aria-hidden="true" />
-            <div className="flex-1 space-y-1">
-              <h2 className="font-semibold text-foreground">{t('today.guestSaveTitle')}</h2>
-              <p className="text-sm text-muted-foreground">{t('today.guestSaveBody')}</p>
-            </div>
-            <Button variant="gaming" asChild>
-              <Link to={localizedPath('/register')}>{t('today.guestSaveCta')}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {isGuest && <GuestSaveCard rank={rank} totalPlayers={totalPlayers} />}
 
       {canClaim && !isGuest && (
         <Card>
