@@ -687,6 +687,8 @@
     "guestSaveTitle": "Garde ton score",
     "guestSaveBody": "Crée ton compte en 10 s : ta boîte du jour, ta série et ta place au classement sont conservées.",
     "guestSaveCta": "Créer mon compte",
+    "guestRankTitle": "Tu serais n°{{rank}} sur {{total}} aujourd’hui",
+    "guestRankBody": "Crée ton compte en 10 s pour apparaître au classement : ton score, ta boîte du jour et ta série sont conservés.",
     "moreTitle": "Encore envie de jouer ?",
     "panoramaLine": "Panorama : devine le jeu caché, puis place la scène sur sa carte.",
     "premiumLine": "Premium : toutes les boîtes passées, sans limite de 7 jours."
@@ -694,6 +696,8 @@
   "leaderboard": {
     "title": "Classement",
     "subtitle": "Les ninjas du screenshot, classés par score.",
+    "guestPlayers_one": "+ {{count}} invité a aussi joué, sans compte : il n’est pas classé.",
+    "guestPlayers_other": "+ {{count}} invités ont aussi joué, sans compte : ils ne sont pas classés.",
     "today": "Aujourd'hui",
     "allTime": "Tout temps",
     "rank": "Rang",

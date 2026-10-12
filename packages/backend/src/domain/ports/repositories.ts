@@ -707,6 +707,8 @@ export interface LeaderboardRepository {
   findSessionStandingCounts(sessionId: string, userId: string): Promise<SessionStandingCounts | null>
   /** Total ranked players (completed, non-catch-up, non-anonymous) for a challenge. */
   countPlayersByChallenge(challengeId: number): Promise<number>
+  /** Guests (anonymous users) who finished a challenge, catch-up excluded. Never ranked. */
+  countGuestPlayersByChallenge(challengeId: number): Promise<number>
   findByMonth(year: number, month: number, limit?: number): Promise<MonthlyLeaderboardEntry[]>
   /**
    * Per-player ranked totals for a month, for players who declared a

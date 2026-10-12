@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import { useGameStore } from '@/stores/gameStore'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { notifyAchievementsUnlocked } from '@/lib/achievementToasts'
-import { CalendarCheck, Award, Play, Inbox, UserPlus } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { CalendarCheck, Award, Play, Inbox } from 'lucide-react'
+import { GuestSaveCard } from '@/components/today/GuestSaveCard'
 import { useSession } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
@@ -139,22 +139,10 @@ export default function ResultsPage() {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 md:py-12 lg:px-8">
       {/* Daily-first proposal: the account ask moved from before the first
-          screenshot to here, once the guest has a score worth keeping. The
-          backend carries the guest's box over on signup (onLinkAccount). */}
-      {isGuest && (
-        <Card variant="warning" className="mb-6">
-          <CardContent className="flex flex-col gap-3 pt-(--card-padding) sm:flex-row sm:items-center">
-            <UserPlus className="size-6 shrink-0 text-warning" aria-hidden="true" />
-            <div className="flex-1 space-y-1">
-              <h2 className="font-semibold text-foreground">{t('today.guestSaveTitle')}</h2>
-              <p className="text-sm text-muted-foreground">{t('today.guestSaveBody')}</p>
-            </div>
-            <Button variant="gaming" asChild>
-              <Link to={localizedPath('/register')}>{t('today.guestSaveCta')}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          screenshot to here, once the guest has a score worth keeping, and
+          says where that score would rank. The backend carries the guest's
+          box over on signup (onLinkAccount). */}
+      {isGuest && <GuestSaveCard rank={rank} totalPlayers={totalPlayers} className="mb-6" />}
       <SessionDetails
         results={results}
         totalScore={displayTotalScore}

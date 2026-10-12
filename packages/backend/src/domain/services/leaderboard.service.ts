@@ -87,12 +87,16 @@ export function createLeaderboardService(deps: LeaderboardServiceDeps): Leaderbo
         }
       }
 
-      const entries = await leaderboardRepository.findByChallenge(challenge.id)
+      const [entries, guestPlayers] = await Promise.all([
+        leaderboardRepository.findByChallenge(challenge.id),
+        leaderboardRepository.countGuestPlayersByChallenge(challenge.id),
+      ])
 
       return {
         date: today,
         challengeId: challenge.id,
         entries,
+        guestPlayers,
       }
     },
 
@@ -111,12 +115,16 @@ export function createLeaderboardService(deps: LeaderboardServiceDeps): Leaderbo
         }
       }
 
-      const entries = await leaderboardRepository.findByChallenge(challenge.id)
+      const [entries, guestPlayers] = await Promise.all([
+        leaderboardRepository.findByChallenge(challenge.id),
+        leaderboardRepository.countGuestPlayersByChallenge(challenge.id),
+      ])
 
       return {
         date,
         challengeId: challenge.id,
         entries,
+        guestPlayers,
       }
     },
 

@@ -379,6 +379,7 @@ function Board({
 
 export function DailyLeaderboardPanel({
   entries,
+  guestPlayers = 0,
   loading,
   selectedDate,
   maxDate,
@@ -393,6 +394,8 @@ export function DailyLeaderboardPanel({
   onPlayerClick,
 }: {
   entries: LeaderboardEntry[]
+  /** Guests who finished that day's box: never ranked, only counted. */
+  guestPlayers?: number
   loading: boolean
   selectedDate: Date
   maxDate: Date
@@ -453,6 +456,15 @@ export function DailyLeaderboardPanel({
           currentUserId={currentUserId}
           onRowClick={(index) => onPlayerClick(entries[index])}
         />
+      )}
+
+      {/* Guests play without an account and stay off the board; saying they
+          played keeps a one-row board from reading as "nobody played". */}
+      {!loading && !failed && guestPlayers > 0 && (
+        <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+          <Users className="size-4 shrink-0" aria-hidden="true" />
+          {t('leaderboard.guestPlayers', { count: guestPlayers })}
+        </p>
       )}
     </>
   )
