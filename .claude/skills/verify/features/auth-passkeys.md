@@ -13,7 +13,7 @@ Players register and sign in with email and password (Better Auth). They can add
 
 ## How to get to it (user POV)
 
-- The header `Sign in` link → `/en/login`. The link to `/en/register` sits under the form.
+- The header `Login` link → `/en/login`. The link to `/en/register` sits under the form.
 - The user menu (`button "e2e_user"`) → Profile → Security tab (`/en/profile?tab=security`, `data-testid=profile-tab-security`).
 - A protected route such as `/en/profile` redirects a logged-out visitor to `/en/login`. `/en` and `/en/play` do not: a guest opens the box at once and is offered an account after the game.
 

@@ -12,7 +12,7 @@ Players can subscribe to The Box Premium (monthly or annual) or become a lifetim
 
 ## How to get to it (user POV)
 
-- The header navigation link `Premium` (`/en/premium`, also `/fr/abonnement`).
+- The footer link `Premium` (`/en/premium`, also `/fr/abonnement`). The header navigation no longer has one: it shows only `Today` and `Results`.
 - Profile → Subscription tab (`/en/profile?tab=subscription`).
 
 ## Driving it with control-thebox
