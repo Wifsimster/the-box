@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
@@ -83,12 +83,17 @@ function NavItemLink({
           // Hover is a colour change only on desktop; the drawer keeps a
           // full-width surface because its rows are touch targets.
           variant === 'drawer' && !isActive && 'hover:bg-muted',
-          // Non-text active indicators: a straight bar under the label on
-          // desktop, a tinted surface in the drawer — both readable without
-          // relying on colour.
+          // Desktop hover hint: a faint bar grows from the centre under the
+          // label. The active bar itself is <NavActiveIndicator>, which slides
+          // between links.
           variant === 'desktop' &&
-            isActive &&
-            'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary',
+            !isActive &&
+            [
+              'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-foreground/25',
+              'after:origin-center after:scale-x-0 hover:after:scale-x-100 focus-visible:after:scale-x-100',
+              'after:transition-transform after:duration-200 after:ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:after:transition-none',
+            ],
+          // Non-text active indicator in the drawer: a tinted surface.
           variant === 'drawer' && isActive && 'bg-primary/10',
         )
       }
@@ -104,6 +109,88 @@ function NavItemLink({
         </Badge>
       )}
     </NavLink>
+  )
+}
+
+/** Horizontal inset of the bar inside a link: matches the link's `px-3`. */
+const INDICATOR_INSET_PX = 12
+
+/**
+ * The active-link bar of the desktop nav. One element for the whole nav, so
+ * on navigation it slides from the old link to the new one instead of
+ * blinking. Position comes from the link carrying `aria-current="page"`
+ * (set by NavLink); a ResizeObserver keeps it right when the labels change
+ * width (language switch, web-font swap). The first placement is not
+ * animated, and `prefers-reduced-motion` drops the slide.
+ */
+function NavActiveIndicator() {
+  const { pathname } = useLocation()
+  // Own ref, not the nav's: a child's layout effect runs before its parent's
+  // ref is attached, so a ref passed down from <nav> is still null on mount.
+  const barRef = useRef<HTMLSpanElement>(null)
+  const [bar, setBar] = useState<{ x: number; width: number } | null>(null)
+  const [animate, setAnimate] = useState(false)
+
+  useLayoutEffect(() => {
+    const nav = barRef.current?.parentElement
+    if (!nav) return
+    const placeOn = (link: HTMLElement | null) =>
+      setBar(
+        link
+          ? {
+              x: link.offsetLeft + INDICATOR_INSET_PX,
+              width: Math.max(link.offsetWidth - INDICATOR_INSET_PX * 2, 0),
+            }
+          : null,
+      )
+    const measure = () => placeOn(nav.querySelector<HTMLElement>('a[aria-current="page"]'))
+    // Move on click, not when the route commits: the router holds the old
+    // location until the lazy page has loaded, which would make the bar lag
+    // behind the tap. The aria-current measure confirms it afterwards.
+    const onClick = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      const link = (event.target as Element | null)?.closest<HTMLElement>('a')
+      if (link && nav.contains(link)) placeOn(link)
+    }
+    nav.addEventListener('click', onClick)
+    measure()
+    // Resize: label width changes (language switch, web-font swap).
+    // Mutation: NavLink moves aria-current after the links re-render without
+    // a pathname change (e.g. the language prefix resolving after mount).
+    const resizeObserver = new ResizeObserver(measure)
+    resizeObserver.observe(nav)
+    const mutationObserver = new MutationObserver(measure)
+    mutationObserver.observe(nav, { subtree: true, childList: true, attributeFilter: ['aria-current'] })
+    return () => {
+      resizeObserver.disconnect()
+      mutationObserver.disconnect()
+      nav.removeEventListener('click', onClick)
+    }
+  }, [pathname])
+
+  // Enable the transition only after the first placement has painted.
+  useEffect(() => {
+    if (bar && !animate) {
+      const id = requestAnimationFrame(() => setAnimate(true))
+      return () => cancelAnimationFrame(id)
+    }
+  }, [bar, animate])
+
+  return (
+    <span
+      ref={barRef}
+      aria-hidden="true"
+      className={cn(
+        'pointer-events-none absolute bottom-0 left-0 h-0.5 rounded-full bg-primary',
+        animate &&
+          'transition-[transform,width,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none',
+      )}
+      style={{
+        width: bar?.width ?? 0,
+        transform: `translateX(${bar?.x ?? 0}px)`,
+        opacity: bar ? 1 : 0,
+      }}
+    />
   )
 }
 
@@ -433,12 +520,16 @@ export function Header() {
           <BrandLockup onNavigate={() => setMobileMenuOpen(false)} />
 
           {/* Desktop primary navigation — shown at md and up */}
-          <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 md:flex lg:gap-2">
+          <nav
+            aria-label={t('nav.primary')}
+            className="relative hidden items-center gap-1 md:flex lg:gap-2"
+          >
             {/* Daily-first: only today's box and the results. Panorama and
                 Premium are secondary (account menu, post-game loop, footer). */}
             {primaryNav.map((item) => (
               <NavItemLink key={item.key} item={item} variant="desktop" />
             ))}
+            <NavActiveIndicator />
           </nav>
         </div>
 
