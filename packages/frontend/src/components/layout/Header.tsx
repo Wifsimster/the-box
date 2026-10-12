@@ -72,17 +72,23 @@ function NavItemLink({
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm transition-colors',
+          'relative inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm transition-colors',
           'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           variant === 'drawer' && 'w-full justify-start',
           isActive
             ? 'font-semibold text-primary'
             : accent
-              ? 'font-medium text-neon-pink hover:bg-muted hover:text-neon-pink/80'
-              : 'font-medium text-foreground/80 hover:bg-muted hover:text-foreground',
-          // Non-text active indicators: an inset underline on desktop, a tinted
-          // surface in the drawer — both readable without relying on colour.
-          variant === 'desktop' && isActive && 'shadow-[inset_0_-2px_0_0_var(--color-primary)]',
+              ? 'font-medium text-neon-pink hover:text-neon-pink/80'
+              : 'font-medium text-foreground/70 hover:text-foreground',
+          // Hover is a colour change only on desktop; the drawer keeps a
+          // full-width surface because its rows are touch targets.
+          variant === 'drawer' && !isActive && 'hover:bg-muted',
+          // Non-text active indicators: a straight bar under the label on
+          // desktop, a tinted surface in the drawer — both readable without
+          // relying on colour.
+          variant === 'desktop' &&
+            isActive &&
+            'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary',
           variant === 'drawer' && isActive && 'bg-primary/10',
         )
       }
