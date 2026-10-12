@@ -11,7 +11,14 @@ import { gdprRepository } from '../../infrastructure/repositories/gdpr.repositor
 import { isDisplayNameSafe } from '../../domain/services/display-name-safety.js'
 import type { CountryCode } from '@the-box/types'
 import { parseCountryInput } from './country-input.js'
-import { avatarUpload, getAvatarUrl, deleteAvatarFile } from '../middleware/upload.middleware.js'
+import {
+  avatarUploadSingle,
+  avatarsPath,
+  getAvatarUrl,
+  deleteAvatarFile,
+} from '../middleware/upload.middleware.js'
+import { createAvatarUploadHandler } from './avatar-upload.handler.js'
+import { normalizeAvatarImage } from '../../infrastructure/images/avatar-image.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { getStripe, isStripeConfigured } from '../../infrastructure/stripe/stripe.client.js'
 import { PREMIUM_THEME_KEYS, DEFAULT_THEME_KEY, isValidThemeKey } from '../../config/themes.js'
@@ -110,39 +117,22 @@ router.get('/history/:sessionId', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Upload avatar
-router.post('/avatar', authMiddleware, avatarUpload.single('avatar'), async (req, res, next) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'NO_FILE', message: 'No file uploaded' },
-      })
-    }
-
-    // Get current user to check for existing avatar
-    const currentUser = await userRepository.findById(req.userId!)
-    const oldAvatarUrl = currentUser?.avatarUrl
-
-    // Update user with new avatar URL
-    const avatarUrl = getAvatarUrl(req.file.filename)
-    const updatedUser = await userRepository.updateAvatarUrl(req.userId!, avatarUrl)
-
-    // Delete old avatar file if it exists and is a local upload
-    if (oldAvatarUrl) {
-      await deleteAvatarFile(oldAvatarUrl)
-    }
-
-    logger.info({ userId: req.userId, avatarUrl }, 'avatar uploaded')
-
-    res.json({
-      success: true,
-      data: updatedUser,
-    })
-  } catch (error) {
-    next(error)
-  }
-})
+// Upload avatar. The raw upload is re-encoded to a 512x512 WebP (EXIF
+// orientation applied, metadata stripped) before it is stored.
+router.post(
+  '/avatar',
+  authMiddleware,
+  avatarUploadSingle,
+  createAvatarUploadHandler({
+    avatarsDir: avatarsPath,
+    normalizeImage: normalizeAvatarImage,
+    findCurrentAvatarUrl: async (userId) => (await userRepository.findById(userId))?.avatarUrl,
+    updateAvatarUrl: (userId, avatarUrl) => userRepository.updateAvatarUrl(userId, avatarUrl),
+    deleteAvatarFile,
+    toAvatarUrl: getAvatarUrl,
+    onUploaded: (userId, avatarUrl) => logger.info({ userId, avatarUrl }, 'avatar uploaded'),
+  })
+)
 
 // Update email marketing consent. Opt-in only — the checkbox on
 // signup/settings posts here to record the user's explicit choice.

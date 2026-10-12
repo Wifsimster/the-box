@@ -2577,11 +2577,19 @@
       "selectImage": "Choisir une image",
       "upload": "Télécharger",
       "remove": "Supprimer",
-      "sizeHint": "JPEG, PNG, GIF ou WebP. Max 10 Mo.",
+      "sizeHint": "JPEG, PNG, GIF ou WebP, 10 Mo max. Ton avatar est enregistré en 512 × 512 px.",
       "invalidType": "Type de fichier invalide. Seuls les formats JPEG, PNG, GIF et WebP sont autorisés.",
       "fileTooLarge": "Le fichier est trop volumineux. La taille maximum est de 10 Mo.",
       "uploadError": "Échec du téléchargement de l'avatar. Réessaie.",
-      "deleteError": "Échec de la suppression de l'avatar. Réessaie."
+      "deleteError": "Échec de la suppression de l'avatar. Réessaie.",
+      "cropDescription": "Fais glisser l'image pour la cadrer dans le cercle, puis zoome si besoin.",
+      "cropArea": "Zone de recadrage. Fais glisser l'image ou utilise les flèches du clavier pour la déplacer.",
+      "cropAreaRole": "recadrage",
+      "zoom": "Zoom",
+      "zoomValue": "{{value}} %",
+      "reset": "Réinitialiser",
+      "chooseAnother": "Changer d'image",
+      "unreadableImage": "Cette image est illisible. Essaie avec un autre fichier."
     },
     "memberSince": "Ninja du screenshot depuis le {{date}}"
   },

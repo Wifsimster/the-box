@@ -2577,11 +2577,19 @@
       "selectImage": "Choose an image",
       "upload": "Upload",
       "remove": "Remove",
-      "sizeHint": "JPEG, PNG, GIF or WebP. Max 10MB.",
+      "sizeHint": "JPEG, PNG, GIF or WebP, 10 MB max. Your avatar is saved at 512 × 512 px.",
       "invalidType": "Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.",
       "fileTooLarge": "File is too large. Maximum size is 10MB.",
       "uploadError": "Failed to upload avatar. Please try again.",
-      "deleteError": "Failed to remove avatar. Please try again."
+      "deleteError": "Failed to remove avatar. Please try again.",
+      "cropDescription": "Drag the image to frame it in the circle, then zoom if you need to.",
+      "cropArea": "Crop area. Drag the image or use the arrow keys to move it.",
+      "cropAreaRole": "crop",
+      "zoom": "Zoom",
+      "zoomValue": "{{value}}%",
+      "reset": "Reset",
+      "chooseAnother": "Change image",
+      "unreadableImage": "This image can't be read. Try another file."
     },
     "memberSince": "Screenshot ninja since {{date}}"
   },

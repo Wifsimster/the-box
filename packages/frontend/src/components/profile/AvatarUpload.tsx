@@ -1,5 +1,6 @@
-import { useReducer, useRef, useCallback } from 'react'
+import { lazy, Suspense, useEffect, useReducer, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { Point } from 'react-easy-crop'
 import { Camera, Upload, Trash2, Loader2 } from 'lucide-react'
 import {
   ResponsiveDialog,
@@ -12,8 +13,12 @@ import {
 } from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { userApi } from '@/lib/api/user'
+import { UserApiError, userApi } from '@/lib/api/user'
+import { AVATAR_MIN_ZOOM, renderAvatarCrop, type PixelArea } from '@/lib/avatarCrop'
 import { cn } from '@/lib/utils'
+
+// react-easy-crop only ships once a player has picked a file.
+const AvatarCropStep = lazy(() => import('./AvatarCropStep'))
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string | null
@@ -24,14 +29,19 @@ interface AvatarUploadProps {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const INITIAL_CROP: Point = { x: 0, y: 0 }
 
 interface AvatarUploadState {
   open: boolean
   isUploading: boolean
   isDeleting: boolean
   error: string | null
-  preview: string | null
-  selectedFile: File | null
+  /** Object URL of the picked file, shown in the crop step. */
+  source: string | null
+  crop: Point
+  zoom: number
+  /** Latest crop, in natural image pixels, reported by the cropper. */
+  cropArea: PixelArea | null
 }
 
 type AvatarUploadAction =
@@ -39,8 +49,11 @@ type AvatarUploadAction =
   | { type: 'closed' }
   | { type: 'reset' }
   | { type: 'error'; message: string }
-  | { type: 'fileSelected'; file: File; preview: string }
-  | { type: 'previewReady'; preview: string }
+  | { type: 'fileSelected'; source: string }
+  | { type: 'cropChanged'; crop: Point }
+  | { type: 'zoomChanged'; zoom: number }
+  | { type: 'cropAreaChanged'; area: PixelArea }
+  | { type: 'cropReset' }
   | { type: 'uploadStarted' }
   | { type: 'uploadFinished' }
   | { type: 'deleteStarted' }
@@ -51,8 +64,10 @@ const initialAvatarUploadState: AvatarUploadState = {
   isUploading: false,
   isDeleting: false,
   error: null,
-  preview: null,
-  selectedFile: null,
+  source: null,
+  crop: INITIAL_CROP,
+  zoom: AVATAR_MIN_ZOOM,
+  cropArea: null,
 }
 
 // State cleared whenever the dialog closes or the user cancels a selection.
@@ -60,8 +75,10 @@ const clearedAvatarUploadState: Omit<AvatarUploadState, 'open'> = {
   isUploading: false,
   isDeleting: false,
   error: null,
-  preview: null,
-  selectedFile: null,
+  source: null,
+  crop: INITIAL_CROP,
+  zoom: AVATAR_MIN_ZOOM,
+  cropArea: null,
 }
 
 function avatarUploadReducer(
@@ -84,13 +101,18 @@ function avatarUploadReducer(
       }
     case 'fileSelected':
       return {
-        ...state,
-        error: null,
-        selectedFile: action.file,
-        preview: action.preview,
+        ...clearedAvatarUploadState,
+        open: state.open,
+        source: action.source,
       }
-    case 'previewReady':
-      return { ...state, preview: action.preview }
+    case 'cropChanged':
+      return { ...state, crop: action.crop }
+    case 'zoomChanged':
+      return { ...state, zoom: action.zoom }
+    case 'cropAreaChanged':
+      return { ...state, cropArea: action.area }
+    case 'cropReset':
+      return { ...state, crop: INITIAL_CROP, zoom: AVATAR_MIN_ZOOM }
     case 'uploadStarted':
       return { ...state, isUploading: true, error: null }
     case 'uploadFinished':
@@ -104,6 +126,12 @@ function avatarUploadReducer(
   }
 }
 
+const UPLOAD_ERROR_KEYS: Record<string, string> = {
+  INVALID_IMAGE: 'profile.avatar.unreadableImage',
+  INVALID_FILE_TYPE: 'profile.avatar.invalidType',
+  FILE_TOO_LARGE: 'profile.avatar.fileTooLarge',
+}
+
 export function AvatarUpload({
   currentAvatarUrl,
   userName,
@@ -115,8 +143,14 @@ export function AvatarUpload({
     avatarUploadReducer,
     initialAvatarUploadState,
   )
-  const { open, isUploading, isDeleting, error, preview, selectedFile } = state
+  const { open, isUploading, isDeleting, error, source, crop, zoom, cropArea } = state
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Release the object URL once it is no longer displayed.
+  useEffect(() => {
+    if (!source) return
+    return () => URL.revokeObjectURL(source)
+  }, [source])
 
   const resetState = useCallback(() => {
     dispatch({ type: 'reset' })
@@ -128,6 +162,8 @@ export function AvatarUpload({
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    // Allow picking the same file again after a cancel.
+    event.target.value = ''
     if (!file) return
 
     // Validate file type
@@ -142,31 +178,29 @@ export function AvatarUpload({
       return
     }
 
-    // Create preview, then record the selection once it's ready.
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      dispatch({
-        type: 'fileSelected',
-        file,
-        preview: e.target?.result as string,
-      })
-    }
-    reader.readAsDataURL(file)
+    dispatch({ type: 'fileSelected', source: URL.createObjectURL(file) })
   }
 
+  const handleImageError = useCallback(() => {
+    dispatch({ type: 'reset' })
+    dispatch({ type: 'error', message: t('profile.avatar.unreadableImage') })
+  }, [t])
+
   const handleUpload = async () => {
-    if (!selectedFile) return
+    if (!source || !cropArea) return
 
     dispatch({ type: 'uploadStarted' })
 
     try {
-      const updatedUser = await userApi.uploadAvatar(selectedFile)
+      const file = await renderAvatarCrop(source, cropArea)
+      const updatedUser = await userApi.uploadAvatar(file)
       onAvatarChange(updatedUser.avatarUrl ?? null)
       dispatch({ type: 'closed' })
     } catch (err) {
+      const key = err instanceof UserApiError ? UPLOAD_ERROR_KEYS[err.code] : undefined
       dispatch({
         type: 'error',
-        message: err instanceof Error ? err.message : t('profile.avatar.uploadError'),
+        message: t(key ?? 'profile.avatar.uploadError'),
       })
     } finally {
       dispatch({ type: 'uploadFinished' })
@@ -194,7 +228,7 @@ export function AvatarUpload({
     fileInputRef.current?.click()
   }
 
-  const displayAvatar = preview || currentAvatarUrl
+  const isCropping = source !== null
 
   return (
     <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
@@ -206,7 +240,7 @@ export function AvatarUpload({
         >
           <Avatar className="size-24 sm:size-32 border-4 border-primary/20 shadow-xl transition-colors duration-200 group-hover:border-primary/40">
             <AvatarImage
-              src={displayAvatar || undefined}
+              src={currentAvatarUrl || undefined}
               alt={userName || 'User'}
             />
             <AvatarFallback className="text-2xl sm:text-3xl font-bold bg-linear-to-br from-primary/20 to-primary/5 text-primary">
@@ -226,20 +260,57 @@ export function AvatarUpload({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>{t('profile.avatar.title')}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {t('profile.avatar.description')}
+            {isCropping ? t('profile.avatar.cropDescription') : t('profile.avatar.description')}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-2 sm:py-4">
-          <Avatar className="size-28 sm:size-32 border-4 border-primary/20 shadow-xl">
-            <AvatarImage
-              src={displayAvatar || undefined}
-              alt={userName || 'User'}
-            />
-            <AvatarFallback className="text-3xl font-bold bg-linear-to-br from-primary/20 to-primary/5 text-primary">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
+          {isCropping ? (
+            <Suspense
+              fallback={
+                <div className="flex aspect-square w-full max-w-[min(20rem,42dvh)] items-center justify-center rounded-lg bg-muted">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                  <span className="sr-only">{t('common.loading')}</span>
+                </div>
+              }
+            >
+              <AvatarCropStep
+                image={source}
+                crop={crop}
+                zoom={zoom}
+                disabled={isUploading}
+                onCropChange={(next) => dispatch({ type: 'cropChanged', crop: next })}
+                onZoomChange={(next) => dispatch({ type: 'zoomChanged', zoom: next })}
+                onCropAreaChange={(area) => dispatch({ type: 'cropAreaChanged', area })}
+                onReset={() => dispatch({ type: 'cropReset' })}
+                onChooseAnother={triggerFileInput}
+                onImageError={handleImageError}
+              />
+            </Suspense>
+          ) : (
+            <>
+              <Avatar className="size-28 sm:size-32 border-4 border-primary/20 shadow-xl">
+                <AvatarImage
+                  src={currentAvatarUrl || undefined}
+                  alt={userName || 'User'}
+                />
+                <AvatarFallback className="text-3xl font-bold bg-linear-to-br from-primary/20 to-primary/5 text-primary">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={triggerFileInput}
+                disabled={isUploading || isDeleting}
+                className="w-full"
+              >
+                <Upload aria-hidden="true" />
+                {t('profile.avatar.selectImage')}
+              </Button>
+            </>
+          )}
 
           <input
             ref={fileInputRef}
@@ -250,17 +321,6 @@ export function AvatarUpload({
             aria-label={t('profile.avatar.selectFile')}
           />
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={triggerFileInput}
-            disabled={isUploading || isDeleting}
-            className="w-full"
-          >
-            <Upload aria-hidden="true" />
-            {t('profile.avatar.selectImage')}
-          </Button>
-
           {error && (
             <p role="alert" className="text-sm text-destructive text-center">{error}</p>
           )}
@@ -270,8 +330,8 @@ export function AvatarUpload({
           </p>
         </div>
 
-        <ResponsiveDialogFooter className={cn(selectedFile ? 'sm:justify-between' : '')}>
-          {currentAvatarUrl && !selectedFile && (
+        <ResponsiveDialogFooter className={cn(isCropping ? 'sm:justify-between' : '')}>
+          {currentAvatarUrl && !isCropping && (
             <Button
               type="button"
               variant="destructive"
@@ -288,7 +348,7 @@ export function AvatarUpload({
             </Button>
           )}
 
-          {selectedFile && (
+          {isCropping && (
             <>
               <Button
                 type="button"
@@ -302,7 +362,7 @@ export function AvatarUpload({
               <Button
                 type="button"
                 onClick={handleUpload}
-                disabled={isUploading}
+                disabled={isUploading || !cropArea}
                 className="w-full sm:w-auto"
               >
                 {isUploading ? (
