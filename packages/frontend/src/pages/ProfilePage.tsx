@@ -2,6 +2,7 @@ import { useEffect, useReducer, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
+import { useSession } from '@/lib/auth-client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useAchievementStore } from '@/stores/achievementStore'
 import { useDailyLoginStore } from '@/stores/dailyLoginStore'
@@ -101,9 +102,16 @@ export default function ProfilePage() {
     }
   }, [session?.user?.id, fetchInventory])
 
-  const handleAvatarChange = useCallback((newAvatarUrl: string | null) => {
-    setAvatarOverride(newAvatarUrl)
-  }, [])
+  // The header reads the avatar from the session: refetch it so the new
+  // avatar shows there too, without a reload.
+  const { refetch: refetchSession } = useSession()
+  const handleAvatarChange = useCallback(
+    (newAvatarUrl: string | null) => {
+      setAvatarOverride(newAvatarUrl)
+      void refetchSession()
+    },
+    [refetchSession],
+  )
 
   const handleProfileUpdated = useCallback((updated: UserType) => {
     dispatchProfileData({ type: 'fetchSuccess', userProfile: updated })

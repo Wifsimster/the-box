@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Sheet,
   SheetContent,
@@ -409,6 +410,8 @@ export function Header() {
   const showAuthButtons = !hasValidSession || isGuest
   const isAdmin = session?.user?.role === 'admin'
   const displayName = session?.user?.name || session?.user?.email?.split('@')[0]
+  // Uploaded avatar, exposed on the session (Better Auth additional field).
+  const avatarUrl = (session?.user as { avatarUrl?: string | null } | undefined)?.avatarUrl ?? null
   const isSignedIn = Boolean(hasValidSession) && !isPending && !isGuest
   const { pathname } = useLocation()
   const isOnAuthPage = AUTH_PATH_RE.test(pathname)
@@ -573,9 +576,14 @@ export function Header() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex items-center gap-2 border-0 hover:bg-primary/10"
+                    className="flex items-center gap-2 border-0 pl-1.5 hover:bg-primary/10"
                   >
-                    <User className="size-4" aria-hidden="true" />
+                    <Avatar className="size-7 ring-1 ring-neon-purple/50">
+                      <AvatarImage src={avatarUrl ?? undefined} alt="" className="object-cover" />
+                      <AvatarFallback className="bg-linear-to-br from-neon-purple to-neon-pink text-xs font-bold text-white">
+                        {displayName?.[0]?.toUpperCase() ?? <User className="size-4" aria-hidden="true" />}
+                      </AvatarFallback>
+                    </Avatar>
                     {isAdmin ? (
                       <Badge variant="admin" className="cursor-pointer text-xs">
                         {displayName}
