@@ -249,6 +249,15 @@ function createAuth() {
           input: false,
           fieldName: "current_streak",
         },
+        // Uploaded avatar (set by POST /api/user/avatar, not by Better Auth).
+        // Exposed on the session so the header can show it without an
+        // extra request.
+        avatarUrl: {
+          type: "string",
+          required: false,
+          input: false,
+          fieldName: "avatar_url",
+        },
       },
     },
     session: {
