@@ -85,11 +85,13 @@ export function TodayStart({
         </div>
 
         {/* The first screenshot, blurred: the box is right here, and the
-            clock only starts once the player opens it. */}
+            clock only starts once the player opens it. Hovering lifts the
+            veil a little (less blur, lighter tint) as a tease; it stays far
+            too blurred to read, so the clock remains fair. */}
         <div
           data-testid="today-box-preview"
           aria-hidden="true"
-          className="relative aspect-video w-full overflow-hidden rounded-xl border border-neon-purple/40 bg-muted shadow-cta"
+          className="group relative aspect-video w-full overflow-hidden rounded-xl border border-neon-purple/40 bg-muted shadow-cta transition-colors duration-300 hover:border-neon-pink/60"
         >
           {showPreview && (
             <img
@@ -99,11 +101,15 @@ export function TodayStart({
               decoding="async"
               width={1280}
               height={720}
-              className="size-full scale-110 object-cover blur-xl"
+              className="size-full scale-110 object-cover blur-xl transition-[filter,transform] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-105 group-hover:blur-md"
             />
           )}
-          <span className="absolute inset-0 flex items-center justify-center bg-background/30">
-            <img src="/logo-open.svg" alt="" className="size-16 drop-shadow-lg sm:size-20" />
+          <span className="absolute inset-0 flex items-center justify-center bg-background/30 transition-colors duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:bg-background/15">
+            <img
+              src="/logo-open.svg"
+              alt=""
+              className="size-16 drop-shadow-lg transition-opacity duration-500 group-hover:opacity-70 sm:size-20"
+            />
           </span>
         </div>
 
