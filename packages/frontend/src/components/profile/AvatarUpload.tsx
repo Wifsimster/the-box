@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useReducer, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Point } from 'react-easy-crop'
-import { Camera, Upload, Trash2, Loader2 } from 'lucide-react'
+import { Camera, Check, Upload, Trash2, Loader2 } from 'lucide-react'
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -368,7 +368,7 @@ export function AvatarUpload({
                 {isUploading ? (
                   <Loader2 className="size-4 mr-2 animate-spin" />
                 ) : (
-                  <Upload className="size-4 mr-2" />
+                  <Check className="size-4 mr-2" aria-hidden="true" />
                 )}
                 {t('profile.avatar.upload')}
               </Button>
