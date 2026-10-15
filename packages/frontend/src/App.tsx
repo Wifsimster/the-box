@@ -24,7 +24,6 @@ import { useGameStore } from '@/stores/gameStore'
 import { isTodayPath } from '@/lib/dailyFirst'
 import { useSession } from '@/lib/auth-client'
 import { useReferralCapture } from '@/hooks/useReferralCapture'
-import { useGoatCounterPageviews, useConsentedAnalytics } from '@/lib/analytics'
 import { ConsentBanner } from '@/components/consent/ConsentBanner'
 import { useApplyUserTheme } from '@/hooks/useApplyUserTheme'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -235,8 +234,6 @@ function LanguageLayout() {
 
 function App() {
   useReferralCapture()
-  useGoatCounterPageviews()
-  useConsentedAnalytics()
 
   return (
     <ErrorBoundary>

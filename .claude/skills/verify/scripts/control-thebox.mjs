@@ -258,7 +258,7 @@ Refuses to start if any of those ports is already taken: one instance at a time.
       STRIPE_SECRET_KEY: '', STRIPE_WEBHOOK_SECRET: '', RESEND_API_KEY: '', RAWG_API_KEY: '',
       RELANCE_EMAIL_ENABLED: 'false', INACTIVE_USER_REMINDER_ENABLED: 'false',
       VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '', KOE_IDENTITY_SECRET: '',
-      VITE_API_URL: '', VITE_USE_MOCK_API: 'false', VITE_GOATCOUNTER_URL: '', VITE_KOE_PROJECT_KEY: '', VITE_KOE_API_URL: '',
+      VITE_API_URL: '', VITE_USE_MOCK_API: 'false', VITE_KOE_PROJECT_KEY: '', VITE_KOE_API_URL: '',
     }
     const logDir = path.join(RUN_DIR, 'logs'); fs.mkdirSync(logDir, { recursive: true })
     // Backend and frontend import @the-box/types from its dist/: build it first.

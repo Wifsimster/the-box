@@ -22,7 +22,7 @@ Single source of truth for any coding agent (Claude Code, Codex, Copilot, autono
 - **Animation / UI**: Framer Motion, Radix UI primitives, shadcn/ui, Lucide icons
 - **Forms**: React Hook Form + Zod
 - **Validation**: Zod (frontend and backend)
-- **Analytics**: GoatCounter (privacy-friendly) + Koe feedback widget (HMAC identity)
+- **Analytics**: Umami (self-hosted, cookieless, `index.html`) + Koe feedback widget (HMAC identity)
 - **Logging**: Pino (pino-pretty in dev)
 - **Marketing**: Remotion (`@the-box/marketing-video` package) for rendered promo videos
 - **Testing**: Node test runner (unit) + Playwright (E2E, incl. a11y & visual-regression specs)
@@ -385,7 +385,6 @@ Le hook husky `commit-msg` rejette tout commit non conforme.
 | `VITE_API_URL` | Frontend API base URL |
 | `VITE_USE_MOCK_API` | `true` → frontend uses mock services |
 | `VITE_KOE_PROJECT_KEY` / `VITE_KOE_API_URL` | Koe feedback widget config |
-| `VITE_GOATCOUNTER_URL` | GoatCounter analytics endpoint |
 
 See `.env.example` for defaults. In production (single Docker image) Node serves the built frontend on port 80 and the API under `/api/`.
 
