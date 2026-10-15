@@ -40,7 +40,7 @@ the-box/
 ├── docker-entrypoint.sh      # Runs migrations then starts app
 ├── commitlint.config.js      # Conventional commits rules
 ├── .husky/                   # Git hooks (commit-msg validation)
-├── .github/workflows/        # ci, release, deploy, GitHub Pages (docs/*.html, tasks/*.html)
+├── .github/workflows/        # ci, release, deploy
 ├── .claude/                  # Local Claude Code config
 ├── AGENTS.md                 # This file: agent instructions (read before automated edits)
 ├── CLAUDE.md                 # Claude Code entry point, imports AGENTS.md
@@ -436,8 +436,8 @@ Conventions for HTML artifacts in this repo:
 - **SUMMARY header**: every HTML doc opens with a `<!-- SUMMARY: ... -->` block (≤5 lines, plain text). PR reviewers read that instead of the diff. Structural changes regenerate the file from a prompt rather than hand-edit.
 - **Visual style**: dark gaming theme — `#0a0a0f` background, `#a855f7` neon-purple primary, Inter + JetBrains Mono, content max-width 72ch, one neon glow per page max, no glassmorphism. Match the canonical examples below.
 - **Accessibility floor**: body contrast ≥ 4.5:1, `focus-visible` outline preserved, `@media (prefers-reduced-motion: reduce)` zeroes transitions.
-- **Security policy**: HTML docs are local-open / GitHub-rendered / GitHub-Pages-hosted only. **Never serve `docs/*.html` or `tasks/*.html` from the Express app** — inline scripts on the same origin as Better Auth cookies is an XSS-shaped foot-gun. GitHub Pages serves from `wifsimster.github.io`, a separate origin, which keeps the same-origin-with-auth-cookies risk out.
-- **Audience**: senior developers only. The Pages site has `<meta name="robots" content="noindex">` and the index is badged "internal". Don't draft HTML artifacts for non-engineer or French-speaking stakeholders unless explicitly asked — they get the existing markdown PRDs and the in-app UI.
-- **Publishing**: every push to `main` that touches `docs/*.html` or `tasks/*.html` triggers `.github/workflows/pages.yml`, which copies those files into `_site/`, generates `_site/index.html` from each file's `<!-- SUMMARY -->`, and deploys to GitHub Pages at <https://wifsimster.github.io/the-box/>. One-time repo setup: Settings → Pages → Source = "GitHub Actions". The workflow doesn't add a build step — files are served as-is.
+- **Security policy**: HTML docs are opened locally or read on GitHub only. **Never serve `docs/*.html` or `tasks/*.html` from the Express app** — inline scripts on the same origin as Better Auth cookies is an XSS-shaped foot-gun.
+- **Audience**: senior developers only. Don't draft HTML artifacts for non-engineer or French-speaking stakeholders unless explicitly asked — they get the existing markdown PRDs and the in-app UI.
+- **Publishing**: none. The HTML docs stay in the repo and are not published anywhere (no GitHub Pages).
 
 Canonical examples to mirror: [`tasks/html-first-subagents-meeting.html`](tasks/html-first-subagents-meeting.html), [`docs/architecture.html`](docs/architecture.html).
