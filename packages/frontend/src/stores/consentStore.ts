@@ -7,7 +7,8 @@ import { persist, createJSONStorage } from 'zustand/middleware'
  * Three categories:
  *  - Essential — always on, not represented here (auth/session cookies are
  *    strictly necessary and exempt from consent).
- *  - Analytics — gates GoatCounter pageview tracking.
+ *  - Analytics — reserved for consent-gated trackers. Audience is measured by
+ *    Umami (cookieless, loaded from index.html), which needs no consent.
  *  - Support — gates the Koe feedback widget.
  *
  * `null` means "the user hasn't decided yet". Once they pick anything,
