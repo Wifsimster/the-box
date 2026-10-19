@@ -119,4 +119,5 @@ Run it after every failed iteration too, so a broken attempt does not leave proc
 - **The leaderboard only lists completed, non-catch-up sessions.** Run `play finish` before `leaderboard`.
 - **The "Daily Reward" modal no longer opens on its own** (it waits behind the header gift badge). `login`, `play` and `leaderboard` still claim or close any open dialog. A claim is a real side effect on the fake user's inventory.
 - **The UTC day matters.** The seed creates the challenge for the current UTC date. If the date rolls over mid-run, `doctor` fails `todayChallenge`: relaunch.
+- **Proxy in the shell.** With `NODE_USE_ENV_PROXY=1` and `HTTP_PROXY` set, Node sends even `127.0.0.1` through the proxy, which drops the socket: `launch` timed out on `/health` (`lastError: "fetch failed"`). The CLI now adds `localhost,127.0.0.1` to `NO_PROXY` itself. An ad-hoc Playwright script attached to `:9333` needs the same `NO_PROXY`.
 - **Ports are fixed** (see Isolation). Do not edit the Vite proxy to work around a busy port. Find who owns the port instead.

@@ -9,6 +9,7 @@ Players see today's ranking (and a monthly ranking of players or of countries) o
 - `lb-countries` ranks countries by their players' average score this month (`/api/leaderboard/monthly/:year/:month/countries`). A country joins at 5 players.
 - `lb-self` shows the logged-in player's own rank banner.
 - `lb-public` loads without logging in.
+- `lb-guests` counts guests who finished today without an account under the Daily board ("+ 1 guest also played without an account, so they're not ranked."). Guests are never ranked.
 
 ## How to get to it (user POV)
 
@@ -33,5 +34,5 @@ Preconditions:
 ## Gotchas
 
 - **There is no socket.io push for the leaderboard.** The page fetches REST data on load (see `docs/realtime.md`). To verify "live" behavior, reload and compare.
-- Catch-up sessions and anonymous play are excluded (`leaderboard.repository.ts`).
+- Catch-up sessions and anonymous play are excluded from the ranking (`leaderboard.repository.ts`). To see the guest line, finish a game logged out (`play finish` works for a guest): the Daily tab then shows "+ 1 guest also played without an account, so they're not ranked.", and the guest's `/en/results` shows "You'd be #R of N today".
 - A dialog (changelog, reward opened from the badge) can cover the page. `$C leaderboard` dismisses it before the screenshot.

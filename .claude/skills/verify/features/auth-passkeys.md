@@ -14,7 +14,7 @@ Players register and sign in with email and password (Better Auth). They can add
 ## How to get to it (user POV)
 
 - The header `Login` link → `/en/login`. The link to `/en/register` sits under the form.
-- The user menu (`button "e2e_user"`) → Profile → Security tab (`/en/profile?tab=security`, `data-testid=profile-tab-security`).
+- The user menu (`button "E e2e_user"`: the avatar initial, then the username) → Profile → Security tab (`/en/profile?tab=security`, `data-testid=profile-tab-security`).
 - A protected route such as `/en/profile` redirects a logged-out visitor to `/en/login`. `/en` and `/en/play` do not: a guest opens the box at once and is offered an account after the game.
 
 ## Driving it with control-thebox
@@ -23,11 +23,11 @@ Preconditions:
 
 - A fresh `$C launch`. The browser is logged out (fresh profile).
 
-- **Login.** Run `$C login --dry-run`, then `$C login`. The result has `signInStatus: 200` and a `url` no longer ending in `/login`. Confirm with `$C snapshot --selector header` (a CSS selector, not the ARIA role), which shows `button "e2e_user"`.
-- **Bad password.** Run `$C goto /en/login` and fill the form with `$C click`/`$C key`. A dedicated `login --password` flag does not exist yet, so this is a harness gap. The expected result is an alert, a 401 on `/api/auth/sign-in/email` (`$C network-log --filter /api/auth`), and the URL staying on `/en/login`.
+- **Login.** Run `$C login --dry-run`, then `$C login`. The result has `signInStatus: 200` and a `url` no longer ending in `/login`. Confirm with `$C snapshot --selector header` (a CSS selector, not the ARIA role), which shows `button "E e2e_user"`.
+- **Bad password.** Run `$C goto /en/login` and fill the form with `$C click`/`$C key`. A dedicated `login --password` flag does not exist yet, so this is a harness gap. The expected result is an alert, a 401 on `/api/auth/sign-in/email` (`$C network-log --filter /api/auth`, body code `INVALID_EMAIL_OR_PASSWORD`), and the URL staying on `/en/login`. Today the alert wrongly reads "Please enter a valid email address" (product bug [#426](https://github.com/Wifsimster/the-box/issues/426), seen 2026-10-19). Update this line once #426 is fixed.
 - **Admin.** Run `$C login --as admin`, then `$C goto /en/admin`. The admin panel renders. With `--as user` it does not.
 - **Add a passkey.** Run `$C login`, then `$C passkey add [--name "<device>"]`. The command attaches a CDP virtual authenticator (`ctap2`, `internal`, resident key, user verified), opens `/en/profile?tab=security`, clicks `button "Add a passkey"`, types the name in `textbox "Device name ..."` and clicks `button "Continue"`. Pass criteria: `verifyRegistrationStatus: 200`, `toastShown: true` ("Passkey registered."), and `dbRows` holds one more `passkey` row than `dbRowsBefore`. Screenshots: `passkey-add-dialog`, `passkey-added` (the list shows the new device name).
-- **Sign in with a passkey.** Run `$C passkey signin`. It logs out through the user menu (`button "e2e_user"` → `menuitem "Logout"`) when a session exists, opens `/en/login`, imports the saved credential into a fresh virtual authenticator and clicks `button "Sign in with a passkey"`. Pass criteria: `verifyAuthenticationStatus: 200`, `sessionEmail` equals the fake user (read from `/api/auth/get-session`), the URL left `/login`, and `dbCounterAfter` is `dbCounterBefore + 1`. Screenshots: `passkey-signin-before` (header shows `Login`/`Register`) and `passkey-signin-after` (header shows `e2e_user`).
+- **Sign in with a passkey.** Run `$C passkey signin`. It logs out through the user menu (`button "E e2e_user"` → `menuitem "Logout"`) when a session exists, opens `/en/login`, imports the saved credential into a fresh virtual authenticator and clicks `button "Sign in with a passkey"`. Pass criteria: `verifyAuthenticationStatus: 200`, `sessionEmail` equals the fake user (read from `/api/auth/get-session`), the URL left `/login`, and `dbCounterAfter` is `dbCounterBefore + 1`. Screenshots: `passkey-signin-before` (header shows `Login`/`Register`) and `passkey-signin-after` (header shows `E e2e_user`).
 - **Second read.** Run `$C passkey list` (saved credential ids and DB rows) and `$C network-log --filter /api/auth/passkey`. The log shows `generate-register-options`, `verify-registration`, `generate-authenticate-options` and `verify-authentication`, all 200.
 - **Delete.** The trash button (`button "Delete – <name>"`) and its confirm dialog are not wrapped in a command yet. Drive them with `$C click`.
 

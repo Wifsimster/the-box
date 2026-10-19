@@ -1,11 +1,11 @@
 # Daily guess
 
-A player opens today's challenge and identifies the game behind each of 10 screenshots by typing its name. Each screenshot has a 45-second budget. A correct guess shows a result card with points and moves on. A wrong guess keeps the position open. The session ends on the results page once all 10 positions are resolved. Today's box lives on the home route (`/en`): it shows the first screenshot blurred behind one button, "Open today's box" (`data-testid="today-open-box"`). A guest plays at once, without an account gate, and is asked to keep the score after the game. The recipes below use a logged-in player.
+A player opens today's challenge and identifies the game behind each of 10 screenshots by typing its name. Each screenshot has a 45-second budget. A correct guess shows a result card with points and moves on. A wrong guess keeps the position open. The session ends on the results page once all 10 positions are resolved. Today's box lives on the home route (`/en`): it shows the first screenshot blurred behind one button, "Open today's box" (`data-testid="today-open-box"`). A guest plays at once, without an account gate. After the game the guest's results page shows "You'd be #R of N today" and a `link "Create my account"`. The recipes below use a logged-in player.
 
 ## Sub-features
 
 - `guess-start` opens the closed box and starts today's session (this creates the session).
-- `guess-correct` accepts a correct typed name, scores it, and shows the result card.
+- `guess-correct` accepts a correct typed name, scores it, and shows the result card. Positions solved on the first try in a row add a streak bonus on top: +25 at 3 in a row, +50 at 5, +100 at 10. A wrong guess or a skip breaks the run.
 - `guess-wrong` rejects a wrong name with 0 points and keeps the position open.
 - `guess-skip` moves to another position without answering.
 - `guess-timeout` counts the position as a permanent miss when its 45 s budget runs out.
@@ -27,9 +27,9 @@ Preconditions:
 
 - **Start.** Open the game. Run `$C play guess --correct --dry-run`. On the closed box it reports `wouldClickStart: true` and the answer for position 1, without creating a session.
 - **Correct guess.** Run `$C play guess --correct`. The JSON shows `response.status 200` with `data.isCorrect: true`, `scoreEarned > 0` and `nextPosition`, and `persistedGuess.is_correct: true`. `play-after-posN.png` shows the "Correct!" result card with "Next Round".
-- **Wrong guess.** Run `$C play guess --wrong`. The response has `isCorrect: false` and `scoreEarned: 0`, and `nextPosition` equals the current position. `persistedGuess.guessed_text` is `Definitely Not A Game`. The masked-title hint (`button "After 1 try"`) unlocks after this.
+- **Wrong guess.** Run `$C play guess --wrong`. The response has `isCorrect: false` and `scoreEarned: 0`, and `nextPosition` equals the current position. `persistedGuess.guessed_text` is `Definitely Not A Game`. Before any try the masked-title hint shows `button "After 1 try"`. After this wrong guess it becomes `group "Masked title, 0 letter(s) revealed"` with a disabled `button "0 power-ups"`: revealing a letter needs a Letter reveal power-up, and the fake user has none.
 - **Skip.** Run `$C click --role button --name "^Skip$"`, then `$C snapshot --selector main`. The `(current)` progress dot has moved. Skip is hidden on the last screenshot (position 10).
-- **Complete.** Run `$C play finish`. Every step reports `isCorrect: true` and `session.is_completed: true`, and `finalUrl` ends with `/en/results`. `play-finished.png` lists all 10 rows with their attempts. The wrong attempt shows struck through.
+- **Complete.** Run `$C play finish`. Every step reports `isCorrect: true` and `session.is_completed: true`, and `finalUrl` ends with `/en/results`. Some `scoreEarned` values exceed 200 because of the streak bonus (on 2026-10-19, after a miss at position 2: 225 at position 5, 250 at position 7). `play-finished.png` lists all 10 rows with their attempts. The wrong attempt shows struck through.
 - **Proof.** Keep the `play-*.png` and `.json` files and the `play-finished.png`. Run a second read: `docker exec thebox-verify-pg psql -U thebox -d thebox -c "select position, guessed_text, is_correct, score_earned from guesses order by id"`.
 
 ## Gotchas
