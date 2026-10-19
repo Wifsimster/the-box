@@ -4,7 +4,7 @@ Players can subscribe to The Box Premium (monthly or annual) or become a lifetim
 
 ## Sub-features
 
-- `prem-pricing` shows the pricing page with prices from `GET /api/billing/prices` (Stripe lookup keys `the_box_premium_monthly` / `_annual`).
+- `prem-pricing` shows the pricing page with prices from `GET /api/billing/prices` (Stripe lookup keys `the_box_premium_monthly`, `the_box_premium_annual` and `the_box_supporter_lifetime`).
 - `prem-checkout` creates a Checkout session (`POST /api/billing/checkout`) and redirects to Stripe.
 - `prem-webhook` rejects unsigned calls and applies signed ones to the subscription (`POST /api/billing/webhook`).
 - `prem-portal` opens the Billing Portal from the profile (`POST /api/billing/portal`).
@@ -12,19 +12,19 @@ Players can subscribe to The Box Premium (monthly or annual) or become a lifetim
 
 ## How to get to it (user POV)
 
-- The footer link `Premium` (`/en/premium`, also `/fr/abonnement`). The header navigation no longer has one: it shows only `Today` and `Results`.
+- The footer link `Premium` (`/en/premium`, also `/fr/abonnement`). The desktop header navigation no longer has one: it shows only `Today` and `Results`.
 - Profile → Subscription tab (`/en/profile?tab=subscription`).
 
 ## Driving it with control-thebox
 
 Preconditions:
 
-- A fresh `$C launch` and `$C login`.
+- A fresh `$C launch`. Check the pricing page before `$C login`: `Sign in to subscribe` and `Create an account` are the logged-out labels, and the CLI has no logout command.
 - **No Stripe key.** The harness forces `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` to empty. Never paste a live key (`sk_live_`). The Stripe client logs `mode: live|test` from the key prefix.
 
-- **Pricing page renders (safe today).** Run `$C goto /en/premium`, then `$C screenshot --name premium`. The "The Box Premium" title renders. Run `$C network-log --filter /api/billing`: with no key, `/api/billing/prices` still returns 200, with every tier `active: false`. The page shows the four plans (Free €0, Monthly €3.99, Annual €29.99, Lifetime €79.99) and, logged out, `button "Sign in to subscribe"` on each paid plan. `/fr/abonnement` and `/fr/premium` both render the same page.
+- **Pricing page renders (safe today).** Run `$C goto /en/premium`, then `$C screenshot --name premium`. The "The Box Premium" title renders. Run `$C network-log --filter /api/billing`: with no key, `/api/billing/prices` still returns 200. `network-log` records status only, so read the body with `curl -s localhost:3000/api/billing/prices`: every tier has `active: false`. The page shows the four plans (Free €0, Premium Monthly €3.99, Premium Annual €29.99, Lifetime Supporter €79.99) and, logged out, `button "Sign in to subscribe"` on each paid plan and `button "Create an account"` on Free. `/fr/abonnement` and `/fr/premium` both render the same page.
 - **Webhook rejects unsigned calls (safe today).** Run `curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:3000/api/billing/webhook -H 'content-type: application/json' -d '{}'`. Expect 400 (`missing stripe-signature header`), never a 2xx. This mirrors `e2e/billing-webhook-smoke.spec.ts`. With a forged `stripe-signature` header the harness gets 503 (`webhook not configured`), because `STRIPE_WEBHOOK_SECRET` is empty.
-- **Checkout and portal: blocked.** These need a Stripe **test** account: an `sk_test_` key, the two lookup keys configured, and `stripe listen --forward-to localhost:3000/api/billing/webhook` for the webhook secret. Once a human provides those through an env file outside the repo, extend `launch` with an opt-in `--stripe-test` flag that refuses any key not starting with `sk_test_`. Until then, report these sub-features as not verified.
+- **Checkout and portal: blocked.** These need a Stripe **test** account: an `sk_test_` key, the three lookup keys configured, and `stripe listen --forward-to localhost:3000/api/billing/webhook` for the webhook secret. Once a human provides those through an env file outside the repo, extend `launch` with an opt-in `--stripe-test` flag that refuses any key not starting with `sk_test_`. Until then, report these sub-features as not verified.
 
 ## Gotchas
 

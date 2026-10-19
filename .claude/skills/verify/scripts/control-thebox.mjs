@@ -11,6 +11,16 @@ import net from 'node:net'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
+// With NODE_USE_ENV_PROXY=1 and HTTP(S)_PROXY set, Node sends fetch() through
+// the proxy, loopback included. The proxy closes the socket (UND_ERR_SOCKET), so
+// `launch` times out on /health ("fetch failed") while curl gets 200. Every call
+// this CLI makes is local, so keep loopback direct (children inherit it too).
+for (const k of ['NO_PROXY', 'no_proxy']) {
+  const hosts = (process.env[k] || '').split(',').map((s) => s.trim()).filter(Boolean)
+  for (const h of ['localhost', '127.0.0.1']) if (!hosts.includes(h)) hosts.push(h)
+  process.env[k] = hosts.join(',')
+}
+
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO = path.resolve(HERE, '..', '..', '..', '..')
 const RUN_DIR = path.join(REPO, '.verify-run')
@@ -522,7 +532,9 @@ async function logoutThroughMenu(page) {
   const email = await isLoggedIn(page)
   if (!email) return null
   const username = email.split('@')[0]
-  await page.getByRole('button', { name: new RegExp(`^${username}$`, 'i') }).first().click()
+  // The trigger's name starts with the avatar fallback initial ("E e2e_user")
+  // when the user has no avatar image, so only anchor the end.
+  await page.getByRole('button', { name: new RegExp(`(^|\\s)${username}$`, 'i') }).first().click()
   await page.getByRole('menuitem', { name: /^logout$/i }).click()
   await waitFor(async () => !(await isLoggedIn(page)), { timeoutMs: 10000, label: 'logout' })
   return email

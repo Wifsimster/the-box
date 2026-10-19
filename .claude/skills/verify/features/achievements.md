@@ -11,7 +11,7 @@ Players unlock achievements (first guess, first correct, no hints needed, podium
 ## How to get to it (user POV)
 
 - Play the daily game: toasts appear top right during and after the game.
-- Open the profile (`/en/profile`, user menu `e2e_user` → Profile). The Overview tab (the default) shows the heading `Achievements (59)` and the filter tabs. The Activity tab shows game history, not achievements.
+- Open the profile (`/en/profile`, user menu `E e2e_user` → Profile). The Overview tab (the default) shows the heading `Achievements (59)` and the filter tabs. The Activity tab shows game history, not achievements.
 
 ## Driving it with control-thebox
 
