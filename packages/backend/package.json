@@ -25,7 +25,8 @@
     "vapid:generate": "tsx scripts/generate-vapid.ts",
     "eval:geo-vision": "tsx scripts/geo-vision-eval.ts",
     "test": "node --import tsx --test 'src/**/*.test.ts'",
-    "typecheck": "tsrs --noEmit"
+    "typecheck": "tsrs --noEmit",
+    "lint": "OXLINT_TSGOLINT_PATH=\"$(tsrslint-path)\" oxlint -c ../../.oxlintrc.json --type-aware src"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

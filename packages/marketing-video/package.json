@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "remotion studio src/index.ts",
     "studio": "remotion studio src/index.ts",
-    "build": "tsc --noEmit && remotion render src/index.ts the-box-marketing out/the-box-marketing.mp4",
+    "build": "tsrs --noEmit && remotion render src/index.ts the-box-marketing out/the-box-marketing.mp4",
     "render": "remotion render src/index.ts the-box-marketing out/the-box-marketing.mp4",
     "render:short": "remotion render src/index.ts the-box-short out/the-box-short.mp4",
     "render:founder": "remotion render src/index.ts the-box-founder out/the-box-founder.mp4",
     "render:daily-promo": "remotion render src/index.ts the-box-daily-promo out/the-box-daily-promo.mp4",
     "assets:daily-promo": "node scripts/fetch-daily-promo-assets.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
+    "lint": "OXLINT_TSGOLINT_PATH=\"$(tsrslint-path)\" oxlint -c ../../.oxlintrc.json --type-aware src",
     "upgrade": "remotion upgrade"
   },
   "dependencies": {

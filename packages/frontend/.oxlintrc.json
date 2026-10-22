@@ -163,7 +163,12 @@
             "allowConstantExport": true
           }
         ],
-        "typescript/no-explicit-any": "warn"
+        "typescript/no-explicit-any": "warn",
+        // Type-aware (oxlint --type-aware, tsrslint backend), warnings only for now.
+        "typescript/no-floating-promises": "warn",
+        "typescript/no-misused-promises": "warn",
+        "typescript/await-thenable": "warn",
+        "typescript/require-await": "warn"
       },
       "env": {
         "es2020": true,

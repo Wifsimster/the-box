@@ -15,9 +15,8 @@
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["react", "react-dom", "node"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "remotion.config.ts"]
