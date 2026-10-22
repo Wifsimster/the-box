@@ -15,7 +15,8 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "typecheck": "tsrs --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
