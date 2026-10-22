@@ -31,7 +31,8 @@
     "docker:tag": "docker tag wifsimster/the-box:$npm_package_version wifsimster/the-box:$(echo $npm_package_version | cut -d. -f1-2) && docker tag wifsimster/the-box:$npm_package_version wifsimster/the-box:$(echo $npm_package_version | cut -d. -f1)",
     "docker:push": "docker push wifsimster/the-box --all-tags",
     "release": "npm run build && npm run docker:build && npm run docker:tag && npm run docker:push",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck": "npm run typecheck -w @the-box/types -w @the-box/backend -w @the-box/geo-agent-mcp -w @the-box/frontend"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -40,7 +41,8 @@
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
     "husky": "^9.1.7",
-    "shadcn": "^3.6.3"
+    "shadcn": "^3.6.3",
+    "tsrs": "0.18.0-ts7.1.0-dev.20260929"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11"

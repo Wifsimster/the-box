@@ -17,7 +17,8 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:a11y": "playwright test a11y-smoke.spec.ts",
     "test:e2e:visual": "playwright test visual-regression.spec.ts",
-    "test:e2e:visual:update": "playwright test visual-regression.spec.ts --update-snapshots"
+    "test:e2e:visual:update": "playwright test visual-regression.spec.ts --update-snapshots",
+    "typecheck": "tsrs --noEmit -p tsconfig.app.json && tsrs --noEmit -p tsconfig.node.json && tsrs --noEmit -p tsconfig.sw.json"
   },
   "dependencies": {
     "@better-auth/passkey": "~1.4.10",
