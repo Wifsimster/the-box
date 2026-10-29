@@ -1,4 +1,13 @@
 <!doctype html>
+<!-- SUMMARY:
+Fast personas meeting on the profile page IA. Three personas (UX, frontend,
+mobile QA) converged independently: the 499-line page is a wall of ~10 cards
+with no grouping — achievements live 6 cards below the fold and the 479-line
+StreamerKit dev console competes equally with GDPR toggles. Decision —
+introduce four URL-persisted tabs (Overview / Account / Creator / Customize),
+extract StatTile + ProfileSection primitives, lazy-load StreamerKit and
+AdvancedStats. Shipped on branch claude/improve-profile-layout-03M3S.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -151,10 +160,13 @@
 <figure>
   <svg viewBox="0 0 720 360" role="img"
        aria-label="Before and after: a phone showing a 10-card vertical stack versus a phone with a header card, a four-tab strip, and the Overview tab visible.">
+    <!-- BEFORE -->
     <text x="150" y="22" fill="#9a9ab0" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle">BEFORE</text>
     <rect x="60" y="34" width="180" height="310" rx="18" fill="#14141c" stroke="#2a2a38"/>
+    <!-- header strip -->
     <rect x="60" y="34" width="180" height="22" rx="18" fill="#0a0a0f"/>
     <line x1="60" y1="56" x2="240" y2="56" stroke="#2a2a38"/>
+    <!-- 10 stacked cards -->
     <g fill="#1f1f2b">
       <rect x="74" y="68"  width="152" height="40" rx="6"/>
       <rect x="74" y="114" width="152" height="18" rx="4"/>
@@ -169,20 +181,25 @@
     </g>
     <text x="150" y="338" fill="#f87171" font-family="JetBrains Mono, monospace" font-size="9" text-anchor="middle">6–7 viewports of scroll</text>
 
+    <!-- AFTER -->
     <text x="570" y="22" fill="#a855f7" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle" style="text-shadow:0 0 12px rgba(168,85,247,.45)">AFTER</text>
     <rect x="480" y="34" width="180" height="310" rx="18" fill="#14141c" stroke="#2a2a38"/>
+    <!-- header strip -->
     <rect x="480" y="34" width="180" height="22" rx="18" fill="#0a0a0f"/>
     <line x1="480" y1="56" x2="660" y2="56" stroke="#2a2a38"/>
+    <!-- identity card -->
     <rect x="494" y="68" width="152" height="56" rx="8" fill="#1f1f2b"/>
     <circle cx="514" cy="96" r="14" fill="#3a2a4a"/>
     <rect x="536" y="86" width="86" height="8" rx="3" fill="#2a2a38"/>
     <rect x="536" y="100" width="60" height="6" rx="3" fill="#2a2a38"/>
+    <!-- stat row inside header -->
     <g fill="#3a2a4a">
       <rect x="494" y="132" width="34" height="20" rx="4"/>
       <rect x="534" y="132" width="34" height="20" rx="4"/>
       <rect x="574" y="132" width="34" height="20" rx="4"/>
       <rect x="614" y="132" width="32" height="20" rx="4"/>
     </g>
+    <!-- tab strip -->
     <rect x="494" y="166" width="152" height="22" rx="6" fill="#0a0a0f" stroke="#2a2a38"/>
     <rect x="498" y="170" width="36" height="14" rx="4" fill="#a855f7"/>
     <g fill="#9a9ab0" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">
@@ -191,6 +208,7 @@
       <text x="591" y="180">Crea</text>
       <text x="628" y="180">Cust</text>
     </g>
+    <!-- achievements grid preview -->
     <g fill="#1f1f2b">
       <rect x="494" y="198" width="48" height="48" rx="6"/>
       <rect x="546" y="198" width="48" height="48" rx="6"/>

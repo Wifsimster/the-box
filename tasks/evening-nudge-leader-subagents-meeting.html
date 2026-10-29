@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<!--
+  SUMMARY: "Beat the leader" personalized evening nudge — subagents meeting (2026-06-09).
+  Decided how to personalize the evening play-reminder with today's title holder
+  ("Venez battre {X} qui a fait {Y} aujourd'hui"). Outcome: new evening PUSH job
+  (~18:00 UTC) as primary + inject the leader line into the existing 19:00
+  streak-risk email; one leader lookup per run via leaderboardService.getTodayLeader();
+  pure copy fn in domain; new last_evening_nudge_at cooldown column. LAUNCH BLOCKERS:
+  display-name profanity filter + generic fallback, and a feature_in_notifications
+  opt-out column shipped day one. Self-leader suppressed in v1 (defend-title = fast-follow).
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -498,6 +508,7 @@ buildEveningNudge(locale, { leaderName, leaderScore, isPerfect }): { title, body
 </footer>
 
 <script>
+  // Active TOC highlight on scroll. Inline, vanilla.
   (function () {
     const links = Array.from(document.querySelectorAll('aside.toc a'));
     const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);

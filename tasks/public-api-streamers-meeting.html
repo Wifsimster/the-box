@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+<!--
+  SUMMARY: Public API for streamers — subagents meeting record (2026-05-14).
+  Scope: a read-only, key-authenticated /api/public/v1 surface plus webhooks
+  and an SSE event stream, designed for Twitch/YouTube chat bots and OBS
+  overlays. Decisions: opt-in only, slug-based identity, no guess submission,
+  Bearer tb_pk_ keys separate from Better Auth, HMAC-signed webhooks, SSE for
+  overlays. Ships in three milestones (M1 read endpoints + keys, M2 SSE +
+  webhooks, M3 OpenAPI + sample Streamer.bot recipe).
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">

@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<!--
+  SUMMARY: Fuzzy-match service review triggered by a real game session against
+  "Grand Theft Auto: Vice City" (2026-05-20). Two bugs confirmed: (A) "grand
+  thief auto 3" is accepted as a match because the base-name path's series-
+  number guards only fire when the target carries a number, and Vice City does
+  not. (B) "gta vice city" is rejected because no acronym mechanism expands
+  "gta" to "grand theft auto" before the structural branches run. Fix: add one
+  targeted reject in the base-name path AND a generic derived-acronym
+  expansion at the top of step 3. Scope: minimum change, no rewrite.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
