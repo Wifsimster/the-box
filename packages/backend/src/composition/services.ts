@@ -1,23 +1,3 @@
-/**
- * Composition root for the backend's domain services.
- *
- * The ONE place where pure domain factories are bound to concrete
- * infrastructure — repositories, the Pino logger, BullMQ queues, the
- * Socket.io emitter, Web Push. Every service file under `domain/services/`
- * stays infrastructure-free; this module supplies what they declared they
- * need through their ports.
- *
- * It lives outside `domain/` on purpose. It used to be the bottom half of
- * `domain/services/index.ts`, which meant importing any domain type dragged
- * in Redis connections and made the layer's "no outward dependencies" rule
- * false in the one file that asserted it.
- *
- * Presentation code and workers should import their singletons from here.
- */
-
-// Billing is wired in its own module (no BullMQ queues) so the unit-tested
-// billing-webhook route can import the singleton without opening a Redis
-// connection. Re-exported here so callers have one place to look.
 export { billingService } from './billing.js'
 
 import { createFuzzyMatchService } from '../domain/services/fuzzy-match.service.js'
@@ -74,10 +54,6 @@ import {
   webhookDeliveryRepository,
 } from '../infrastructure/repositories/index.js'
 
-// Public-API outbound webhook dispatch. Wired here (composition root) from the
-// concrete repositories + BullMQ webhook queue so the service file stays
-// infrastructure-free. The game-service completion hooks below dispatch
-// through this singleton.
 export const webhookDispatch = createWebhookDispatchService({
   logger: serviceLogger,
   webhookRepository,
@@ -87,10 +63,6 @@ export const webhookDispatch = createWebhookDispatchService({
   },
 })
 
-// Web Push fan-out. The factory stays pure; the BullMQ push queue + the
-// VAPID-configured check are bound here. The per-device fan-out (timeout,
-// allSettled, retry, 410-deactivation) runs in push.worker.ts — sendToUser
-// only enqueues, so the request thread never blocks on FCM round-trips.
 export const pushService = createPushService({
   isConfigured: isPushConfigured,
   enqueueSendToUser: async (userId, payload) => {
@@ -166,13 +138,6 @@ export const referralService = createReferralService({
   inventoryRepository,
 })
 
-/**
- * Post-guess reward side-effects. Currently unlocks any pending
- * reactivation chests for the user (per the reactivation PRD: the chest
- * is staged when the user is flagged inactive, then becomes claimable on
- * the user's next guess so re-entry is earned through play). Errors are
- * swallowed by the caller — this hook must never break a guess submit.
- */
 async function onAfterGuessSubmitted(userId: string): Promise<void> {
   const unlocked = await rewardsService.unlockPendingByUserAndSource(
     userId,
@@ -190,13 +155,6 @@ async function onAfterGuessSubmitted(userId: string): Promise<void> {
   }
 }
 
-/**
- * Public-API webhook fan-out on session completion. Resolves the user's
- * public slug, computes the rank for ranked sessions, and dispatches to
- * `session.completed` subscribers. Catch-up sessions still trigger the
- * webhook (people DO ask their chat "I finally beat yesterday's") but
- * `countsForLeaderboard: false` flags them so receivers can ignore.
- */
 async function onAfterSessionCompleted(params: {
   userId: string
   sessionId: string
@@ -206,17 +164,12 @@ async function onAfterSessionCompleted(params: {
   reason: 'all_found' | 'forfeit'
   isCatchUp: boolean
 }): Promise<void> {
-  // Resolve slug + public flag. If the user hasn't opted in, there's nothing
-  // to dispatch — bail before fetching subs.
   const profile = await userRepository.getPublicProfileRef(params.userId)
   if (!profile?.publicProfileEnabled || !profile.publicSlug) return
 
   const challenge = await challengeRepository.findById(params.challengeId)
   if (!challenge) return
 
-  // Final rank — shared with the public profile endpoint via the repository.
-  // Catch-up sessions are explicitly excluded from the leaderboard so
-  // `rank` is null in that path.
   const rank: number | null = params.isCatchUp
     ? null
     : await leaderboardRepository.rankForScore(params.challengeId, params.finalScore)
@@ -233,8 +186,6 @@ async function onAfterSessionCompleted(params: {
     countsForLeaderboard: !params.isCatchUp,
   })
 
-  // rank.changed — rank-only companion event, completing-streamer-only.
-  // Skipped for catch-up sessions (no leaderboard rank to report).
   if (!params.isCatchUp && rank !== null) {
     await webhookDispatch.rankChanged({
       userId: params.userId,
@@ -246,11 +197,6 @@ async function onAfterSessionCompleted(params: {
   }
 }
 
-/**
- * Public-API webhook fan-out when a streamer starts their daily. Resolves
- * the slug + opt-in flag, then dispatches `session.started`. Only opted-in
- * streamers with a slug trigger anything.
- */
 async function onAfterSessionStarted(params: {
   userId: string
   sessionId: string
@@ -314,10 +260,6 @@ export const geoGameService = createGeoGameService({
   sessionRepository,
 })
 
-// GeoGamers mode. Scoring is pure; the orchestration service is wired here
-// from the concrete repos, the fuzzy matcher, and a repo-backed alternate
-// picker for joker re-rolls. `screenshotUrlFor` builds the opaque proxy URL so
-// the domain never emits a raw asset path (anti-leak).
 export const geoGamersScoringService = createGeoGamersScoringService({ logger: serviceLogger })
 
 export const geoGamersService = createGeoGamersService({

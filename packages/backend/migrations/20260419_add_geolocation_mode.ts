@@ -1,13 +1,6 @@
 import type { Knex } from 'knex'
 
-// New, additive "Geolocation" game mode. All tables are prefixed `geo_` and
-// reference existing tables (games, screenshots, user) read-only. No existing
-// schema is modified.
-
 export async function up(knex: Knex): Promise<void> {
-    // Reference map per game (e.g. a Fandom wiki world map for Elden Ring).
-    // Coordinates in all downstream tables are normalized [0..1] against this
-    // map's dimensions, so a map asset swap doesn't invalidate data.
     await knex.schema.createTable('geo_map', (table) => {
         table.increments('id').primary()
         table.integer('game_id').notNullable().references('id').inTable('games').onDelete('CASCADE')
@@ -26,9 +19,6 @@ export async function up(knex: Knex): Promise<void> {
         table.unique(['game_id', 'image_url'])
     })
 
-    // Ingested-but-unlabeled screenshots awaiting crowdsourced pins.
-    // May reference an existing `screenshots` row if imported from the main
-    // pipeline, else carries its own image_url (e.g. from Steam).
     await knex.schema.createTable('geo_screenshot_candidate', (table) => {
         table.increments('id').primary()
         table.integer('game_id').notNullable().references('id').inTable('games').onDelete('CASCADE')
@@ -47,8 +37,6 @@ export async function up(knex: Knex): Promise<void> {
         table.unique(['source', 'external_id'])
     })
 
-    // Canonical, playable geo screenshots. One row per screenshot once consensus
-    // (or admin override) establishes ground-truth coordinates.
     await knex.schema.createTable('geo_screenshot_meta', (table) => {
         table.increments('id').primary()
         table.integer('geo_screenshot_candidate_id').notNullable().unique().references('id').inTable('geo_screenshot_candidate').onDelete('CASCADE')
@@ -91,7 +79,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index('geo_challenge_id')
     })
 
-    // Parallel to the main leaderboard tables; never merged into them.
     await knex.schema.createTable('geo_leaderboard_daily', (table) => {
         table.increments('id').primary()
         table.date('challenge_date').notNullable()
@@ -116,8 +103,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index(['period', 'score'])
     })
 
-    // Crowdsourced pin contributions. One row per (user, candidate). Consensus
-    // worker reads these in batches; reward worker reacts on acceptance.
     await knex.schema.createTable('geo_pin_submission', (table) => {
         table.increments('id').primary()
         table.text('user_id').notNullable().references('id').inTable('user').onDelete('CASCADE')
@@ -148,7 +133,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index('tier')
     })
 
-    // Tunable tier cutoffs so product can retune without a migration.
     await knex.schema.createTable('geo_contributor_tier_threshold', (table) => {
         table.string('tier', 20).primary()
         table.integer('min_accepted').notNullable()

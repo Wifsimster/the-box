@@ -1,9 +1,5 @@
 /// <reference lib="WebWorker" />
 
-// Custom service worker for The Box (vite-plugin-pwa injectManifest mode).
-// Replaces the previous generateSW config 1:1 for caching, then layers on
-// the push + notificationclick handlers that generateSW can't host.
-
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
@@ -12,21 +8,14 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 
 declare const self: ServiceWorkerGlobalScope
 
-// Injected at build time by vite-plugin-pwa with the precache manifest.
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
-// registerType: 'autoUpdate' — take over as soon as the new build is precached
-// (injectManifest doesn't inject this for us). The page side reloads on the
-// resulting controller change, so clients silently pick up the latest bundle
-// and the ChangelogDialog surfaces the new version on the next load. This is
-// the inline equivalent of workbox-core's skipWaiting()/clientsClaim().
 void self.skipWaiting()
 self.addEventListener('activate', () => {
   void self.clients.claim()
 })
 
-// SPA navigation fallback — same denylist as the previous generateSW config.
 registerRoute(
   new NavigationRoute(
     async ({ event }) => {
@@ -43,7 +32,6 @@ registerRoute(
   ),
 )
 
-// Game screenshots — large images, immutable per URL, safe to serve from cache.
 registerRoute(
   ({ url }) => url.pathname.startsWith('/uploads/'),
   new CacheFirst({
@@ -55,7 +43,6 @@ registerRoute(
   }),
 )
 
-// i18n bundles — small JSON, fine to revalidate in the background.
 registerRoute(
   ({ url }) => url.pathname.startsWith('/locales/') && url.pathname.endsWith('.json'),
   new StaleWhileRevalidate({
@@ -67,9 +54,6 @@ registerRoute(
   }),
 )
 
-// API GETs — try the network with a 4s budget, fall back to a recent cached
-// response so the app stays usable through brief blips. Auth endpoints are
-// excluded since stale auth state is worse than a clear failure.
 registerRoute(
   ({ url, request }) =>
     request.method === 'GET' &&
@@ -85,10 +69,6 @@ registerRoute(
   }),
 )
 
-// ---------------------------------------------------------------------------
-// Web Push
-// ---------------------------------------------------------------------------
-
 interface PushPayload {
   type: string
   title: string
@@ -97,10 +77,6 @@ interface PushPayload {
   data?: Record<string, unknown>
 }
 
-// Locale-aware fallback strings. The page persists the active i18n language
-// via `SET_LOCALE` postMessage; when the SW is woken cold by a push event
-// the module-level cache is gone so we fall back to the Cache API entry.
-// French is the project default and the last-resort fallback.
 const FALLBACK_BODY: Record<string, string> = {
   fr: 'Vous avez une nouvelle notification.',
   en: 'You have a new notification.',
@@ -122,7 +98,6 @@ async function readPersistedLocale(): Promise<string> {
       }
     }
   } catch {
-    // ignore — Cache API can fail in private mode, fall through to default
   }
   return 'fr'
 }
@@ -136,13 +111,9 @@ async function writePersistedLocale(locale: string): Promise<void> {
       new Response(locale, { headers: { 'Content-Type': 'text/plain' } }),
     )
   } catch {
-    // best-effort
   }
 }
 
-// Best-effort payload parse: even if the server sends a malformed payload (or
-// none at all, which Apple does for VoIP-style "wake up" pushes), we still
-// surface a generic notification so the user knows something happened.
 async function parsePushPayload(event: PushEvent): Promise<PushPayload> {
   if (!event.data) return fallbackPayload()
   try {
@@ -157,7 +128,6 @@ async function parsePushPayload(event: PushEvent): Promise<PushPayload> {
       }
     }
   } catch {
-    // fall through
   }
   return fallbackPayload()
 }
@@ -171,11 +141,6 @@ async function fallbackPayload(): Promise<PushPayload> {
   }
 }
 
-// Pick a notification tag that coalesces correctly. Distinct events must NOT
-// share a tag (the second one would silently replace the first); per-type
-// coalescing is right when the server intends it (e.g. multiple
-// 'streak_at_risk' nudges for the same day). When the payload carries a
-// stable id in `data.id` we honor it; otherwise we fall back to the type.
 function tagFor(payload: PushPayload): string {
   const id = (payload.data?.id ?? payload.data?.notificationId) as unknown
   if (typeof id === 'string' && id.length > 0) return `${payload.type}:${id}`
@@ -187,11 +152,6 @@ self.addEventListener('push', (event: PushEvent) => {
   event.waitUntil(
     (async () => {
       const payload = await parsePushPayload(event)
-      // Coalesce: a second push with the same `tag` replaces the first instead
-      // of stacking. `renotify` re-alerts the user even when an existing
-      // notification with the same tag is being replaced — supported by
-      // Chrome/Edge/Firefox but missing from the lib.dom.d.ts type, hence
-      // the cast.
       const options = {
         body: payload.body,
         icon: '/pwa-192x192.png',
@@ -205,11 +165,6 @@ self.addEventListener('push', (event: PushEvent) => {
   )
 })
 
-// Browsers re-issue endpoints on their own schedule (Chrome rotates FCM
-// tokens, Firefox refreshes after long offline periods). When that happens
-// the SW gets a `pushsubscriptionchange` event — we re-subscribe with the
-// stored VAPID key and tell the server about the new endpoint so the user
-// keeps receiving pushes without having to toggle the card off and on.
 interface PushSubscriptionChangeEvent extends ExtendableEvent {
   readonly newSubscription: PushSubscription | null
   readonly oldSubscription: PushSubscription | null
@@ -262,7 +217,6 @@ self.addEventListener('pushsubscriptionchange', (rawEvent) => {
               }),
             })
           } catch {
-            // best-effort — the next page mount will reconcile via the hook
           }
         }
       }
@@ -275,17 +229,12 @@ self.addEventListener('pushsubscriptionchange', (rawEvent) => {
             body: JSON.stringify({ endpoint: oldSub.endpoint }),
           })
         } catch {
-          // best-effort
         }
       }
     })(),
   )
 })
 
-// Restrict click navigation to same-origin URLs: the payload arrives over
-// the network and a compromised or spoofed sender could otherwise deliver
-// an off-origin URL that lands the user on a phishing page styled as The
-// Box. Anything off-origin (or unparseable) falls back to the app root.
 function resolveSameOriginTarget(raw: string): string {
   try {
     const resolved = new URL(raw, self.location.origin)
@@ -303,11 +252,6 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.waitUntil(
     (async () => {
       const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      // Reuse an existing window if one is already on the same scope —
-      // matches the manifest's launch_handler client_mode: navigate-existing.
-      // Pick the first focusable client without awaiting per-iteration so the
-      // search stays a pure synchronous find; the (loop-carried) focus +
-      // navigate awaits then run once, in order, on that single client.
       const existing = allClients.find((client) => 'focus' in client)
       if (existing) {
         await existing.focus()
@@ -315,8 +259,6 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
           try {
             await (existing as WindowClient).navigate(target)
           } catch {
-            // navigate() can reject for cross-origin or bfcache cases; the
-            // focus is enough — user lands on whatever page was open.
           }
         }
         return
@@ -326,8 +268,6 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   )
 })
 
-// Accept SET_LOCALE from the page so push fallback notifications match the
-// user's i18n setting; see PWALifecycle.tsx for the sender side.
 self.addEventListener('message', (event) => {
   const data = event.data as { type?: string; locale?: string } | null
   if (!data) return

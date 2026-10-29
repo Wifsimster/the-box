@@ -7,15 +7,9 @@ import { useFeatures } from '@/hooks/useFeatures'
 import { STUDIO } from '@/lib/studio'
 import { format } from 'date-fns'
 
-// Get build-time constants (injected by Vite at build time)
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null
 
-/**
- * Footer links are the app's smallest tap targets — 20px tall as bare text,
- * under the 44px Apple HIG / WCAG 2.5.5 target the mobile nav is already held
- * to. `min-h-11` (44px) pads the hit area without changing the type scale.
- */
 const footerLinkClass =
   'inline-flex min-h-11 items-center px-1 text-muted-foreground transition-colors hover:text-neon-purple'
 
@@ -24,10 +18,8 @@ export function Footer() {
   const { localizedPath } = useLocalizedPath()
   const openChangelog = useOpenChangelog()
   const features = useFeatures()
-  // Read the clock once per mount (lazy initializer) rather than on every render.
   const [currentYear] = useState(() => new Date().getFullYear())
 
-  // Format build time for display
   const formattedBuildTime = buildTime
     ? format(new Date(buildTime), 'dd/MM/yyyy HH:mm')
     : null
@@ -36,9 +28,6 @@ export function Footer() {
     <footer className="py-4 text-center relative z-10">
       <nav
         aria-label={t('nav.footer')}
-        // `gap-y-0` because each link now carries its own 44px tap height —
-        // stacking that on a 24px row gap left a cavernous wrapped footer on a
-        // phone, where these six links always wrap to two or three rows.
         className="flex flex-wrap items-center justify-center gap-x-6 gap-y-0 text-sm"
       >
         <Link
@@ -77,7 +66,6 @@ export function Footer() {
         >
           {t('footer.contact')}
         </Link>
-        {/* Secondary surfaces demoted out of the primary nav (daily-first). */}
         {features.geogamers && (
           <Link to={localizedPath('/panorama')} className={footerLinkClass}>
             {t('common.geogamers')}
@@ -103,9 +91,6 @@ export function Footer() {
             >
               v{appVersion}
             </button>
-            {/* On phones the line wrapped mid-timestamp (date on one line,
-                time on the next). Below `sm` the build time gets its own line
-                and drops the separator that would otherwise dangle. */}
             {formattedBuildTime && (
               <>
                 <span className="max-sm:hidden">{' • '}</span>
@@ -115,8 +100,6 @@ export function Footer() {
           </>
         )}
       </p>
-      {/* Studio credit — inline in prose, so the WCAG 2.5.8 inline exception
-          applies and the link doesn't need the 44px box the nav links carry. */}
       <p className="mt-1 text-xs text-muted-foreground">
         {t('footer.studioBy')}{' '}
         <a

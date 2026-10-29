@@ -10,17 +10,11 @@ import { userApi } from '@/lib/api/user'
 import { cn } from '@/lib/utils'
 
 interface ThemeSwitcherProps {
-  // Currently-selected theme key from the user record. Component is
-  // controlled by `selected` + `onChange` so the parent (ProfilePage)
-  // owns optimistic state and can roll back on failure.
   selected: ThemeKey
   isPremium: boolean
   onChange: (theme: ThemeKey) => void
 }
 
-// Premium-only theme picker. Free users see the catalog with locked
-// premium themes routed to /pricing on click — no silent failure, no
-// 402 surfacing in the UI.
 export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -35,7 +29,6 @@ export function ThemeSwitcher({ selected, isPremium, onChange }: ThemeSwitcherPr
       return
     }
 
-    // Optimistic apply: skin the page immediately, roll back on failure.
     const previous = selected
     onChange(key)
     applyTheme(key)

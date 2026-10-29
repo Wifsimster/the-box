@@ -2,9 +2,6 @@ import type { SessionStandingResponse } from '@the-box/types'
 import type { LeaderboardService, LeaderboardEntry, PercentileResult } from './types'
 import { fetchWithRetry, parseApiError, logError } from '@/lib/errors'
 
-/**
- * API-based leaderboard service
- */
 class ApiLeaderboardService implements LeaderboardService {
   private readonly baseUrl: string
 
@@ -14,7 +11,6 @@ class ApiLeaderboardService implements LeaderboardService {
 
   async getTodayLeaderboard(): Promise<LeaderboardEntry[]> {
     try {
-      // Use fetchWithRetry for automatic retry
       const response = await fetchWithRetry(
         `${this.baseUrl}/leaderboard/today`,
         undefined,
@@ -34,7 +30,6 @@ class ApiLeaderboardService implements LeaderboardService {
       return data.data.entries || []
     } catch (error) {
       logError(error, 'LeaderboardService')
-      // Return empty array on error so UI doesn't break
       return []
     }
   }
@@ -70,7 +65,6 @@ class ApiLeaderboardService implements LeaderboardService {
       return data.data
     } catch (error) {
       logError(error, 'LeaderboardService.getPercentile')
-      // Return default values on error
       return { percentile: 0, totalPlayers: 0, rank: 0 }
     }
   }
@@ -96,9 +90,6 @@ class ApiLeaderboardService implements LeaderboardService {
   }
 }
 
-/**
- * Factory function to create the leaderboard service
- */
 export function createLeaderboardService(): LeaderboardService {
   return new ApiLeaderboardService()
 }

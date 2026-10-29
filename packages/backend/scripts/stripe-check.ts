@@ -1,21 +1,3 @@
-/**
- * Pricing sync check.
- *
- * Resolves every entry in BILLING_CATALOG via its `lookupKey` and asserts
- * Stripe agrees on:
- *   - exactly one active Price exists for the lookup_key
- *   - currency matches
- *   - unit_amount matches (in cents)
- *   - recurring.interval matches (or null for one-time)
- *   - parent product is active
- *
- * Exits non-zero on any mismatch so the release pipeline can gate on it.
- *
- * Usage:
- *   npm run stripe:check                 # uses STRIPE_SECRET_KEY from .env
- *   npm run stripe:check -- --live       # explicit guard against running
- *                                          test-mode keys when you meant prod
- */
 import Stripe from 'stripe'
 import { BILLING_CATALOG, type BillingCatalogEntry } from '../src/config/billing.js'
 import { env } from '../src/config/env.js'

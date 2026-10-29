@@ -1,21 +1,5 @@
 import type { Knex } from 'knex'
 
-/**
- * Seed Geo mode for the Elden Ring pilot.
- *
- * Idempotent: safe to re-run. Skips creation when a map / candidates /
- * meta / challenge already exists for the target game.
- *
- * Inserts:
- * - 1 game row for Elden Ring (if missing)
- * - 1 geo_map (placeholder image URL; replace with a real Fandom-licensed
- *   asset before pilot launch)
- * - 5 geo_screenshot_candidate rows (placeholder Steam-style URLs)
- * - 5 geo_screenshot_meta rows with spread-out canonical coordinates so
- *   daily scheduling produces non-degenerate results
- * - today's geo_challenge tier=1 pointing at the first meta
- */
-
 const GAME = {
   name: 'Elden Ring',
   slug: 'elden-ring',
@@ -32,7 +16,6 @@ const GAME = {
 const MAP = {
   source: 'fandom',
   source_url: 'https://eldenring.fandom.com/wiki/Interactive_Map',
-  // Placeholder — swap for the licensed Fandom asset before launch.
   image_url: 'https://static.wikia.nocookie.net/eldenring/images/map-placeholder.jpg',
   width_px: 1600,
   height_px: 900,
@@ -50,9 +33,6 @@ const SEED_POINTS = [
 ]
 
 export async function seed(knex: Knex): Promise<void> {
-  // Pilot/dev fixture only — placeholder URLs (placehold.co) must never reach
-  // production, where they'd silently become the auto-scheduled daily
-  // challenge if no real one has been planned yet.
   if (process.env.NODE_ENV === 'production') {
     console.log('[geo-seed] skipped: NODE_ENV=production')
     return
@@ -61,7 +41,6 @@ export async function seed(knex: Knex): Promise<void> {
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
 
-  // 1. Game
   let game = await knex('games').where({ slug: GAME.slug }).first<{ id: number }>()
   if (!game) {
     const inserted = await knex('games')
@@ -76,7 +55,6 @@ export async function seed(knex: Knex): Promise<void> {
     console.log(`[geo-seed] game ${GAME.name} already exists (id=${game.id})`)
   }
 
-  // 2. Map
   let map = await knex('geo_map')
     .where({ game_id: game.id, is_active: true })
     .first<{ id: number }>()
@@ -93,9 +71,6 @@ export async function seed(knex: Knex): Promise<void> {
         license: MAP.license,
         attribution: MAP.attribution,
         is_active: true,
-        // Multi-map mode anchors Steam/RAWG capture on the explicit
-        // capture-default row. Seed games have a single enabled map, so
-        // it owns the role.
         is_capture_default: true,
         created_at: now,
       })
@@ -104,7 +79,6 @@ export async function seed(knex: Knex): Promise<void> {
     console.log(`[geo-seed] created geo_map id=${map.id}`)
   }
 
-  // 3. Candidates + meta
   const metaIds: number[] = []
   for (let i = 0; i < SEED_POINTS.length; i++) {
     const point = SEED_POINTS[i]!
@@ -156,7 +130,6 @@ export async function seed(knex: Knex): Promise<void> {
 
   console.log(`[geo-seed] seeded ${metaIds.length} canonical screenshots`)
 
-  // 4. Today's challenge — pointing at the first seeded meta
   const existingChallenge = await knex('geo_challenge')
     .where({ challenge_date: today, tier: 1 })
     .first<{ id: number }>()

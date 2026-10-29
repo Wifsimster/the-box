@@ -13,9 +13,6 @@ const router = Router()
 const WIDTH = 1200
 const HEIGHT = 630
 
-// Mirror of game.routes' uploads resolver: map a stored `/uploads/...` URL
-// to an absolute path and refuse anything that escapes the uploads dir.
-// Duplicated (not imported) to keep this security check local and explicit.
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads')
 
@@ -70,15 +67,6 @@ function formatDate(iso: string, locale: string): string {
   }
 }
 
-/**
- * Load the challenge's first screenshot as a base64 data URI so it can be
- * embedded directly in the OG SVG (resvg has no network access).
- *
- * Guarded to dates <= today: the preview endpoint is deliberately today-only
- * to avoid leaking *future* challenge screenshots, so we apply the same rule
- * here — a crafted `?date=<future>` falls back to the plain gradient card.
- * Fail-soft: any miss returns null and the caller renders the text card.
- */
 async function loadDailyScreenshotDataUri(date: string): Promise<string | null> {
   try {
     if (date > todayIso()) return null
@@ -108,13 +96,8 @@ function buildDailySvg(date: string, lang: 'fr' | 'en', imageDataUri: string | n
   const locale = lang === 'en' ? 'en-US' : 'fr-FR'
   const readable = escapeXml(formatDate(date, locale))
   const brand = escapeXml('THE BOX')
-  // Box language, per docs/brand.md §1 — the card is an invitation surface.
   const cta = escapeXml(lang === 'fr' ? 'Ouvre la boîte du jour' : "Open today's box")
 
-  // With a screenshot: a YouTube-thumbnail-style card — the actual (blurred)
-  // game still under a dark scrim, with a "Can you name it?" hook. The blur
-  // keeps it intriguing rather than a spoiler. Without one: the original
-  // gradient text card.
   if (imageDataUri) {
     const hook = escapeXml(lang === 'fr' ? 'Tu reconnais ce jeu ?' : 'Can you name this game?')
     const tagline = escapeXml(SITE_TAGLINE[lang])
@@ -186,31 +169,15 @@ function parseLang(input: unknown): 'fr' | 'en' {
   return typeof input === 'string' && input === 'en' ? 'en' : 'fr'
 }
 
-// ---------------------------------------------------------------------------
-// Geo free-play run recap card
-// ---------------------------------------------------------------------------
-
-// Per-round maximum from the geo scoring curve (docs/geo-mode.md).
 const GEO_RUN_ROUND_MAX = 2000
-// Hard cap on shared rounds — the client plays 5, but keep a margin so a
-// longer future run length doesn't 400 old links.
 const GEO_RUN_MAX_ROUNDS = 10
 
-// Tier colors mirror the frontend --score-high/mid/low tokens and its
-// band thresholds (frontend lib/geo-score-tiers.ts).
 function geoRunTierColor(score: number): string {
   if (score >= 1500) return '#34d399'
   if (score >= 500) return '#fbbf24'
   return '#f97316'
 }
 
-/**
- * Parse the `scores` query ("840,392,1361") into per-round integers.
- * Returns null on anything malformed so the route can 400 instead of
- * rendering a card for garbage. Values are clamped to the scoring
- * range rather than rejected — a stale client with a different max
- * should degrade, not break.
- */
 export function parseGeoRunScores(input: unknown): number[] | null {
   if (typeof input !== 'string' || input.length === 0) return null
   const parts = input.split(',')
@@ -235,7 +202,6 @@ function buildGeoRunSvg(scores: number[], lang: 'fr' | 'en'): string {
   )
   const totalColor = geoRunTierColor(total / scores.length)
 
-  // One dot per round, tier-colored, with the round score underneath.
   const dotGap = 110
   const dotsStart = 80
   const dots = scores
@@ -281,11 +247,6 @@ function buildGeoRunSvg(scores: number[], lang: 'fr' | 'en'): string {
 </svg>`
 }
 
-/**
- * SVG variant — kept for Discord/Slack which render SVG previews fine.
- * Twitter, WhatsApp, iMessage and LinkedIn reject SVG og:images, so the
- * canonical preview URL is the PNG below.
- */
 router.get('/daily.svg', async (req: Request, res: Response) => {
   const date = sanitizeDate(req.query.date)
   const lang = parseLang(req.query.lang)
@@ -297,12 +258,6 @@ router.get('/daily.svg', async (req: Request, res: Response) => {
   res.send(svg)
 })
 
-/**
- * PNG variant — required by Twitter / WhatsApp / iMessage / LinkedIn link
- * previews, which silently drop SVG og:images. Rasterised on-demand from
- * the same SVG template via resvg-js. The challenge for a given UTC date
- * is immutable, so a one-day cache is safe.
- */
 router.get('/daily.png', async (req: Request, res: Response) => {
   const date = sanitizeDate(req.query.date)
   const lang = parseLang(req.query.lang)
@@ -313,9 +268,6 @@ router.get('/daily.png', async (req: Request, res: Response) => {
     const png = new Resvg(svg, {
       fitTo: { mode: 'width', value: WIDTH },
       font: {
-        // Alpine production images install `font-dejavu`; macOS/Linux dev
-        // boxes have their own sans-serif fallbacks. Either way resvg picks
-        // a sans face from fontconfig.
         loadSystemFonts: true,
         defaultFontFamily: 'DejaVu Sans',
       },
@@ -326,19 +278,12 @@ router.get('/daily.png', async (req: Request, res: Response) => {
     res.send(png)
   } catch (error) {
     logger.error({ error: String(error), date, lang }, 'og png render failed')
-    // Fall back to SVG so the share preview is still something, not 500.
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
     res.setHeader('Cache-Control', 'public, max-age=300')
     res.send(svg)
   }
 })
 
-/**
- * Geo run recap card. Query: `scores` (comma-separated per-round ints,
- * clamped to 0..2000, at most 10) + `lang`. Everything is derived from
- * the query, so the response is immutable per URL — long cache is safe.
- * SVG variant for Discord/Slack, PNG for the platforms that reject SVG.
- */
 router.get('/geo-run.svg', (req: Request, res: Response) => {
   const scores = parseGeoRunScores(req.query.scores)
   if (!scores) {
@@ -378,7 +323,6 @@ router.get('/geo-run.png', (req: Request, res: Response) => {
     res.send(png)
   } catch (error) {
     logger.error({ error: String(error), lang }, 'og geo-run png render failed')
-    // Fall back to SVG so the share preview is still something, not 500.
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
     res.setHeader('Cache-Control', 'public, max-age=300')
     res.send(svg)

@@ -89,10 +89,6 @@ export const geoIngestAttemptRepository = {
     return rows.map(rowTo)
   },
 
-  // True if (game, source) had a failure within the last `cooldownSeconds`.
-  // Replaces the old single-row tombstone — different sources never block each
-  // other, and the cooldown window is computed from history rather than a
-  // fixed flag.
   async isInCooldown(
     gameId: number,
     source: GeoSourceName,
@@ -114,8 +110,6 @@ export const geoIngestAttemptRepository = {
     return result.rows[0]?.exists === true
   },
 
-  // Most recent outcome for (game, source). Used by the orchestrator to
-  // decide whether to advance to the next source or retry the same one.
   async findLatest(
     gameId: number,
     source: GeoSourceName,
@@ -127,7 +121,6 @@ export const geoIngestAttemptRepository = {
     return row ? rowTo(row) : null
   },
 
-  // Per-source consecutive failure count, used for exponential cooldown.
   async countRecentFailures(
     gameId: number,
     source: GeoSourceName,

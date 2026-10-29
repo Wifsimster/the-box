@@ -6,13 +6,10 @@ import { SITE_NAME, SITE_TAGLINE, SITE_URL, stripLangPrefix } from '@/lib/seo'
 import { STUDIO, STUDIO_LD_ID, studioOrganizationLd } from '@/lib/studio'
 
 type RouteDef = {
-  /** Match against the language-stripped path (e.g. `/play`, `/u/foo`). */
   match: (path: string) => null | Record<string, string>
-  /** i18n key under `seo.*`. */
   key: string
   noindex?: boolean
   ogType?: 'website' | 'profile' | 'article'
-  /** Build JSON-LD for this route. */
   jsonLd?: (
     lang: string,
     t: TFunction,
@@ -45,8 +42,6 @@ const homeJsonLd = (lang: string): Record<string, unknown>[] => [
     logo: `${SITE_URL}/logo.svg`,
     parentOrganization: { '@id': STUDIO_LD_ID },
   },
-  // The studio behind the app; `sameAs` ties this graph to the one published
-  // on the studio's own site.
   { ...studioOrganizationLd, sameAs: [STUDIO.url] },
 ]
 
@@ -63,8 +58,6 @@ const breadcrumbLd = (lang: string, items: Array<{ name: string; path: string }>
 
 const FAQ_COUNT = 7
 
-// Mirrors the questions rendered by FaqPage so search engines and assistants
-// can read the answers without expanding the accordion.
 const faqJsonLd = (lang: string, t: TFunction): Record<string, unknown> => ({
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
@@ -103,7 +96,6 @@ const ROUTES: RouteDef[] = [
     jsonLd: homeJsonLd,
   },
   { match: exact('/play'), key: 'play' },
-  // The former landing page (daily-first, D7): hero, modes, Premium.
   { match: exact('/about'), key: 'about' },
   {
     match: exact('/leaderboard'),
@@ -131,7 +123,6 @@ const ROUTES: RouteDef[] = [
   { match: exact('/geo/play'), key: 'geo' },
   { match: exact('/geo/contribute'), key: 'geoContribute' },
   { match: paramMatch('/u/:username', 'username'), key: 'publicProfile', ogType: 'profile' },
-  // Private / volatile surfaces — we still want a sensible title but block indexing.
   { match: exact('/profile'), key: 'profile', noindex: true },
   { match: (p) => (p.startsWith('/history') ? {} : null), key: 'history', noindex: true },
   { match: (p) => (p.startsWith('/admin') ? {} : null), key: 'home', noindex: true },

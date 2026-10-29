@@ -39,20 +39,6 @@ import type {
   WebhookSummary,
 } from '@the-box/types'
 
-// Public, opt-in, key-authenticated read API for streamer integrations.
-// Mounted at /api/public/v1. Deliberately separate from /api/* — no Better
-// Auth middleware on this tree, wide-open CORS, in-memory rate-limit bucket.
-//
-// Hard rules enforced here:
-//   1. A streamer is only visible if their `public_profile_enabled` flag is true.
-//   2. Cross-account reads return the same data as anonymous reads — keys
-//      identify YOU, never elevate access to someone else's data.
-//   3. No screenshot bytes, no answers, no current-screenshot id leak.
-
-// Constructed locally (not from the services barrel) so this route module —
-// and public-api-spec.test.ts which introspects it — never transitively
-// imports queues.ts (whose eager QueueEvents would open a Redis connection and
-// hang the test process). The season service only needs its repository.
 const geoGamersSeasonService = createGeoGamersSeasonService({
   logger: serviceLogger,
   ranking: geoGamersSeasonRepository,
@@ -60,18 +46,12 @@ const geoGamersSeasonService = createGeoGamersSeasonService({
 
 const router = Router()
 
-// Order matters: CORS must run first (it short-circuits OPTIONS),
-// then the key-attachment step before rate-limit (so keyed callers
-// get the keyed quota), then rate-limit.
 router.use(publicApiCors)
 router.use(optionalApiKey())
 router.use(publicApiRateLimit)
 
 const log = logger.child({ router: 'public-v1' })
 
-// Mirrors the constants the game service uses internally. Hoisted here so
-// chat overlays can show "scoring starts at 1000, decays at 2/sec" without
-// us exposing a config endpoint.
 const SCORING_CONFIG = { initialScore: 1000, decayRate: 2 } as const
 const TOTAL_SCREENSHOTS = 10
 
@@ -81,8 +61,6 @@ function todayDate(): string {
   return new Date().toISOString().split('T')[0]!
 }
 
-// One-line chat formatter used by both the profile endpoint's `?format=chat`
-// path and (eventually) the webhook delivery body. Keeps shapes consistent.
 function chatLine(profile: PublicStreamerProfile, opts: { emoji: boolean }): string {
   const prefix = opts.emoji ? '🎮 ' : ''
   const today = profile.today
@@ -92,9 +70,6 @@ function chatLine(profile: PublicStreamerProfile, opts: { emoji: boolean }): str
   return `${prefix}@${profile.displayName} · ${todayStr} · Streak: ${profile.currentStreak}d`
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// GET /api/public/v1/challenge/today
-// ─────────────────────────────────────────────────────────────────────
 router.get('/challenge/today', async (_req, res, next) => {
   try {
     const date = todayDate()
@@ -117,12 +92,6 @@ router.get('/challenge/today', async (_req, res, next) => {
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────
-// GET /api/public/v1/streamers/:slug
-//
-// Supports `?format=chat&emoji=0` for one-line Nightbot-friendly output.
-// ─────────────────────────────────────────────────────────────────────
-
 const profileQuerySchema = z.object({
   format: z.enum(['json', 'chat']).optional(),
   emoji: z.enum(['0', '1']).optional(),
@@ -139,8 +108,6 @@ async function buildStreamerProfile(row: PublicStreamerRecord): Promise<PublicSt
     const session = await publicProfileRepository.findDailySession(row.id, challenge.id)
 
     if (session) {
-      // Rank is only meaningful when the session is finished — partial
-      // scores ride the leaderboard once completed_at is set, never before.
       const rank: number | null = session.is_completed
         ? await leaderboardRepository.rankForScore(challenge.id, session.total_score)
         : null
@@ -180,9 +147,6 @@ router.get(
       }
       const query = req.query as z.infer<typeof profileQuerySchema>
 
-      // Sandbox streamer — clock-driven simulation, never a DB lookup.
-      // Lets integrators build against a live target without waiting for
-      // a real player. See sandbox.service.ts.
       const profile = isSandboxSlug(slug)
         ? sandboxProfile()
         : await (async () => {
@@ -198,9 +162,6 @@ router.get(
         return
       }
       if (query.format === 'chat') {
-        // Plain text body — Nightbot-friendly. We don't wrap in the envelope
-        // because $(urlfetch json …) expects raw text here, and a JSON
-        // string would arrive double-quoted in chat.
         res.setHeader('Content-Type', 'text/plain; charset=utf-8')
         res.setHeader('Cache-Control', 'public, max-age=30')
         res.send(chatLine(profile, { emoji: query.emoji !== '0' }))
@@ -214,12 +175,6 @@ router.get(
   }
 )
 
-// ─────────────────────────────────────────────────────────────────────
-// GET /api/public/v1/streamers/:slug/today
-//
-// Today-only state for an OBS overlay. No spoilers — we expose the count
-// of screenshots already scored, never the id of the current screenshot.
-// ─────────────────────────────────────────────────────────────────────
 router.get('/streamers/:slug/today', async (req, res, next) => {
   try {
     const rawSlug = req.params['slug']
@@ -232,7 +187,6 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
       return
     }
 
-    // Sandbox streamer — clock-driven simulation (see sandbox.service.ts).
     if (isSandboxSlug(slug)) {
       res.json({ success: true, data: sandboxToday() })
       return
@@ -263,8 +217,6 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
       return
     }
 
-    // screenshotsDone = sum of correct answers across tier_sessions for this
-    // game_session. Bounded by TOTAL_SCREENSHOTS.
     const correctAnswers = await publicProfileRepository.countCorrectAnswers(session.id)
     const screenshotsDone = Math.min(TOTAL_SCREENSHOTS, Number(correctAnswers))
 
@@ -292,9 +244,6 @@ router.get('/streamers/:slug/today', async (req, res, next) => {
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────
-// GET /api/public/v1/leaderboard/daily?date=YYYY-MM-DD&limit=N
-// ─────────────────────────────────────────────────────────────────────
 const dailyQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(10),
@@ -311,8 +260,6 @@ router.get('/leaderboard/daily', validateQuery(dailyQuerySchema), async (req, re
     }
     const entries = await leaderboardRepository.findByChallenge(challenge.id, limit)
 
-    // Join slug for each user_id that has one — slugs are the public id we
-    // want to surface, but we still fall back to display_name.
     const userIds = entries.map((e: LeaderboardEntry) => e.userId)
     const slugById = await publicProfileRepository.findPublicSlugs(userIds)
 
@@ -330,9 +277,6 @@ router.get('/leaderboard/daily', validateQuery(dailyQuerySchema), async (req, re
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────
-// GET /api/public/v1/leaderboard/monthly?month=YYYY-MM&limit=N
-// ─────────────────────────────────────────────────────────────────────
 const monthlyQuerySchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(10),
@@ -365,10 +309,6 @@ router.get('/leaderboard/monthly', validateQuery(monthlyQuerySchema), async (req
   }
 })
 
-// GET /api/public/v1/geogamers/season — read-only GeoGamers season standings
-// for overlays/bots. Returns an empty list when the feature is disabled so
-// integrators can poll unconditionally. Public-safe: exposes rank, display
-// name, and public slug (only for opted-in public profiles), never user ids.
 const geogamersSeasonQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
 })
@@ -409,20 +349,6 @@ router.get(
   },
 )
 
-// ─────────────────────────────────────────────────────────────────────
-// M2 — SSE live channel
-// ─────────────────────────────────────────────────────────────────────
-//
-// GET /api/public/v1/streamers/:slug/live?key=tb_pk_…
-//
-// SSE is one-way push from server → browser, ideal for OBS browser
-// sources. `EventSource` can't set headers, so the key arrives as a
-// query param — the request-logging middleware redacts it.
-//
-// The actual stream loop, polling cadence, heartbeat, and connection
-// budget all live in public-sse.ts so this file stays readable. We
-// require an API key on this path so the per-key concurrent-connection
-// cap (3) has something to attach to.
 router.get(
   '/streamers/:slug/live',
   requireApiKey({ allowQueryParam: true }),
@@ -436,19 +362,6 @@ router.get(
     await setupSseChannel(req, res, { slug, log })
   },
 )
-
-// ─────────────────────────────────────────────────────────────────────
-// M2 — Webhooks
-//
-// Three endpoints, all key-authed against the OWNER's data:
-//   POST   /webhooks         register
-//   GET    /webhooks         list own webhooks
-//   DELETE /webhooks/:id     revoke
-//
-// Cross-account access is explicitly impossible — `req.userId` (set by
-// the key) is the only id we ever look up by. Holding a key for user A
-// never grants visibility into user B's webhooks.
-// ─────────────────────────────────────────────────────────────────────
 
 function hasScope(scopes: ApiKeyScope[] | undefined, want: ApiKeyScope): boolean {
   return Array.isArray(scopes) && scopes.includes(want)
@@ -467,8 +380,6 @@ const createWebhookSchema = z.object({
   events: z
     .array(z.enum(ALLOWED_EVENTS as [PublicEventType, ...PublicEventType[]]))
     .max(16)
-    // Empty array means "all events" — semantically distinct from "no events"
-    // (which would be a useless registration).
     .default([]),
 })
 
@@ -485,8 +396,6 @@ router.post(
       const userId = req.userId!
       const body = req.body as z.infer<typeof createWebhookSchema>
 
-      // SSRF guard at register time. The delivery worker re-checks DNS
-      // on every send so DNS rebinding can't sneak past this.
       const validation = validateWebhookUrl(body.url, env.API_URL)
       if (!validation.ok) {
         res.status(400).json({
@@ -496,9 +405,6 @@ router.post(
         return
       }
 
-      // Cap concurrent active webhooks per user. 10 is generous (multi-bot
-      // setups stay well under) and stops a compromised session from
-      // creating an unbounded fleet.
       const existing = await webhookRepository.findByUser(userId)
       if (existing.filter((w) => w.is_active).length >= 10) {
         res.status(400).json({
@@ -515,9 +421,6 @@ router.post(
         events: body.events,
       })
 
-      // The signing secret is encrypted at rest by webhookRepository.create
-      // (AES-256-GCM) — the delivery worker decrypts it per send. Returned
-      // here once, in plaintext, and never again.
       const payload: WebhookCreated = {
         ...webhookRepository.mapWebhook(row),
         secret,

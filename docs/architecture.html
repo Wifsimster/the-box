@@ -1,11 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SUMMARY: Backend clean-architecture overview for The Box. Three layers
-  (Presentation → Domain → Infrastructure) with strict unidirectional dependency.
-  Companion to docs/architecture.md; this file is the visual / interactive form
-  for reviewers and onboarding. Pilot HTML doc per
-  tasks/html-first-subagents-meeting.html (2026-05-10).
--->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -101,7 +94,6 @@
   }
   blockquote.callout.warn { border-left-color: #f59e0b; background: rgba(245,158,11,0.06); }
 
-  /* === Diagram === */
   .diagram-wrap {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -125,7 +117,6 @@
   .legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--mono); font-size: 0.78rem; }
   .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
-  /* SVG layer styles */
   .layer-band-pres  { fill: rgba(56,189,248,0.07);  stroke: rgba(56,189,248,0.4);  }
   .layer-band-dom   { fill: rgba(168,85,247,0.08);  stroke: rgba(168,85,247,0.45); }
   .layer-band-infra { fill: rgba(148,163,184,0.07); stroke: rgba(148,163,184,0.4); }
@@ -189,7 +180,6 @@
 
   <div class="diagram-wrap">
     <svg viewBox="0 0 1200 620" role="img" aria-label="Three-layer clean architecture with request trace from POST /api/guesses through domain services to PostgreSQL.">
-      <!-- Bands -->
       <rect class="layer-band-pres"  x="20"  y="40"  width="1160" height="140" rx="8"/>
       <rect class="layer-band-dom"   x="20"  y="200" width="1160" height="180" rx="8"/>
       <rect class="layer-band-infra" x="20"  y="400" width="1160" height="180" rx="8"/>
@@ -197,7 +187,6 @@
       <text class="layer-label" x="40"  y="225" fill="var(--layer-domain)">Domain</text>
       <text class="layer-label" x="40"  y="425" fill="var(--layer-infra)">Infrastructure</text>
 
-      <!-- Arrowhead def -->
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-head"/>
@@ -207,7 +196,6 @@
         </marker>
       </defs>
 
-      <!-- Presentation nodes -->
       <g class="node">
         <rect x="80"  y="95" width="160" height="60" rx="6"/>
         <text x="160" y="125" text-anchor="middle">POST /api/guesses</text>
@@ -229,7 +217,6 @@
         <text x="720" y="142" text-anchor="middle" font-size="10" fill="var(--muted)">Pino</text>
       </g>
 
-      <!-- Domain nodes -->
       <g class="node">
         <rect x="80"  y="265" width="180" height="60" rx="6"/>
         <text x="170" y="295" text-anchor="middle">game.service</text>
@@ -256,7 +243,6 @@
         <text x="1010" y="312" text-anchor="middle" font-size="10" fill="var(--muted)">user · auth · daily-login · billing · referral · geo-* · admin · job</text>
       </g>
 
-      <!-- Infrastructure nodes -->
       <g class="node">
         <rect x="80"  y="455" width="170" height="60" rx="6"/>
         <text x="165" y="485" text-anchor="middle">guessRepository</text>
@@ -286,7 +272,6 @@
         <text x="1050" y="485" text-anchor="middle">Redis</text>
       </g>
 
-      <!-- Trace path: POST → auth → validate → game.service → fuzzy-match → leaderboard → guessRepo → postgres -->
       <path id="t1" class="trace" d="M 240 125 L 280 125" marker-end="url(#arrow)"/>
       <path id="t2" class="trace" d="M 420 125 L 460 125" marker-end="url(#arrow)"/>
       <path id="t3" class="trace" d="M 600 125 L 640 125" marker-end="url(#arrow)"/>
@@ -298,7 +283,6 @@
       <path id="t9" class="trace" d="M 170 325 L 165 455" marker-end="url(#arrow)"/>
       <path id="t10" class="trace" d="M 250 485 L 880 485" marker-end="url(#arrow)"/>
 
-      <!-- Forbidden reverse arrow (Domain importing from Infrastructure) -->
       <path class="forbidden" d="M 1010 455 Q 1010 410 1010 325" marker-end="url(#arrow-red)"/>
       <line class="forbidden-x" x1="995" y1="375" x2="1025" y2="405"/>
       <line class="forbidden-x" x1="1025" y1="375" x2="995" y2="405"/>
@@ -461,7 +445,6 @@
 </footer>
 
 <script>
-  // Trace animation: fade in trace path segments sequentially when "Play trace" is clicked.
   (function () {
     const btn = document.getElementById('play');
     if (!btn) return;
@@ -475,7 +458,6 @@
     });
   })();
 
-  // TOC active highlight on scroll.
   (function () {
     const links = Array.from(document.querySelectorAll('aside.toc a'));
     const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);

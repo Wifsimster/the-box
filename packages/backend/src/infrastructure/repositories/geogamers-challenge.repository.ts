@@ -31,9 +31,6 @@ export interface EligibleMeta {
   gameId: number
 }
 
-// Concrete repository. Implements the domain port plus the create/setCurrent
-// helpers the daily-scheduler worker needs and the eligibility queries shared
-// by the scheduler (daily pick) and the joker re-roll.
 export const geoGamersChallengeRepository: GeoGamersChallengeRepository & {
   create(data: { challengeDate: string; geoScreenshotMetaId: number }): Promise<GeoGamersChallengeRecord>
   setCurrent(challengeId: number): Promise<void>
@@ -65,8 +62,6 @@ export const geoGamersChallengeRepository: GeoGamersChallengeRepository & {
       .onConflict('challenge_date')
       .ignore()
       .returning<GeoGamersChallengeRow[]>('*')
-    // onConflict().ignore() returns nothing when the row already exists —
-    // fall back to a read so the caller always gets the canonical record.
     if (row) return mapChallenge(row)
     const existing = await db('geogamers_challenge')
       .where({ challenge_date: data.challengeDate })
@@ -74,9 +69,6 @@ export const geoGamersChallengeRepository: GeoGamersChallengeRepository & {
     return mapChallenge(existing!)
   },
 
-  // Atomically promote `challengeId` to current, demoting any prior current
-  // row. The partial unique index geogamers_challenge_one_current rejects two
-  // current rows, so both statements must share a transaction.
   async setCurrent(challengeId: number): Promise<void> {
     await db.transaction(async (trx) => {
       await trx('geogamers_challenge')
@@ -87,9 +79,6 @@ export const geoGamersChallengeRepository: GeoGamersChallengeRepository & {
     })
   },
 
-  // Game-cooldown support: which game ids have been featured in the last
-  // `days` days. The worker excludes these so the same game isn't reused too
-  // soon. Joins meta -> candidate to reach game_id.
   async gameIdsUsedSince(days: number): Promise<number[]> {
     const rows = await db('geogamers_challenge as gc')
       .join('geo_screenshot_meta as m', 'm.id', 'gc.geo_screenshot_meta_id')
@@ -99,9 +88,6 @@ export const geoGamersChallengeRepository: GeoGamersChallengeRepository & {
     return rows.map((r) => r.game_id)
   },
 
-  // Metas eligible to be a challenge: canonical pin (it's a meta), active map,
-  // present game, and NEVER previously used as a GeoGamers challenge. Optional
-  // game cooldown + single-meta exclusion (for joker re-rolls).
   async listEligibleMetas({ cooldownGameIds = [], excludeMetaId }): Promise<EligibleMeta[]> {
     const q = db('geo_screenshot_meta as m')
       .join('geo_screenshot_candidate as c', 'c.id', 'm.geo_screenshot_candidate_id')
@@ -123,8 +109,6 @@ export const geoGamersChallengeRepository: GeoGamersChallengeRepository & {
     return rows.map((r) => ({ metaId: r.meta_id, gameId: r.game_id }))
   },
 
-  // Joker re-roll: any eligible meta other than the current one. No cooldown
-  // (variety for one player, not the day-to-day rotation). Null when none.
   async pickAlternateMeta(excludeMetaId: number): Promise<number | null> {
     const eligible = await this.listEligibleMetas({ excludeMetaId })
     if (eligible.length === 0) return null

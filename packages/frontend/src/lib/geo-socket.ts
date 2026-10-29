@@ -14,16 +14,11 @@ function createSocket(): Socket {
     return io(path, {
         autoConnect: false,
         path: '/socket.io',
-        // Carries the Better Auth session cookie through the WebSocket
-        // handshake so the server's namespace middleware can authorize.
         withCredentials: true,
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        // Cellular networks drop and recover all day — keep trying. Default
-        // randomizationFactor (0.5) already jitters the backoff so a fleet
-        // recovering from the same outage doesn't stampede the server.
         reconnectionAttempts: Infinity,
         randomizationFactor: 0.5,
     })
@@ -34,10 +29,6 @@ function getGeoSocket(): Socket {
     return socket
 }
 
-/**
- * Open the `/geo` socket, join the per-user room, and feed all three event
- * types into the store. Idempotent: re-calling re-joins without reconnecting.
- */
 export function connectGeoSocket(userId: string | null | undefined): void {
     const s = getGeoSocket()
 
@@ -50,7 +41,6 @@ export function connectGeoSocket(userId: string | null | undefined): void {
         return
     }
 
-    // Wire once; rely on the singleton's listeners surviving reconnects.
     if (!(s as unknown as { _wired?: boolean })._wired) {
         s.on('connect', join)
         s.on('geo:contribution:rewarded', (e: GeoRewardedEvent) => {

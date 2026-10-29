@@ -4,27 +4,6 @@ import { repoLogger } from '../logger/logger.js'
 
 const log = repoLogger.child({ repository: 'gdpr' })
 
-/**
- * GDPR / RGPD data-export repository (Art. 15 access + Art. 20 portability).
- *
- * Aggregates everything the platform holds about a single user into a plain
- * JSON object suitable for a one-click download. Two hard rules govern what
- * lands in the file:
- *
- *  1. Data minimisation / secret hygiene — NEVER emit secret material. Push
- *     keys (`p256dh`, `auth`), API-key hashes (`key_hash`), webhook secrets
- *     (`secret_hash`, `secret_prefix`, `secret_enc`) and the auth `account`
- *     credentials (`password`, `accessToken`, `refreshToken`) are explicitly
- *     excluded by selecting only the safe columns.
- *
- *  2. Defensive degradation — every optional table is guarded with
- *     `hasTable` so an env that never ran a given migration can't 500 the
- *     whole export, and each section is wrapped so a partial failure leaves
- *     the rest of the export intact rather than aborting it.
- */
-
-// Run a per-section query, returning `[]` (or the supplied fallback) instead
-// of throwing so one bad table can't sink the entire export.
 async function safe<T>(
   section: string,
   fn: () => Promise<T>,
@@ -38,7 +17,6 @@ async function safe<T>(
   }
 }
 
-// Only query a table that actually exists in this environment.
 async function ifTable<T>(
   name: string,
   fn: () => Promise<T>,
@@ -52,16 +30,11 @@ async function ifTable<T>(
 }
 
 export const gdprRepository = {
-  /**
-   * Build the full export object for `userId`. Returns a plain
-   * `Record<string, unknown>` — the route serialises it as a file download.
-   */
   async exportUserData(userId: string): Promise<Record<string, unknown>> {
     log.info({ userId }, 'exportUserData')
 
     const profile = await safe('profile', () => userRepository.findById(userId), null)
 
-    // Better Auth account rows — exclude credential material.
     const accounts = await ifTable(
       'account',
       () =>
@@ -78,7 +51,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Active sessions — no token bytes, just the device/timing metadata.
     const sessions = await ifTable(
       'session',
       () =>
@@ -101,7 +73,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Tier sessions are nested under the user's game sessions.
     const tierSessions = await ifTable(
       'tier_sessions',
       () =>
@@ -112,7 +83,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Guesses join through tier_sessions → game_sessions to scope to the user.
     const guesses = await ifTable(
       'guesses',
       () =>
@@ -148,7 +118,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Push subscriptions — endpoint + UA only. EXCLUDE p256dh / auth.
     const pushSubscriptions = await ifTable(
       'push_subscriptions',
       () =>
@@ -172,7 +141,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Geo crowdsource pins.
     const geoPinSubmissions = await ifTable(
       'geo_pin_submission',
       () => db('geo_pin_submission').where('user_id', userId).select('*'),
@@ -191,7 +159,6 @@ export const gdprRepository = {
       null
     )
 
-    // API keys — label/prefix/scopes only. EXCLUDE key_hash.
     const apiKeys = await ifTable(
       'api_keys',
       () =>
@@ -211,7 +178,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Webhooks — label/url/events only. EXCLUDE secret_hash/secret_prefix/secret_enc.
     const webhooks = await ifTable(
       'webhooks',
       () =>
@@ -230,7 +196,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Email send history for this user (no body is stored anywhere).
     const emailLog = await ifTable(
       'email_log',
       () =>
@@ -247,8 +212,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // "Describe the game" (shadow mode): the player's own descriptions. The
-    // model verdict is left out: it would reveal answers the player never saw.
     const describeGuesses = await ifTable(
       'describe_guess_attempts',
       () =>
@@ -258,7 +221,6 @@ export const gdprRepository = {
       [] as unknown[]
     )
 
-    // Achievements, joined to their definitions so the export is readable.
     const achievements = await ifTable(
       'user_achievements',
       () =>

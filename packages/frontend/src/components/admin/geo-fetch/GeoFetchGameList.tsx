@@ -8,16 +8,11 @@ interface Props {
   onOpenGame: (gameId: number) => void
 }
 
-// Simple flat list — virtualization can be added if we ever cross a few
-// hundred rows. Each row memoized so socket updates only re-render the
-// affected line.
-
 export const GeoFetchGameList = memo(function GeoFetchGameList({ onOpenGame }: Props) {
   const { t } = useTranslation()
   const games = useGeoFetchStore((s) => s.games)
   const isLoading = useGeoFetchStore((s) => s.isLoading)
   const list = Object.values(games).sort((a, b) => {
-    // Awaiting-curation rows first, then by recency.
     if (a.current_stage !== b.current_stage) {
       if (a.current_stage === 'awaiting_curation') return -1
       if (b.current_stage === 'awaiting_curation') return 1

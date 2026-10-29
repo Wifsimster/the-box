@@ -31,24 +31,13 @@ export class GeoGameError extends Error {
 
 export const GEO_CONTRIBUTE_HOURLY_LIMIT = 20
 
-// Require a minimum of 3 distinct completed game days before a user can submit
-// pins. Gates spam from drive-by accounts while still being low-enough that
-// engaged players hit it fast.
 export const GEO_CONTRIBUTE_MIN_DAYS_PLAYED = 3
 
-// Free-play view: any game, any enabled map, no leaderboard side effects. The
-// chooser surface gets the full list of enabled maps for the game; the
-// canonical map id is held back until after the guess so DevTools can't leak
-// the answer.
 export interface GeoFreePlayView {
   game: { id: number; name: string }
-  // Only the id — canonical point and geoMapId are the answer.
   meta: Pick<GeoScreenshotMeta, 'id'>
   candidate: GeoScreenshotCandidate
   maps: GeoMap[]
-  // The map the screenshot canonically belongs to. Only populated AFTER the
-  // player has submitted a free-play guess (i.e. it's never returned by the
-  // pick endpoint).
   map?: GeoMap
 }
 
@@ -67,10 +56,6 @@ export interface GeoGameService {
   pickContributionTarget(args: {
     gameId: number
     userId: string
-    // Anonymous (Better Auth guest) sessions can't accumulate
-    // distinct-days-played, so the unlock gate is skipped for them.
-    // Spam protection still flows through the per-user hourly rate
-    // limit and the consensus pipeline (which downweights anon pins).
     isAnonymous?: boolean
   }): Promise<GeoScreenshotCandidate>
 
@@ -93,10 +78,6 @@ export interface GeoGameServiceDeps {
   geoScreenshotRepository: GeoScreenshotRepository
   geoPinRepository: GeoPinRepository
   geoMapRepository: GeoMapRepository
-  /**
-   * Only asks how many distinct days the player has played, to gate geo
-   * contribution eligibility.
-   */
   sessionRepository: PlayerActivityQuery
 }
 
@@ -111,8 +92,6 @@ function validPoint(p: GeoPoint): boolean {
   )
 }
 
-// Hosts/paths used by the dev seed that must never be served as a real
-// screenshot. Treat any of these as "not configured" instead.
 const PLACEHOLDER_URL_PATTERNS = [
   /(^|\/\/)placehold\.co\//i,
   /(^|\/\/)via\.placeholder\.com\//i,
@@ -134,10 +113,6 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
   } = deps
 
   return {
-    // Free-play view hydration: pick a random promoted screenshot for the
-    // (game, map) pair, surface every enabled map for the chooser, and
-    // never write anything. Returns null when the game has no promoted
-    // screenshots yet.
     async pickFreePlayScreenshot({ gameId, geoMapId, excludeMetaIds }) {
       const enabledMaps = await geoMapRepository.listEnabledByGameId(gameId)
       if (enabledMaps.length === 0) return null
@@ -165,7 +140,6 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
       }
       return {
         game: { id: gameId, name: '' },
-        // Never ship canonical/geoMapId to the client — they are the answer.
         meta: { id: meta.id },
         candidate,
         maps: enabledMaps,
@@ -213,10 +187,6 @@ export function createGeoGameService(deps: GeoGameServiceDeps): GeoGameService {
     },
 
     async pickContributionTarget({ gameId, userId, isAnonymous }) {
-      // Unlock gate first: cheaper than the rate-limit query in the hot
-      // (not-yet-unlocked) path because we hit a single indexed aggregate.
-      // Skipped for anonymous sessions — they can't build days-of-play
-      // history, so the gate would be a hard wall instead of a delay.
       if (!isAnonymous) {
         const daysPlayed = await sessionRepository.countDistinctDaysPlayed(userId)
         if (daysPlayed < GEO_CONTRIBUTE_MIN_DAYS_PLAYED) {

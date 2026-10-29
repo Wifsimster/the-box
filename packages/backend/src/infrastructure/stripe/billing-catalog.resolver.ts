@@ -5,13 +5,12 @@ import { getStripe } from './stripe.client.js'
 
 const log = logger.child({ module: 'billing-catalog-resolver' })
 
-const TTL_MS = 60 * 60 * 1000 // 1h — price changes are rare, and a Stripe
-                              // outage shouldn't take billing pages down
+const TTL_MS = 60 * 60 * 1000
 
 interface ResolvedCatalog {
   fetchedAt: number
-  byLookupKey: Map<string, string> // lookup_key → price.id
-  byPriceId: Map<string, BillingTier> // price.id → tier (reverse for webhooks)
+  byLookupKey: Map<string, string>
+  byPriceId: Map<string, BillingTier>
 }
 
 let cache: ResolvedCatalog | null = null
@@ -39,9 +38,6 @@ async function refresh(): Promise<ResolvedCatalog> {
       continue
     }
     if (matches.length > 1) {
-      // Stripe allows lookup_key to be reused across prices when the prior
-      // owner is archived; refusing here forces a human to clean it up
-      // rather than silently picking the wrong one.
       throw new Error(
         `stripe returned ${matches.length} active prices for lookup_key "${entry.lookupKey}"; archive the duplicates`,
       )
@@ -65,9 +61,6 @@ async function ensureFresh(): Promise<ResolvedCatalog> {
   return inflight
 }
 
-// Returns the live Stripe price.id for a tier, or null if the lookup_key
-// hasn't been provisioned yet (e.g. fresh test sandbox). Callers should
-// surface a 500/PRICE_NOT_CONFIGURED rather than charge a fallback.
 export async function resolvePriceId(tier: BillingTier): Promise<string | null> {
   const entry = BILLING_CATALOG.find((e) => e.tier === tier)
   if (!entry) return null
@@ -75,23 +68,14 @@ export async function resolvePriceId(tier: BillingTier): Promise<string | null> 
   return resolved.byLookupKey.get(entry.lookupKey) ?? null
 }
 
-// Reverse lookup used by webhooks: an inbound subscription event carries a
-// price.id and we need to know which tier it belongs to. Returns null for
-// archived/historical prices that have rotated out of the active set —
-// callers treat that as "no entitlement" rather than crashing.
 export async function tierFromPriceId(priceId: string): Promise<BillingTier | null> {
   const resolved = await ensureFresh()
   if (resolved.byPriceId.has(priceId)) return resolved.byPriceId.get(priceId) ?? null
-  // The cached snapshot may be stale if a price was just rotated; force one
-  // refresh before giving up so a freshly-issued price doesn't 404 webhooks
-  // for the cache TTL window.
   cache = null
   const next = await ensureFresh()
   return next.byPriceId.get(priceId) ?? null
 }
 
-// Read-only snapshot of the current resolution. Used by listPublicPrices to
-// surface the resolved priceId without forcing every caller to re-await.
 export async function snapshotResolvedCatalog(): Promise<{
   byLookupKey: ReadonlyMap<string, string>
   byPriceId: ReadonlyMap<string, BillingTier>
@@ -100,9 +84,6 @@ export async function snapshotResolvedCatalog(): Promise<{
   return { byLookupKey: resolved.byLookupKey, byPriceId: resolved.byPriceId }
 }
 
-// Test/admin escape hatch — drop the cache so the next call re-queries
-// Stripe immediately. Not exported via barrels; only intended for tests
-// and the stripe-check script.
 export function invalidateCatalogCache(): void {
   cache = null
 }

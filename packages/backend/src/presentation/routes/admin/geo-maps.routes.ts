@@ -7,10 +7,6 @@ import {
 const router = Router()
 
 
-// Multi-map: enable a specific geo_map row for a game. Multiple maps can
-// be enabled simultaneously (BG3 → Nautiloid + Wilderness + …). When the
-// game had zero enabled maps before this call the same map is also
-// promoted to capture-default so ingest has a target.
 const enableMapBodySchema = z.object({
   geoMapId: z.number().int().positive(),
 })
@@ -47,9 +43,6 @@ router.post('/geo/games/:id/maps/enable', async (req, res, next) => {
   }
 })
 
-// Multi-map: disable a single map. Refuses with 409 LAST_ENABLED if it
-// would leave the game with zero enabled maps. The capture-default role
-// is auto-handed to a sibling if the disabled row held it.
 router.post('/geo/games/:id/maps/disable', async (req, res, next) => {
   try {
     const id = Number(req.params.id)
@@ -86,9 +79,6 @@ router.post('/geo/games/:id/maps/disable', async (req, res, next) => {
   }
 })
 
-// Multi-map: pick which enabled map Steam/RAWG capture providers attach
-// new candidates to. At most one row per game holds the role; the partial
-// unique index `geo_map_one_capture_default_per_game` enforces it.
 router.post('/geo/games/:id/maps/capture-default', async (req, res, next) => {
   try {
     const id = Number(req.params.id)
@@ -121,8 +111,6 @@ router.post('/geo/games/:id/maps/capture-default', async (req, res, next) => {
   }
 })
 
-// Inline region edit. Sending an empty string or null clears the region
-// (game collapses back to a single "world map" presentation).
 const updateMapBodySchema = z.object({
   region: z.string().max(100).nullable().optional(),
 })
@@ -156,8 +144,6 @@ router.patch('/geo/maps/:mapId', async (req, res, next) => {
   }
 })
 
-// Deprecated: routes through to `/maps/enable` for one release so a stale
-// frontend keeps working. Remove next release.
 router.post('/geo/games/:id/active-map', async (req, res, next) => {
   try {
     const id = Number(req.params.id)

@@ -10,10 +10,6 @@ interface PaginationDotsProps {
   className?: string
 }
 
-/**
- * Simple dot pagination for carousels and image galleries.
- * Dots are clickable to navigate directly to a specific item.
- */
 function PaginationDots({
   total,
   current,
@@ -23,7 +19,6 @@ function PaginationDots({
 }: PaginationDotsProps) {
   const { t } = useTranslation()
 
-  // Don't render if only one item or exceeds max visible
   if (total <= 1 || total > maxVisible) {
     return null
   }

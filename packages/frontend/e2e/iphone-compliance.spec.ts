@@ -1,55 +1,11 @@
-/**
- * iPhone compliance suite
- *
- * Guards the mobile-Safari pitfalls that don't show up on a desktop browser:
- *
- *   1. Zoom-on-focus — iOS Safari zooms the viewport whenever a focused
- *      <input>/<textarea>/<select> has a computed font-size below 16px. Every
- *      form control on a public page must therefore render at >= 16px on a
- *      phone-width viewport.
- *   2. Horizontal overflow — a single over-wide element makes the whole page
- *      rubber-band sideways on a phone. The document must not scroll wider
- *      than the viewport.
- *   3. Viewport / PWA head — `viewport-fit=cover` (notch handling) plus the
- *      apple-touch-icon and apple-mobile-web-app meta tags must be present.
- *   4. Touch targets — the mobile BottomNav entries, the footer links and the
- *      password reveal toggle must clear the 44px minimum (WCAG 2.5.5 /
- *      Apple HIG).
- *   5. Bottom chrome — the consent banner has to sit *above* the BottomNav
- *      rather than on top of it, and the page height variables have to leave
- *      the header out of the usable area exactly once.
- *
- * The spec emulates an iPhone 13 viewport (390x844, 3x, touch) via
- * `test.use(devices['iPhone 13'])`. It runs under the configured Chromium
- * projects so it works in CI without the WebKit binary; the assertions are
- * engine-independent because they read computed styles and layout box sizes.
- * For a true Mobile-Safari pass, enable the commented "Mobile Safari" project
- * in playwright.config.ts and run with WebKit installed.
- *
- * Prerequisites: dev servers running (`npm run dev`) + seeded DB
- * (`npm run e2e:seed`). Only pages reachable without a session are exercised,
- * so the suite stays resilient to auth/seed state.
- */
 import { test, expect, devices } from '@playwright/test'
 
-// Apply the iPhone 13 emulation (390x844, 3x DPR, touch, mobile UA) but drop
-// `defaultBrowserType` so the spec inherits the running project's engine. That
-// keeps it green under the Chromium projects CI already runs — enable the
-// commented "Mobile Safari" project for a genuine WebKit pass.
 const { defaultBrowserType: _engine, ...iPhone13 } = devices['iPhone 13']
 test.use(iPhone13)
 
-/** iOS Safari only suppresses zoom-on-focus at 16px or larger. */
 const MIN_NO_ZOOM_FONT_PX = 16
-/** WCAG 2.5.5 / Apple HIG minimum interactive target. */
 const MIN_TOUCH_TARGET_PX = 44
 
-/**
- * Every route reachable without a session or seeded game state. The overflow
- * sweep used to cover only `/en` and `/en/login`, which left ~20 screens — the
- * whole legal/marketing set, the profile hub and both Geo entry points —
- * unguarded against the one-wide-element bug this suite exists to catch.
- */
 const PUBLIC_ROUTES = [
   '/en',
   '/en/login',
@@ -68,8 +24,6 @@ const PUBLIC_ROUTES = [
   '/en/profile',
   '/en/geo/contribute',
   '/en/panorama',
-  // French is the default locale and its strings are markedly longer than the
-  // English ones — the layout has to survive them too.
   '/fr',
   '/fr/premium',
   '/fr/regles',
@@ -108,7 +62,6 @@ test.describe('iPhone compliance', () => {
     test(`no horizontal overflow at iPhone width on ${path}`, async ({ page }) => {
       await page.goto(path)
       await page.waitForLoadState('load')
-      // Let layout settle (fonts, late-mounting chrome) before measuring.
       await expect(page.locator('body')).toBeVisible()
 
       const { scrollWidth, clientWidth } = await page.evaluate(() => ({
@@ -116,7 +69,6 @@ test.describe('iPhone compliance', () => {
         clientWidth: document.documentElement.clientWidth,
       }))
 
-      // 1px slack absorbs sub-pixel rounding on the 3x device scale factor.
       expect(
         scrollWidth,
         `${path} scrolls ${scrollWidth - clientWidth}px wider than the viewport`,
@@ -166,8 +118,6 @@ test.describe('iPhone compliance', () => {
 
     const box = await toggle.boundingBox()
     expect(box, 'password toggle should have a layout box').not.toBeNull()
-    // The 16px lucide icon used to be the whole hit area. It now fills the
-    // input's `pr-10` gutter, which clears the 24x24 WCAG 2.5.8 floor.
     expect(
       box!.height,
       `password toggle is only ${box!.height}px tall`,
@@ -176,17 +126,12 @@ test.describe('iPhone compliance', () => {
   })
 
   test('consent banner sits above the bottom nav instead of covering it', async ({ browser }) => {
-    // A fresh context: the banner only shows until a choice is persisted, and
-    // the shared storageState in playwright.config.ts has already made one.
     const context = await browser.newContext({ ...iPhone13, storageState: undefined })
     const page = await context.newPage()
     try {
       await page.goto('/en')
       await page.waitForLoadState('load')
 
-      // Located structurally rather than by label: the banner's accessible
-      // name is the translated "Your privacy choices", which would make this
-      // spec locale-dependent for no benefit.
       const banner = page.locator('[role="dialog"][aria-modal="false"]')
       await expect(banner).toBeVisible()
 
@@ -198,15 +143,11 @@ test.describe('iPhone compliance', () => {
       expect(bannerBox).not.toBeNull()
       expect(navBox).not.toBeNull()
 
-      // 1px slack for sub-pixel rounding at 3x.
       expect(
         bannerBox!.y + bannerBox!.height,
         'consent banner overlaps the bottom nav, leaving a first-time phone visitor with no navigation',
       ).toBeLessThanOrEqual(navBox!.y + 1)
 
-      // Geometry, not hit-testing: the first-run onboarding tour can also be
-      // on screen here, and its overlay would make an elementFromPoint probe
-      // fail for a reason this test isn't about.
       expect(
         await bottomNav.getByRole('link').first().isVisible(),
         'bottom-nav tabs should stay visible while the consent banner is up',
@@ -220,8 +161,6 @@ test.describe('iPhone compliance', () => {
     await page.goto('/en/login')
     await page.waitForSelector('form')
 
-    // The centred auth card must not start underneath the sticky header — the
-    // old `min-h-screen` + `-mt-20` pairing pulled it up behind the bar.
     const headerBottom = await page
       .locator('header')
       .first()
@@ -237,8 +176,6 @@ test.describe('iPhone compliance', () => {
   })
 
   test('bottom-nav space collapses on the routes that drop the bar', async ({ page }) => {
-    // `getPropertyValue` hands back the *specified* value (`calc(4rem + 0px)`),
-    // so resolve it through a probe element to get real pixels.
     const resolveBottomNavSpace = () =>
       page.evaluate(() => {
         const probe = document.createElement('div')

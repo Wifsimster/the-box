@@ -22,7 +22,6 @@ function todayUTC(): string {
     return new Date().toISOString().slice(0, 10)
 }
 
-/** Returns YYYY-MM-DD `daysAgo` days before today (UTC). */
 function dateOffset(daysAgo: number): string {
     const d = new Date()
     d.setUTCDate(d.getUTCDate() - daysAgo)
@@ -73,11 +72,6 @@ interface FakeDailyLoginState {
 
 function makeFakeDailyLogin(
     overrides: Partial<UserLoginStreakRecord>,
-    // Optional inventory hook so the test stub can simulate the new
-    // transactional consumeFreezeAndUpdateStreak path, which atomically
-    // decrements a freeze and updates the streak. Existing tests pass
-    // the same inventory repo they hand to the service so a single
-    // useItemsCalls log captures both code paths.
     inventoryHook?: InventoryRepository
 ): {
     repo: DailyLoginRepository
@@ -130,10 +124,6 @@ function makeFakeDailyLogin(
             state.streak.current_day_in_cycle = data.currentDayInCycle
         },
         async consumeFreezeAndUpdateStreak(userId, opts) {
-            // Mirror production semantics: try to decrement an inventory
-            // item, and only update the streak if the decrement
-            // succeeded. We piggyback on the inventoryHook so the
-            // useItemsCalls log captures both the legacy and new paths.
             if (!inventoryHook) {
                 return { ok: false }
             }
@@ -162,9 +152,6 @@ function makeFakeDailyLogin(
 
 describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
     it('consumes a freeze when exactly one day was missed and preserves the streak', async () => {
-        // last login 2 days ago (yesterday was missed). Streak was 5 → would
-        // reset to 1 without a freeze. With 1 freeze available, streak
-        // continues at 6, freeze drops to 0.
         const { repo: invRepo, state: invState } = makeFakeInventory(1)
         const { repo: dailyRepo, state: dailyState } = makeFakeDailyLogin({
             current_login_streak: 5,
@@ -199,7 +186,7 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
         const { repo: dailyRepo } = makeFakeDailyLogin({
             current_login_streak: 5,
             longest_login_streak: 5,
-            last_login_date: dateOffset(3), // 2 missed days
+            last_login_date: dateOffset(3),
             current_day_in_cycle: 5,
         }, invRepo)
 
@@ -235,8 +222,6 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
 
         assert.equal(status.currentStreak, 1, 'streak should reset')
         assert.equal(status.streakFreezeConsumed, null)
-        // We did call useItems (returned false), but we should NOT report
-        // a consumption.
         assert.equal(invState.useItemsCalls.length, 1, 'attempted to use a freeze')
         assert.equal(invState.useItemsCalls[0]?.itemKey, 'streak_freeze')
     })
@@ -286,9 +271,6 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
     })
 
     it('does not consume for a brand-new user with no prior streak', async () => {
-        // First-time user: no last_login_date, current_login_streak === 0.
-        // Even with freezes pre-stocked (edge case), we should NOT consume
-        // because there is no streak to protect.
         const { repo: invRepo, state: invState } = makeFakeInventory(2)
         const { repo: dailyRepo } = makeFakeDailyLogin({
             current_login_streak: 0,
@@ -312,11 +294,6 @@ describe('dailyLoginService.getStatus — streak freeze auto-consume', () => {
 })
 
 describe('dailyLoginService.getStatus — last_login_date as a Date object', () => {
-    // The `pg` driver parses DATE columns into JS Date objects built at
-    // LOCAL midnight. These tests pin the process TZ east of UTC so the
-    // regression (reading the date back in UTC, shifting it a day, and
-    // resetting the streak) is caught regardless of where tests run.
-
     it('continues the streak when the driver returns yesterday as a local-midnight Date', async () => {
         const originalTz = process.env.TZ
         process.env.TZ = 'Asia/Tokyo'

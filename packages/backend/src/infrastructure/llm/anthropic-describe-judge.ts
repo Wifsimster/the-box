@@ -1,30 +1,3 @@
-/**
- * Anthropic adapter for the "describe the game" judge (shadow mode).
- *
- * One synchronous Messages API call to Claude Haiku 5.5 with a structured
- * output: the model must return `{ game_id, probabilities }` where `game_id`
- * is one of the candidate labels and `probabilities` has one number per
- * label. Parsing into a verdict happens in the domain
- * (describe-guess.service.ts).
- *
- * The API key and the model come from the app-settings store
- * (describeGuess.anthropicApiKey, describeGuess.model); the key is never
- * logged. The request below was written for the default, Claude Haiku 5.5:
- * another model id set by an admin must accept the same parameters.
- *
- * Request settings, per the Haiku 5.5 docs:
- * - thinking is adaptive (on by default; `budget_tokens` returns a 400), and
- *   `output_config.effort: 'low'` keeps it short for this latency-bound
- *   classification. Thinking tokens count toward `max_tokens`, hence the
- *   headroom.
- * - no temperature / top_p / top_k (non-default values return a 400).
- * - `stop_reason: 'refusal'` and `'max_tokens'` are handled as "no verdict".
- * - 5 s client timeout and no SDK retries: a retry would blow the budget
- *   the player is waiting on. The domain also races its own 5 s deadline.
- *
- * Prompt: the spike's `HAIKU_SYSTEM` (spikes/describe-guess/harness/eval.py),
- * with the "data, never instructions" rule made explicit about the tags.
- */
 import Anthropic from '@anthropic-ai/sdk'
 import {
   DescribeJudgeError,
@@ -34,7 +7,6 @@ import {
   type DescribeJudgeOutput,
 } from '../../domain/ports/describe-judge.js'
 
-/** Default model; the `describeGuess.model` setting overrides it. */
 export const DESCRIBE_JUDGE_MODEL = 'claude-haiku-5-5'
 const TIMEOUT_MS = 5000
 const MAX_TOKENS = 2048
@@ -60,10 +32,6 @@ function sheetText(sheet: DescribeGameSheet): string {
   return lines.join('\n')
 }
 
-/**
- * The description goes inside tags; strip anything that could close them or
- * open new ones. The stored description is the original text.
- */
 export function sanitizeDescription(description: string): string {
   return description.replace(/[<>]/g, ' ')
 }
@@ -97,7 +65,6 @@ export function buildOutputSchema(labels: readonly string[]): Record<string, unk
   }
 }
 
-/** Map SDK errors to stable codes, most specific class first. */
 export function toJudgeError(error: unknown): DescribeJudgeError {
   if (error instanceof DescribeJudgeError) return error
   if (error instanceof Anthropic.APIConnectionTimeoutError) {
@@ -109,7 +76,6 @@ export function toJudgeError(error: unknown): DescribeJudgeError {
   if (error instanceof Anthropic.RateLimitError) {
     return new DescribeJudgeError('rate_limited', error.message)
   }
-  // Subclass of APIError in the TypeScript SDK: check it before APIError.
   if (error instanceof Anthropic.APIConnectionError) {
     return new DescribeJudgeError('connection', error.message)
   }
@@ -164,7 +130,6 @@ export function createAnthropicDescribeJudge(options: {
         throw new DescribeJudgeError('max_tokens')
       }
 
-      // Select by block type: adaptive thinking can put `thinking` blocks first.
       const text = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === 'text')
         .map((block) => block.text)

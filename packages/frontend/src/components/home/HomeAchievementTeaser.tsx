@@ -17,8 +17,6 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import type { Achievement, AchievementWithProgress } from '@the-box/types'
 
-// Shape we render in the teaser. We coerce both `Achievement` (catalog,
-// guests) and `AchievementWithProgress` (authenticated user view) to this.
 interface TeaserAchievement {
   id: number
   key: string
@@ -31,8 +29,6 @@ interface TeaserAchievement {
 
 const TEASER_COUNT = 3
 
-// Match AchievementGrid's `sortByDifficulty`: tier ASC, then points ASC.
-// "First N unearned" needs a deterministic order so re-renders don't shuffle.
 function pickTeaserAchievements<T extends TeaserAchievement>(list: T[]): T[] {
   return list
     .toSorted((a, b) =>
@@ -124,14 +120,6 @@ export function HomeAchievementTeaser() {
     isLoadingUserAchievements,
   } = useAchievementStore()
 
-  // Authenticated → fetch progress so we can prefer locked/unearned items.
-  // Guest → fetch the public catalog and treat all as locked.
-  //
-  // We intentionally only re-run on auth changes: the store already guards
-  // against parallel fetches and we don't want to refetch on every home-page
-  // render. Reading the guard state and actions via `getState()` keeps the
-  // effect honest with a single `userId` dependency instead of suppressing
-  // exhaustive-deps.
   useEffect(() => {
     const store = useAchievementStore.getState()
     if (userId) {
@@ -148,9 +136,6 @@ export function HomeAchievementTeaser() {
 
   const loading = userId ? isLoadingUserAchievements : isLoading
 
-  // Stable per-render-session pick. `useMemo` keyed on the underlying
-  // arrays; since the store caches results, this is a single computation
-  // unless the user logs in/out mid-session.
   const teaser = useMemo<TeaserAchievement[]>(() => {
     if (userId) {
       const unearned = userAchievements.filter(
@@ -159,8 +144,6 @@ export function HomeAchievementTeaser() {
           !a.earned &&
           !(a.progressMax != null && a.progress >= a.progressMax),
       )
-      // If somehow the user has earned everything, fall back to the full
-      // catalog so the teaser still renders (slim chance, but harmless).
       const pool = unearned.length >= TEASER_COUNT
         ? unearned
         : userAchievements.filter((a) => !a.isHidden)
@@ -186,16 +169,12 @@ export function HomeAchievementTeaser() {
     }))
   }, [userId, userAchievements, achievements])
 
-  // Fail soft: if the API errored or returned nothing, render nothing.
-  // Loading state still shows skeletons (so the section doesn't pop in).
   if (!loading && teaser.length === 0) {
     return null
   }
 
   const lockedLabel = t('achievements.filters.locked')
 
-  // Render either skeletons or real cards through the same layout shells
-  // so mobile/desktop parity is identical between states.
   const items: { key: string; node: ReactNode }[] = loading
     ? Array.from({ length: TEASER_COUNT }).map((_, i) => ({
         key: `sk-${i}`,
@@ -245,7 +224,6 @@ export function HomeAchievementTeaser() {
         </Link>
       </div>
 
-      {/* Mobile: swipeable carousel, 1 card visible. */}
       <div className="md:hidden">
         <Carousel
           opts={{ align: 'start', loop: false }}
@@ -265,7 +243,6 @@ export function HomeAchievementTeaser() {
         </Carousel>
       </div>
 
-      {/* Desktop md+: static 3-column grid. */}
       <div className="hidden md:grid grid-cols-3 gap-5 lg:gap-6">
         {items.map((item) => (
           <div key={item.key} className="h-full">
@@ -274,7 +251,6 @@ export function HomeAchievementTeaser() {
         ))}
       </div>
 
-      {/* Mobile-only CTA below the carousel; desktop CTA sits in the header. */}
       <div className="mt-4 md:hidden">
         <Link
           to={localizedPath('/profile')}

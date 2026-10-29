@@ -149,9 +149,6 @@ export function ScreenshotPanel({
                     'geo.play.auth.body',
                     'Help us map the world of video games — drop a pin where each scene takes place.',
                 )}
-                // When a round was already on screen (e.g. the session
-                // expired mid-play), keep its screenshot visible behind a
-                // blur — the game itself is the strongest signup nudge.
                 backdropUrl={safeUrl}
                 actions={
                     <>
@@ -191,9 +188,6 @@ export function ScreenshotPanel({
     }
 
     if (empty) {
-        // Cold-start welcome — rendered full-deck via the layout's hero
-        // slot (see GeoPlayDeck), so it owns the pitch, social proof and
-        // all three entry points instead of auto-opening the picker.
         return (
             <GeoWelcome
                 pinsToday={pinsToday}
@@ -216,17 +210,7 @@ export function ScreenshotPanel({
     return <ZoomablePhoto src={safeUrl} alt={altText} />
 }
 
-/**
- * Wraps a screenshot in a pinch/wheel/double-tap zoomable surface.
- * Keyed on `src` so each new screenshot resets the transform — saves
- * us from imperative `resetTransform()` calls on every round change.
- */
 function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
-    // Tracked via the library's onTransformed callback rather than a
-    // hook lookup — useTransformContext doesn't expose `transformState`
-    // in the public type, and reading it via `as any` would defeat
-    // strict typing. A scale state in the parent is cheap (one render
-    // per zoom transition) and works across library versions.
     const [scale, setScale] = useState(1)
     return (
         <TransformWrapper
@@ -238,10 +222,6 @@ function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
             doubleClick={{ mode: 'toggle', step: 1.5 }}
             wheel={{ step: 0.2 }}
             pinch={{ step: 5 }}
-            // Disable pan inertia so the photo stops the moment the
-            // finger lifts — keeps the photo predictable on a tiny
-            // mobile viewport. Pan itself stays enabled at all scales
-            // so a player who zooms in by accident can still drag.
             panning={{ disabled: false, velocityDisabled: true }}
             onTransform={(ref) => setScale(ref.state.scale)}
         >
@@ -264,11 +244,6 @@ function ZoomablePhoto({ src, alt }: { src: string; alt: string }) {
     )
 }
 
-/**
- * Reset-zoom affordance. Mounted only when the photo is zoomed (the
- * parent gates it), so this component can assume a useControls call is
- * meaningful — at scale=1 it would have nothing to do.
- */
 function ResetZoomButton() {
     const { t } = useTranslation()
     const { resetTransform } = useControls()
@@ -350,22 +325,12 @@ const TIER_BG_CLASS = {
     low: 'bg-score-low',
 } as const
 
-// Qualitative verdict per tier — gives the reveal a human read of the
-// bare number ("Excellent!" vs "Way off…") before the meter quantifies it.
 const TIER_LABEL_KEY = {
     high: ['geo.play.result.tierLabel.high', 'Excellent!'],
     mid: ['geo.play.result.tierLabel.mid', 'Nice one!'],
     low: ['geo.play.result.tierLabel.low', 'Way off…'],
 } as const
 
-/**
- * Round-end reveal sheet. The score counts up in its tier color
- * (bands in lib/geo-score-tiers.ts), distance reads as "x% from the
- * target", and a personal-best line gives the round context beyond a
- * bare number. Screen readers get one static sentence via the sr-only
- * span — the animated markup is aria-hidden so the count-up can't spam
- * the live region.
- */
 export function ResultSheet({
     score,
     distance,
@@ -383,9 +348,6 @@ export function ResultSheet({
     language: string
     correctMapLabel: string | null
     previousBest: number | null
-    // Cumulative run score including this round, or null in free browse.
-    // Takes the personal-best line's slot — during a run the session
-    // total is the context that matters.
     runTotal: number | null
 }) {
     const { t } = useTranslation()
@@ -395,8 +357,6 @@ export function ResultSheet({
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
     })
-    // A floored wrong-map score is a fail state, not an achievement —
-    // never celebrate it as a personal best (the store still records it).
     const isNewBest = !wrongMap && (previousBest == null || score > previousBest)
     return (
         <output
@@ -456,9 +416,6 @@ export function ResultSheet({
                         })}
                     </span>
                 </div>
-                {/* Score meter toward the 2000-point ceiling — quantifies
-                    the tier verdict at a glance. Purely decorative: the
-                    sr-only sentence above already carries the numbers. */}
                 <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                     <div
                         className={cn(
@@ -514,12 +471,6 @@ export function ResultSheet({
     )
 }
 
-/**
- * Per-game completion ring for the context header. Turns the invisible
- * march toward the "exhausted" state into a visible collection
- * mechanic — the data (playedByGame × screenshotCount) already existed
- * in the store. Counters use neon-cyan per the token contract.
- */
 function ProgressRing({
     played,
     total,
@@ -591,8 +542,6 @@ export function ContextHeader({
     playedCount: number | null
     totalCount: number | null
     language: string
-    // Active run progress (1-based round). Replaces the per-game ring —
-    // the game changes every round, so per-game progress is noise here.
     run: { current: number; total: number } | null
     onChangeGame: () => void
     onChangeMap: () => void
@@ -701,10 +650,7 @@ export function Dock({
     onStartRun: () => void
     onPlaceByCoords: (point: GeoPoint) => void
     canSubmit: boolean
-    // A scored run is in progress: history nav / shuffle / start-run
-    // leave the browse row (only skip remains — the run picks the games).
     runActive: boolean
-    // Every run round is scored: the reveal CTA opens the recap.
     runComplete: boolean
     phase: ReturnType<typeof useGeoFreePlayStore.getState>['phase']
 }) {
@@ -712,16 +658,11 @@ export function Dock({
     const submitting = phase === 'submitting'
     const revealed = phase === 'revealed'
     const loading = phase === 'loading'
-    // A draft pin exists (or is being submitted). The dock renders only
-    // the controls valid for the current phase, in a single constant-
-    // height row, so the map above never shifts.
     const hasDraft = canSubmit || submitting
 
     return (
         <div className="flex flex-col gap-2">
             {revealed ? (
-                /* Revealed — one job: move on (or open the run recap when
-                   the last run round just got scored). */
                 <Button
                     type="button"
                     onClick={onNextRound}
@@ -734,8 +675,6 @@ export function Dock({
                     <ArrowRight className="size-4 ml-2" aria-hidden />
                 </Button>
             ) : hasDraft ? (
-                /* Draft pin placed — confirm is the only primary action;
-                   the ✕ clears the draft and returns to the browse row. */
                 <div className="flex items-center gap-2">
                     <Button
                         type="button"
@@ -766,14 +705,6 @@ export function Dock({
                     </Button>
                 </div>
             ) : (
-                /* Browsing — history nav, shuffle, run start and the skip
-                   escape hatch. Skip is a real button (not a text link):
-                   a player who'd otherwise drop a random guess pollutes
-                   the contribution dataset more than a skip costs. The
-                   old always-visible disabled "Drop pin" CTA is gone —
-                   its job (pointing at the map) moved to PinHintChip.
-                   During a run only skip survives: the run owns game
-                   selection, and history nav would break its integrity. */
                 <div className="flex items-center justify-center gap-1.5">
                     {!runActive && (
                         <Button
@@ -853,14 +784,6 @@ export function Dock({
                 </div>
             )}
 
-            {/* Non-tap pin-placement alternative for keyboard, switch
-                control and screen-reader users — Leaflet's keyboard
-                pan doesn't synthesize a click on Enter, so without
-                this they can't drop a pin at all. Native <details>
-                gives full keyboard support out of the box. Visually
-                hidden until keyboard focus reaches it (skip-link
-                pattern) so touch users don't pay a dock row for an
-                affordance they never use. WCAG 2.1.1 (Keyboard). */}
             {!revealed && !hasDraft && (
                 <CoordinateInput
                     onPlace={onPlaceByCoords}
@@ -871,13 +794,6 @@ export function Dock({
     )
 }
 
-/**
- * Onboarding hint anchored to the map panel: tells first-time players
- * the core gesture is tapping the map. Rendered only until the player's
- * first-ever draft pin (persisted flag in the free-play store), and
- * purely decorative for AT — the dock CTA and the pin live region
- * already carry the state for screen readers.
- */
 export function PinHintChip() {
     const { t } = useTranslation()
     return (
@@ -909,16 +825,11 @@ function CoordinateInput({
         const xNum = Number.parseFloat(x)
         const yNum = Number.parseFloat(y)
         if (!Number.isFinite(xNum) || !Number.isFinite(yNum)) return
-        // Inputs are 0-100 percent; clamp + normalize to the [0..1]
-        // space the rest of the pipeline uses.
         const clamp = (n: number) => Math.min(100, Math.max(0, n)) / 100
         onPlace({ x: clamp(xNum), y: clamp(yNum) })
     }
 
     return (
-        // Skip-link pattern: sr-only until the summary receives keyboard
-        // focus or the details is open, then it pops into the layout.
-        // Keeps the control in DOM/tab order right after the dock row.
         <details className="self-center text-xs text-white/80 [&:not([open]):not(:focus-within)]:sr-only">
             <summary className="cursor-pointer underline-offset-4 hover:text-white hover:underline min-h-11 inline-flex items-center px-2">
                 {t('geo.play.coords.toggle', 'Place pin by coordinates')}

@@ -21,9 +21,6 @@ describe('reactivationBucket', () => {
     })
 
     it('produces a holdout share roughly equal to HOLDOUT_PERCENT (10%)', () => {
-        // With 5 000 randomly-generated user ids the empirical share should
-        // sit comfortably inside ±2pp of 10% (binomial std-dev at this n
-        // is ~0.4pp). If this ever flakes, the hash is broken.
         let holdoutCount = 0
         const N = 5000
         for (let i = 0; i < N; i++) {

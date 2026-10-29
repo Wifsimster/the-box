@@ -7,9 +7,6 @@ import { useWebPush } from '@/hooks/useWebPush'
 import { PushApiError } from '@/lib/api/push'
 import { toast } from '@/lib/toast'
 
-// Map the typed PushApiError codes (and the DOM exception name browsers
-// throw on permission denial) to localized toast keys. Keep this exhaustive
-// so the user always sees something more specific than "try again later".
 function toastKeyForError(err: unknown): string {
   if (err instanceof PushApiError) {
     switch (err.code) {
@@ -49,8 +46,6 @@ export function PushNotificationCard() {
     unsubscribe,
   } = useWebPush()
 
-  // iOS Safari outside an installed PWA: show a static hint instead of a
-  // toggle that would just throw on click.
   if (requiresPwaInstall) {
     return (
       <Card>
@@ -68,10 +63,6 @@ export function PushNotificationCard() {
     )
   }
 
-  // Don't render the card at all if there's nothing the user can do here:
-  // unsupported browser (Firefox on iOS, etc.) or server lacks VAPID keys.
-  // `isServerConfigured === null` means we're still probing — also hide so
-  // we don't flicker the toggle in then out as the probe completes.
   if (!isSupported || isServerConfigured !== true) return null
 
   const handleToggle = async (next: boolean) => {
@@ -88,9 +79,6 @@ export function PushNotificationCard() {
     }
   }
 
-  // The browser blocked us at OS/site level — flipping the toggle won't help,
-  // the user has to clear the block in browser settings. Show a read-only
-  // hint regardless of whether a stale subscription is still on file.
   const isPermanentlyDenied = permission === 'denied'
 
   return (

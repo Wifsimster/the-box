@@ -1,10 +1,3 @@
-/**
- * Public streamer profile repository.
- *
- * Every query is scoped to `public_profile_enabled = true`. That predicate is
- * the opt-in gate for the whole public API, so it lives here — in one place,
- * on every read — rather than being re-stated by each caller.
- */
 import { db } from '../database/connection.js'
 import type { Counter } from '../../domain/ports/analytics.js'
 import type {

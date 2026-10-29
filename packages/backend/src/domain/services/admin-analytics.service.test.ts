@@ -12,8 +12,6 @@ import type {
   UserAnalyticsCounters,
 } from '../ports/analytics.js'
 
-// An EMPTY-but-complete counter set. Because the port is narrow and made of
-// plain data, a fixture needs no `as unknown as` cast and no database.
 const emptyUserCounters: UserAnalyticsCounters = {
   totals: null,
   activeUsers: null,
@@ -54,7 +52,6 @@ test('user analytics survives a completely empty database', () => {
 test('Postgres string counters are normalized to numbers', () => {
   const report = buildUserAnalyticsReport({
     ...emptyUserCounters,
-    // COUNT(*) comes back as a string over the wire.
     totals: { total: '200', verified: '150', ever_played: '80', banned: '4' },
     activeUsers: { d1: '10', d7: '40', d30: '100' },
   })
@@ -62,17 +59,12 @@ test('Postgres string counters are normalized to numbers', () => {
   assert.equal(report.users.total, 200)
   assert.equal(report.users.verified, 150)
   assert.equal(report.users.banned, 4)
-  // 200 total - 80 who played = 120 who never did.
   assert.equal(report.users.neverPlayed, 120)
-  // 100 monthly actives of 200 users.
   assert.equal(report.users.retentionRate30dPercent, 50)
-  // DAU/MAU = 10/100.
   assert.equal(report.churn.stickinessPercent, 10)
 })
 
 test('never-activated users are excluded from the churn denominator', () => {
-  // 1000 signups, but only 100 ever logged in; 50 of those went silent.
-  // Churn must read 50% (of real users), not 5% (of all signups).
   const report = buildUserAnalyticsReport({
     ...emptyUserCounters,
     totals: { total: '1000', verified: '0', ever_played: '0', banned: '0' },
@@ -139,7 +131,6 @@ test('the service delegates to its port exactly once per report', async () => {
   let userCalls = 0
   let growthCalls = 0
 
-  // A hand-written port implementation — no mocking library, no cast.
   const repository: AdminAnalyticsRepository = {
     async fetchUserAnalytics() {
       userCalls++

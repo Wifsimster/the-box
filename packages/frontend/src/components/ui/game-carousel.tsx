@@ -17,11 +17,8 @@ import {
 } from '@/components/ui/carousel'
 import { Button } from '@/components/ui/button'
 
-// Zoom range: 1x = fit-to-frame (default). Players can zoom out below fit
-// (down to MIN_SCALE, letterboxed) for a smaller overview, or in up to MAX_SCALE.
 const MIN_SCALE = 0.4
 const MAX_SCALE = 4
-// Multiplier applied per zoom-button press.
 const ZOOM_STEP = 1.6
 
 interface Point {
@@ -45,10 +42,6 @@ interface ZoomView {
     y: number
 }
 
-/**
- * Encapsulates zoom/pan/pinch state for a single image. Buttons drive
- * discrete steps; touch pointers drive drag-to-pan and pinch-to-zoom.
- */
 function useImageZoom(resetKey: unknown) {
     const [view, setView] = useState<ZoomView>({ scale: 1, x: 0, y: 0 })
     const [isGesturing, setIsGesturing] = useState(false)
@@ -62,16 +55,12 @@ function useImageZoom(resetKey: unknown) {
     const panRef = useRef<Point | null>(null)
     const pinchRef = useRef<{ dist: number; mid: Point } | null>(null)
 
-    // Reset zoom whenever the displayed image changes. Adjusting during render
-    // (instead of in an effect) avoids showing the previous image's zoom for a
-    // frame after the source swaps.
     const [prevResetKey, setPrevResetKey] = useState(resetKey)
     if (resetKey !== prevResetKey) {
         setPrevResetKey(resetKey)
         setView({ scale: 1, x: 0, y: 0 })
     }
 
-    // Clamp a pan offset so the image edges can't be dragged inside the frame.
     const clampOffset = useCallback(
         (x: number, y: number, scale: number): Point => {
             const el = containerRef.current
@@ -79,8 +68,6 @@ function useImageZoom(resetKey: unknown) {
             if (!el || !natW || !natH) return { x, y }
             const bw = el.clientWidth
             const bh = el.clientHeight
-            // Match the rendered object-fit: contain — the whole screenshot
-            // must be visible at base scale so players don't lose pixels.
             const fit = Math.min(bw / natW, bh / natH)
             const contentW = natW * fit * scale
             const contentH = natH * fit * scale
@@ -98,7 +85,6 @@ function useImageZoom(resetKey: unknown) {
         naturalRef.current = { w, h }
     }, [])
 
-    // Zoom around the frame center (used by the buttons).
     const adjustZoom = useCallback(
         (factor: number) => {
             setView((v) => {
@@ -143,7 +129,6 @@ function useImageZoom(resetKey: unknown) {
             const pts = [...pointers.values()]
 
             if (pts.length >= 2 && pinchRef.current) {
-                // Pinch-to-zoom, anchored on the midpoint between the fingers.
                 const [p0, p1] = pts
                 const dist = distance(p0!, p1!)
                 const mid = midpoint(p0!, p1!)
@@ -166,13 +151,10 @@ function useImageZoom(resetKey: unknown) {
                 })
                 pinchRef.current = { dist, mid }
             } else if (pts.length === 1 && panRef.current) {
-                // Drag-to-pan (only meaningful once magnified).
                 const dx = e.clientX - panRef.current.x
                 const dy = e.clientY - panRef.current.y
                 panRef.current = { x: e.clientX, y: e.clientY }
                 setView((v) => {
-                    // Panning is only meaningful once zoomed in past fit; at or
-                    // below fit the image is fully within the frame.
                     if (v.scale <= 1) return v
                     const c = clampOffset(v.x + dx, v.y + dy, v.scale)
                     return { ...v, x: c.x, y: c.y }
@@ -187,7 +169,6 @@ function useImageZoom(resetKey: unknown) {
         pointers.delete(e.pointerId)
         const pts = [...pointers.values()]
         if (pts.length === 1) {
-            // Pinch ended with one finger still down: hand off to panning.
             panRef.current = { x: pts[0]!.x, y: pts[0]!.y }
             pinchRef.current = null
         } else if (pts.length === 0) {
@@ -249,10 +230,6 @@ export function GameCarousel({
     const zoom = useImageZoom(images[currentIndex]?.url ?? currentIndex)
     const { view } = zoom
 
-    // Zoom controls collapse to a single button so the capture's bottom-left
-    // corner stays mostly clear; they expand on tap and re-collapse when idle.
-    // While the image is zoomed in (scale > 1) we force them open so "reset"
-    // remains one tap away.
     const [zoomExpanded, setZoomExpanded] = useState(false)
     const zoomIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -270,13 +247,9 @@ export function GameCarousel({
         if (zoomIdleTimer.current) clearTimeout(zoomIdleTimer.current)
     }, [])
 
-    // "Adjusted" = the view is no longer at the default fit-to-frame scale,
-    // whether zoomed in or out. Keep the controls (incl. reset) open in either
-    // case so getting back to fit is always one tap away.
     const isAdjusted = Math.abs(view.scale - 1) > 0.01
     const showZoomCluster = zoomExpanded || isAdjusted
 
-    // Track user interaction to enable haptic feedback
     useEffect(() => {
         const handleInteraction = () => {
             hasUserInteractedRef.current = true
@@ -286,16 +259,12 @@ export function GameCarousel({
         return () => events.forEach((e) => document.removeEventListener(e, handleInteraction))
     }, [])
 
-    // Trigger haptic feedback on navigation
     const triggerHapticFeedback = useCallback(() => {
         if (enableHapticFeedback && hasUserInteractedRef.current && 'vibrate' in navigator) {
             navigator.vibrate(50)
         }
     }, [enableHapticFeedback])
 
-    // React to embla's own "select" event. Both the slide-change notification
-    // and the haptic pulse read the latest props/state via an Effect Event, so
-    // the subscription effect only depends on the carousel api itself.
     const onSelect = useEffectEvent(() => {
         if (!api) return
         const selectedIndex = api.selectedScrollSnap()
@@ -303,7 +272,6 @@ export function GameCarousel({
         triggerHapticFeedback()
     })
 
-    // Handle slide selection
     useEffect(() => {
         if (!api) return
 
@@ -316,13 +284,6 @@ export function GameCarousel({
         }
     }, [api])
 
-    // Re-measure embla whenever the viewer's box size settles or changes.
-    // Embla computes its snap positions once at init; if that happens before
-    // the flex height resolves (the screenshot frame is `flex-1 min-h-0`) its
-    // built-in resize watcher never fires — it only reacts to width changes —
-    // so the centered slide can land dozens of pixels off-centre and stay there.
-    // A ResizeObserver fires on the first real layout (and any later resize),
-    // letting us reInit and re-anchor the active slide exactly centered.
     useEffect(() => {
         const el = rootRef.current
         if (!api || !el) return
@@ -334,11 +295,6 @@ export function GameCarousel({
         return () => ro.disconnect()
     }, [api, currentIndex])
 
-    // Sync the embla carousel (an external, imperative system) to the
-    // controlled `currentIndex` prop. This is the React-endorsed "synchronizing
-    // with an external system" effect — there is no user event to hang it on,
-    // since the index can change from the parent's state. no-event-handler is a
-    // false positive here.
     useEffect(() => {
         // oxlint-disable-next-line react-doctor/no-event-handler
         if (api && api.selectedScrollSnap() !== currentIndex) {
@@ -346,7 +302,6 @@ export function GameCarousel({
         }
     }, [api, currentIndex])
 
-    // Handle image load
     const handleImageLoad = useCallback(
         (index: number) => {
             setLoadedImages((prev) => new Set(prev).add(index))
@@ -436,10 +391,6 @@ export function GameCarousel({
                 </CarouselContent>
             </Carousel>
 
-            {/* Zoom Controls — anchored to the capture's bottom-left corner so
-                the image's center and the other three corners stay clear.
-                Collapsed to a single button by default; expands on tap and
-                auto-collapses when idle (kept open while zoomed in). */}
             {enableZoom && (
                 <div className="absolute bottom-4 left-4 z-30 pointer-events-auto">
                     {showZoomCluster ? (

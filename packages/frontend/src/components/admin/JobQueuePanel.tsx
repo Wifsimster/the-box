@@ -93,8 +93,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
     const [isMinimized, setIsMinimized] = useState(true)
     const [confirmClearOpen, setConfirmClearOpen] = useState(false)
     const isMobile = useIsMobile()
-    // Full viewport on phones, fixed dock on tablets+. Keep as a string so the
-    // value flows straight into Framer Motion's animate config.
     const expandedWidth = isMobile ? '100vw' : '480px'
 
     const handleToggleMinimize = () => {
@@ -103,16 +101,12 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
         onMinimizedChange?.(newState)
     }
 
-    // Keep the latest callback in a ref so the mount-only notification effect
-    // can run with an empty dependency array without re-firing whenever the
-    // parent passes a fresh callback identity.
     const onMinimizedChangeRef = useRef(onMinimizedChange)
     useEffect(() => {
         onMinimizedChangeRef.current = onMinimizedChange
     }, [onMinimizedChange])
 
     useEffect(() => {
-        // Notify parent of initial state
         onMinimizedChangeRef.current?.(true)
     }, [])
 
@@ -155,7 +149,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
         }
     }
 
-    // Filter jobs based on selected tab
     const getFilteredJobs = () => {
         switch (filterTab) {
             case 'active':
@@ -177,7 +170,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
 
     return (
         <>
-            {/* Mobile backdrop — overlays page content when the panel is open on phones. */}
             <AnimatePresence>
                 {!isMinimized && isMobile && (
                     <m.div
@@ -201,7 +193,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
-            {/* Minimize/Expand Button */}
             <Button
                 variant="ghost"
                 size="icon"
@@ -223,10 +214,8 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                 )}
             </Button>
 
-            {/* Panel Content */}
             {!isMinimized && (
                 <>
-                    {/* Header */}
                     <div className="p-3 sm:p-4 border-b bg-muted/50 space-y-3">
                         <div className="flex items-center justify-between gap-2">
                             <h2 className="font-semibold text-base">{t('admin.jobs.queueTitle', 'Job Queue')}</h2>
@@ -283,7 +272,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                         </Tabs>
                     </div>
 
-                    {/* Job List */}
                     <ScrollArea className="flex-1 p-3">
                         {isLoading && jobs.length === 0 ? (
                             <div role="status" className="flex items-center justify-center h-32 text-sm text-muted-foreground">
@@ -308,7 +296,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                             transition={{ duration: 0.2, layout: { duration: 0.2 } }}
                                             className="bg-background border rounded-lg p-3 space-y-2"
                                         >
-                                            {/* Job Header */}
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex flex-wrap items-center gap-1.5 mb-1">
@@ -334,7 +321,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                 </Badge>
                                             </div>
 
-                                            {/* Progress Bar */}
                                             {(job.status === 'active' || job.status === 'waiting') && (
                                                 <AnimatedProgress
                                                     value={job.progress}
@@ -345,14 +331,12 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                                                 />
                                             )}
 
-                                            {/* Error Message */}
                                             {job.status === 'failed' && job.error && (
                                                 <div className="text-xs text-error break-words line-clamp-3">
                                                     {job.error}
                                                 </div>
                                             )}
 
-                                            {/* Actions */}
                                             {!job.id.startsWith('repeat:') && (job.status === 'waiting' || job.status === 'active' || job.status === 'delayed') && (
                                                 <Button
                                                     variant="ghost"
@@ -382,7 +366,6 @@ export function JobQueuePanel({ onMinimizedChange }: JobQueuePanelProps = {}) {
                         )}
                     </ScrollArea>
 
-                    {/* Refresh Button */}
                     <div className="p-3 border-t pb-[max(env(safe-area-inset-bottom),0.75rem)]">
                         <Button
                             variant="outline"

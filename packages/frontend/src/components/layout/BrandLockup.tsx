@@ -4,22 +4,10 @@ import { SITE_NAME } from '@/lib/brand'
 import { cn } from '@/lib/utils'
 
 interface BrandLockupProps {
-  /** Called after navigating home — lets the mobile drawer close itself. */
   onNavigate?: () => void
   className?: string
 }
 
-/**
- * Mark + wordmark, linking home. Mounted in the header on every route.
- *
- * Before this existed the brand appeared on exactly one screen: a 12px eyebrow
- * above the home hero. A player who opened the installed PWA straight onto
- * /play never saw The Box at all. See docs/brand.md §4.
- *
- * The wordmark is hidden below `sm` — on a 320px phone the header already
- * carries the menu trigger and the reward widgets, and the mark alone is
- * recognisable once it is the only logo in the chrome.
- */
 export function BrandLockup({ onNavigate, className }: BrandLockupProps) {
   const { localizedPath } = useLocalizedPath()
 
@@ -29,7 +17,6 @@ export function BrandLockup({ onNavigate, className }: BrandLockupProps) {
       onClick={onNavigate}
       aria-label={SITE_NAME}
       className={cn(
-        // min-h/min-w 11: the mark alone (below `sm`) was a 36px tap target.
         'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-md px-1 py-1 transition-opacity hover:opacity-80',
         'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,

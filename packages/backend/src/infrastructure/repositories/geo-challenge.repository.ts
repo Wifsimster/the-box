@@ -46,8 +46,6 @@ function mapChallenge(row: GeoChallengeRow): GeoChallenge {
 }
 
 export const geoChallengeRepository = {
-  // ---- Challenges ----
-
   async findByDate(date: string, tier = 1): Promise<GeoChallenge | null> {
     const row = await db('geo_challenge')
       .where({ challenge_date: date, tier })
@@ -70,11 +68,6 @@ export const geoChallengeRepository = {
     return rows.map(mapChallenge)
   },
 
-  // Same window as `listRecent` but enriched with the player's
-  // play-status so the frontend can find the next unplayed challenge in
-  // a single round-trip. A guess OR a skip both flip `has_guessed` to
-  // true (the day's slot is closed either way). Anonymous callers get
-  // `hasGuessed = false` for every row.
   async listRecentWithStatus(
     days: number,
     userId?: string,
@@ -120,10 +113,6 @@ export const geoChallengeRepository = {
     return mapChallenge(row!)
   },
 
-  // Atomically promote `challengeId` to current and demote any existing
-  // current row in the same tier. Wrapped in a transaction because the
-  // partial unique index `geo_challenge_one_current_per_tier` would
-  // otherwise reject the second statement if run independently.
   async setCurrent(args: { challengeId: number; tier?: number }): Promise<void> {
     const tier = args.tier ?? 1
     log.info({ challengeId: args.challengeId, tier }, 'setCurrent')
@@ -137,8 +126,6 @@ export const geoChallengeRepository = {
         .update({ is_current: true })
     })
   },
-
-  // ---- Guesses ----
 
   async findGuess(userId: string, challengeId: number): Promise<GeoGuessRow | null> {
     const row = await db('geo_guess')
@@ -155,9 +142,6 @@ export const geoChallengeRepository = {
     score: number
     scoreVersion: number
     durationMs?: number
-    // Map the player picked from the chooser. Persisted for analytics
-    // ("how often do players pick the wrong map?"). Optional so legacy
-    // single-map call sites keep working until they're updated.
     geoMapIdPicked?: number | null
     wrongMap?: boolean
   }): Promise<GeoGuessResult> {
@@ -166,11 +150,6 @@ export const geoChallengeRepository = {
       'recordGuess',
     )
 
-    // ON CONFLICT DO NOTHING on the (user_id, geo_challenge_id) unique
-    // constraint so a duplicate submission (double-click, retry on flaky
-    // network) returns 200 with the original score instead of 500ing on
-    // a PK violation. The lookup below uses the canonical record from
-    // the FIRST insert regardless.
     await db('geo_guess')
       .insert({
         user_id: data.userId,
@@ -211,16 +190,8 @@ export const geoChallengeRepository = {
     }
   },
 
-  // Records a "skip" — the player declared they don't recognize the
-  // game. Stored in `geo_guess` with `is_skip = true` so the PK
-  // `(user_id, geo_challenge_id)` keeps locking the daily slot
-  // (preventing skip-then-guess), but excluded from `getChallengeStats`
-  // and never upserted to the leaderboards.
   async recordSkip(data: { userId: string; geoChallengeId: number }): Promise<void> {
     log.info({ userId: data.userId, challengeId: data.geoChallengeId }, 'recordSkip')
-    // ON CONFLICT DO NOTHING: if the user already guessed (or already
-    // skipped), don't blow up — the daily slot is already locked, and
-    // re-submitting a skip is a no-op semantically.
     await db('geo_guess')
       .insert({
         user_id: data.userId,
@@ -237,11 +208,6 @@ export const geoChallengeRepository = {
       .ignore()
   },
 
-  // ---- Challenge stats ----
-
-  // Average + player count across all *attempted* guesses for the
-  // challenge — skips are excluded so the comparison the player sees
-  // reflects only people who actually tried, not people who passed.
   async getChallengeStats(
     challengeId: number,
   ): Promise<{ averageScore: number; playerCount: number }> {
@@ -256,8 +222,6 @@ export const geoChallengeRepository = {
     const averageScore = playerCount > 0 ? Math.round(Number(row?.avg ?? 0)) : 0
     return { averageScore, playerCount }
   },
-
-  // ---- Leaderboards ----
 
   async upsertDaily(args: {
     challengeDate: string

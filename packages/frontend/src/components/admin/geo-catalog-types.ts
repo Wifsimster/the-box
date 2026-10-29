@@ -1,4 +1,3 @@
-// Shared types + state reducers for the Geo catalog (GeoMapsTab + useGeoCatalog).
 import type { AddMapStrategy } from './AddMapDialog'
 
 export interface CuratedGame {
@@ -11,8 +10,6 @@ export interface CuratedGame {
     candidateCount: number
 }
 
-// Unified row shape used by the table. `curated` is the discriminator —
-// when false, the map/candidate counts are not returned by the backend.
 export interface CatalogRow {
     id: number
     name: string
@@ -49,8 +46,6 @@ export interface ActiveMapInfo {
     widthPx: number
     heightPx: number
     region?: string | null
-    // Multi-map: marks the row Steam/RAWG capture providers attach new
-    // candidates to. Exactly one map per game holds the role.
     isCaptureDefault?: boolean
 }
 
@@ -97,11 +92,7 @@ export interface SourcesResponse {
     gameId: number
     gameName: string
     slug: string
-    // Deprecated: identical to `captureDefaultMap`. Kept for the desktop
-    // preview block until the multi-map refactor of that section lands.
     activeMap: ActiveMapInfo | null
-    // All maps a player would see in the chooser today. Always includes
-    // the capture default; for a single-map game it has length 1.
     enabledMaps?: ActiveMapInfo[]
     captureDefaultMap?: ActiveMapInfo | null
     sources: TierState[]

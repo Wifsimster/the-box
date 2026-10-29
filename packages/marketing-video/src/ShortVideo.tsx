@@ -11,11 +11,6 @@ import { IntroScene } from "./scenes/IntroScene";
 import { HookScene } from "./scenes/HookScene";
 import { CTAScene } from "./scenes/CTAScene";
 
-/**
- * Vertical 9:16 cut for social shorts. Reuses the intro, hook, and CTA
- * scenes — they were laid out centred so they re-flow gracefully into the
- * portrait viewport.
- */
 export const ShortVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>

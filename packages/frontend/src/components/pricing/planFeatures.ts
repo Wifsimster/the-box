@@ -1,14 +1,5 @@
 import type { BillingTier } from '@the-box/types'
 
-/**
- * Per-card "what's included" lists, expressed as i18n item keys under
- * `pricing.features.items.*` so the copy stays in sync with the comparison
- * `FeatureMatrix` instead of being duplicated.
- *
- * The Free card lists only what free players actually get; every paid tier
- * shares the same premium highlights (the differences between paid tiers are
- * price/cadence, not features), shown under an "everything in Free, plus:" lead.
- */
 export const FREE_FEATURE_KEYS = [
   'dailyChallenge',
   'leaderboards',

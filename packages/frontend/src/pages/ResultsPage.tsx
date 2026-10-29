@@ -40,21 +40,12 @@ export default function ResultsPage() {
 
   const unseenNotifications = notifications.filter(n => !n.seen)
 
-  // Surface achievement toasts. The /notifications socket usually shows
-  // these the instant the unlock lands; notifyAchievementsUnlocked
-  // de-duplicates by key, so this render is a fallback for a missed socket
-  // push rather than a second toast.
   useEffect(() => {
     if (unseenNotifications.length === 0) return
     notifyAchievementsUnlocked(unseenNotifications.map(n => n.achievement))
     unseenNotifications.forEach(n => markNotificationAsSeen(n.achievement.key))
   }, [unseenNotifications, markNotificationAsSeen])
 
-  // The server's session record is the source of truth for the score, the
-  // per-position attempt chips and the rank. The persisted store is only an
-  // optimistic placeholder: a session finished on another device leaves this
-  // device's localStorage at the partial score it last saw. Falls back to the
-  // store if the fetch fails (e.g. mock API mode).
   const [sessionDetails, setSessionDetails] = useState<GameSessionDetailsResponse | null>(null)
   const [detailsFailed, setDetailsFailed] = useState(false)
 
@@ -83,25 +74,18 @@ export default function ResultsPage() {
     [summary.authoritative, sessionDetails, guessResults],
   )
 
-  // Reconcile the persisted store with the server so other screens (and the
-  // next visit) stop showing the stale local score.
   useEffect(() => {
     if (summary.authoritative && storeTotalScore !== summary.totalScore) {
       updateScore(summary.totalScore)
     }
   }, [summary.authoritative, summary.totalScore, storeTotalScore, updateScore])
 
-  // Rank comes from the stored session on the server (same statement as the
-  // total), not from the displayed score, so it cannot drift from it. A
-  // zero score shows no rank, as before.
   const { percentile, rank, totalPlayers, isLoading: isLoadingPercentile } = usePercentileRank({
     sessionId,
     score: displayTotalScore,
     enabled: displayTotalScore > 0,
   })
 
-  // Update personal bests once the score is settled: authoritative, or the
-  // server could not be reached and the store is all we have.
   const scoreSettled = summary.authoritative || detailsFailed || !sessionId
   useEffect(() => {
     if (scoreSettled && displayTotalScore > 0 && percentile !== undefined && percentile !== null) {
@@ -109,7 +93,6 @@ export default function ResultsPage() {
     }
   }, [scoreSettled, displayTotalScore, percentile, updatePersonalBests])
 
-  // Clear achievement notifications when leaving page
   useEffect(() => {
     return () => {
       clearNotifications()
@@ -123,7 +106,6 @@ export default function ResultsPage() {
           <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-hidden="true">
             <Inbox className="size-7" />
           </div>
-          {/* The empty state is the whole page, so its message is the h1. */}
           <h1 className="text-sm sm:text-base font-normal text-muted-foreground">{t('game.noResults')}</h1>
           <Button variant="gaming" size="lg" asChild className="w-full sm:w-auto">
             <Link to={localizedPath('/play')}>
@@ -138,10 +120,6 @@ export default function ResultsPage() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 md:py-12 lg:px-8">
-      {/* Daily-first proposal: the account ask moved from before the first
-          screenshot to here, once the guest has a score worth keeping, and
-          says where that score would rank. The backend carries the guest's
-          box over on signup (onLinkAccount). */}
       {isGuest && <GuestSaveCard rank={rank} totalPlayers={totalPlayers} className="mb-6" />}
       <SessionDetails
         results={results}

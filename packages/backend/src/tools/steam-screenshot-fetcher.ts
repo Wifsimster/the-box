@@ -1,28 +1,3 @@
-/**
- * Steam Screenshot Fetcher CLI Tool
- *
- * Enriches the existing games database with high-quality captures from
- * the Steam Store API. For every game in `data/games.json` it:
- *   1. searches the Steam Store for the best matching app,
- *   2. fetches the app details (which include screenshots),
- *   3. appends the new screenshots to `data/screenshots.json`,
- *   4. records the slug → appid mapping in `data/steam-mapping.json`
- *      so subsequent runs are idempotent.
- *
- * Manual overrides (or known-bad auto-matches) can be placed in
- * `data/steam-overrides.json` as `{ "<game-slug>": <appid|null> }`.
- * A `null` value tells the tool to skip the game (not on Steam).
- *
- * Steam APIs used (no API key required):
- *   - https://store.steampowered.com/api/storesearch
- *   - https://store.steampowered.com/api/appdetails
- *
- * Usage:
- *   npx tsx src/tools/steam-screenshot-fetcher.ts fetch [--screenshots-per-game 5]
- *   npx tsx src/tools/steam-screenshot-fetcher.ts download
- *   npx tsx src/tools/steam-screenshot-fetcher.ts all [--screenshots-per-game 5]
- */
-
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -36,10 +11,6 @@ const GAMES_FILE = path.join(DATA_DIR, 'games.json')
 const SCREENSHOTS_FILE = path.join(DATA_DIR, 'screenshots.json')
 const MAPPING_FILE = path.join(DATA_DIR, 'steam-mapping.json')
 const OVERRIDES_FILE = path.join(DATA_DIR, 'steam-overrides.json')
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 interface GameRecord {
   name: string
@@ -97,10 +68,6 @@ interface SteamMappingEntry {
 type SteamMapping = Record<string, SteamMappingEntry>
 type SteamOverrides = Record<string, number | null>
 
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -115,17 +82,12 @@ function endProgressLine(): void {
   process.stdout.write('\n')
 }
 
-/**
- * Normalise a game title for fuzzy matching: lowercase, strip diacritics,
- * drop punctuation, collapse whitespace, and remove common edition suffixes
- * that differ between RAWG and Steam ("Complete Edition", "GOTY", ...).
- */
 function normaliseTitle(title: string): string {
   const stripped = title
     .normalize('NFKD')
     .replace(/\p{Diacritic}+/gu, '')
     .toLowerCase()
-    .replace(/[‐-―−]/g, '-') // unify dashes
+    .replace(/[‐-―−]/g, '-')
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -135,9 +97,6 @@ function normaliseTitle(title: string): string {
     .trim()
 }
 
-/**
- * Word-set Jaccard similarity on normalised titles. Returns a value in [0, 1].
- */
 function titleSimilarity(a: string, b: string): number {
   const wordsA = new Set(normaliseTitle(a).split(' ').filter(Boolean))
   const wordsB = new Set(normaliseTitle(b).split(' ').filter(Boolean))
@@ -157,10 +116,6 @@ async function readJsonIfExists<T>(file: string, fallback: T): Promise<T> {
     throw error
   }
 }
-
-// ---------------------------------------------------------------------------
-// Steam API client
-// ---------------------------------------------------------------------------
 
 class SteamClient {
   private readonly baseUrl = 'https://store.steampowered.com/api'
@@ -221,10 +176,6 @@ class SteamClient {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Matching
-// ---------------------------------------------------------------------------
-
 interface MatchResult {
   appid: number | null
   steamName: string | null
@@ -234,7 +185,6 @@ interface MatchResult {
 async function findBestMatch(client: SteamClient, game: GameRecord, threshold: number): Promise<MatchResult> {
   const candidates = new Map<number, SteamSearchItem>()
 
-  // Search by primary name and any aliases.
   const queries = new Set<string>([game.name, ...(game.aliases ?? [])])
   for (const q of queries) {
     if (!q) continue
@@ -255,10 +205,6 @@ async function findBestMatch(client: SteamClient, game: GameRecord, threshold: n
   return best
 }
 
-// ---------------------------------------------------------------------------
-// Main pipeline
-// ---------------------------------------------------------------------------
-
 interface FetchOptions {
   screenshotsPerGame: number
   matchThreshold: number
@@ -274,7 +220,6 @@ async function fetchSteamScreenshots(opts: FetchOptions): Promise<void> {
   const overrides = await readJsonIfExists<SteamOverrides>(OVERRIDES_FILE, {})
 
   const existingOriginalUrls = new Set(screenshots.map((s) => s.original_url))
-  // Continue distributing difficulty round-robin from current count of Steam screenshots.
   let difficultyCounter = screenshots.filter((s) => s.source === 'steam').length
 
   const client = new SteamClient()
@@ -298,7 +243,6 @@ async function fetchSteamScreenshots(opts: FetchOptions): Promise<void> {
       steamName = appid ? `(override #${appid})` : null
       score = appid ? 1 : 0
     } else if (mapping[game.slug] && !opts.refresh) {
-      // Reuse cached mapping (idempotent runs).
       appid = mapping[game.slug]!.appid
       steamName = mapping[game.slug]!.steam_name
       score = mapping[game.slug]!.match_score
@@ -338,12 +282,10 @@ async function fetchSteamScreenshots(opts: FetchOptions): Promise<void> {
     let addedForGame = 0
     let index = 1
 
-    // Find existing Steam screenshot count for this game so we keep filenames stable.
     const existingForGame = screenshots.filter((s) => s.game_slug === game.slug && s.source === 'steam').length
     index = existingForGame + 1
 
     for (const ss of wanted) {
-      // Strip cache-busting query string for stable dedupe.
       const canonicalUrl = ss.path_full.split('?')[0]!
       if (existingOriginalUrls.has(canonicalUrl)) continue
 
@@ -377,7 +319,6 @@ async function fetchSteamScreenshots(opts: FetchOptions): Promise<void> {
 
   endProgressLine()
 
-  // Backfill source field on legacy entries (those without a `source` were RAWG-imported).
   for (const s of screenshots) {
     if (!s.source) s.source = 'rawg'
   }
@@ -392,10 +333,6 @@ async function fetchSteamScreenshots(opts: FetchOptions): Promise<void> {
   console.log(`  No Steam match:    ${unmatched}`)
   console.log(`  Mapping saved to:  ${path.relative(process.cwd(), MAPPING_FILE)}`)
 }
-
-// ---------------------------------------------------------------------------
-// Downloader
-// ---------------------------------------------------------------------------
 
 async function downloadImage(url: string, outputPath: string, retries = 3): Promise<boolean> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -444,7 +381,6 @@ async function downloadSteamScreenshots(): Promise<void> {
       skipped++
       continue
     } catch {
-      // not present, download
     }
 
     const ok = await downloadImage(ss.original_url, outputPath)
@@ -456,10 +392,6 @@ async function downloadSteamScreenshots(): Promise<void> {
   endProgressLine()
   console.log(`\nDownloaded: ${downloaded}, Already present: ${skipped}, Failed: ${failed}`)
 }
-
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
 
 function parseFlags(argv: string[]): Record<string, string> {
   const flags: Record<string, string> = {}

@@ -1,9 +1,3 @@
-/**
- * Script to retroactively award missing score achievements
- * Awards score_500, score_1000, and score_1500 achievements to users who qualify
- * Run with: npx tsx scripts/award-missing-score-achievements.ts
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 
 interface ScoreAchievement {
@@ -17,7 +11,6 @@ async function awardMissingScoreAchievements() {
     console.log('\n=== Awarding Missing Score Achievements ===\n')
 
     try {
-        // Get all score achievements
         const scoreAchievements = await db('achievements')
             .whereIn('key', ['score_500', 'score_1000', 'score_1500'])
             .select('id', 'key', 'name', 'criteria')
@@ -40,7 +33,6 @@ async function awardMissingScoreAchievements() {
         })
         console.log()
 
-        // Sort by score descending so we award higher achievements first
         achievements.sort((a, b) => b.minScore - a.minScore)
 
         let totalAwarded = 0
@@ -48,9 +40,6 @@ async function awardMissingScoreAchievements() {
         for (const achievement of achievements) {
             console.log(`\nChecking ${achievement.name} (${achievement.minScore}+ points)...`)
 
-            // Find users who:
-            // 1. Have at least one completed session with score >= minScore
-            // 2. Don't already have this achievement
             const qualifyingUsers = await db('game_sessions')
                 .select('game_sessions.user_id')
                 .max('game_sessions.total_score as max_score')
@@ -59,7 +48,7 @@ async function awardMissingScoreAchievements() {
                         .andOn('user_achievements.achievement_id', '=', db.raw('?', [achievement.achievementId]))
                 })
                 .where('game_sessions.is_completed', true)
-                .whereNull('user_achievements.id') // Don't already have it
+                .whereNull('user_achievements.id')
                 .groupBy('game_sessions.user_id')
                 .havingRaw('max(game_sessions.total_score) >= ?', [achievement.minScore])
 
@@ -71,13 +60,11 @@ async function awardMissingScoreAchievements() {
 
             for (const user of qualifyingUsers) {
                 try {
-                    // Get user info for logging
                     const userInfo = await db('user')
                         .where('id', user.user_id)
                         .select('username', 'display_name')
                         .first()
 
-                    // Award the achievement
                     await db('user_achievements').insert({
                         user_id: user.user_id,
                         achievement_id: achievement.achievementId,
@@ -92,7 +79,6 @@ async function awardMissingScoreAchievements() {
                     totalAwarded++
                 } catch (error: any) {
                     if (error.message?.includes('duplicate key')) {
-                        // Already has it, skip silently
                         continue
                     }
                     console.error(`    ✗ Error for user ${user.user_id}:`, error.message)

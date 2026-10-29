@@ -27,9 +27,6 @@ env:
 
 jobs:
   decide:
-    # Skip pushes made by the workflow's own `chore: bump version` commit.
-    # The bump is committed with GITHUB_TOKEN which won't re-trigger workflows,
-    # so this is belt-and-suspenders against a human/PAT pushing the same shape.
     if: github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]'
     name: Decide release
     runs-on: ubuntu-latest
@@ -44,21 +41,17 @@ jobs:
       build_date: ${{ steps.build_date.outputs.value }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Capture build timestamp
         id: build_date
-        # Captured once here so both arch matrix builds stamp the same
-        # value into the OCI image label, matching the manifest tag.
         run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Determine bump type from conventional commits
         id: bump
-        # Workflow expressions are passed through env vars so bash always
-        # treats them as data, never as code to parse.
         env:
           EVENT_NAME: ${{ github.event_name }}
           VERSION_TYPE: ${{ inputs.version_type }}
@@ -140,9 +133,6 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
   checks:
-    # Lint, build, test on the host. Duplicates ci.yml (which also runs on
-    # push to main) but keeps release gated on a fresh pass — the two run
-    # in parallel anyway so there's no wall-clock cost.
     name: Lint, Build, Test
     needs: decide
     if: needs.decide.outputs.should_release == 'true'
@@ -150,12 +140,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "24"
           cache: "npm"
@@ -173,11 +163,6 @@ jobs:
         run: npm test
 
       - name: Stripe price sync check
-        # Pre-release gate: asserts the live Stripe catalog still matches
-        # BILLING_CATALOG (currency / amount / interval / active product) so a
-        # renamed or archived price breaks CI before it reaches prod. Skips
-        # automatically when no STRIPE_SECRET_KEY secret is configured (forks,
-        # or before live mode is set up) rather than failing the release.
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
@@ -189,13 +174,6 @@ jobs:
           npm run stripe:check --workspace @the-box/backend -- --live
 
   build:
-    # Split the multi-arch Docker build across native runners — arm64 via
-    # QEMU emulation on an amd64 runner is roughly 5-10x slower than native
-    # and was the dominant cost of the previous single-job release. Each
-    # matrix job pushes anonymously by digest; `publish` then merges them
-    # into a single manifest list with the real version tags.
-    #
-    # Runs in parallel with `checks`; `publish` waits for both.
     name: Build ${{ matrix.platform }}
     needs: decide
     if: needs.decide.outputs.should_release == 'true'
@@ -213,22 +191,22 @@ jobs:
             cache_scope: arm64
     steps:
       - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
 
       - name: Login to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -250,7 +228,7 @@ jobs:
           touch "/tmp/digests/${DIGEST#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: digest-${{ matrix.cache_scope }}
           path: /tmp/digests/*
@@ -258,10 +236,6 @@ jobs:
           retention-days: 1
 
   publish:
-    # Runs only after both platform builds pushed their digests AND checks
-    # passed. Merges the digests into one manifest list tagged with all the
-    # version variants, then bumps workspace versions, tags the repo, and
-    # publishes the GitHub release.
     name: Publish release & manifest
     needs: [decide, checks, build]
     if: needs.decide.outputs.should_release == 'true'
@@ -272,16 +246,13 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          # Don't persist the contents:write token in .git/config — npm
-          # lifecycle scripts run later in this job and must not see it.
-          # The push step authenticates explicitly instead.
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "24"
           cache: "npm"
@@ -292,24 +263,20 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Install dependencies
-        # --ignore-scripts: nothing in this job needs dependency lifecycle
-        # scripts (the version bump is plain `npm version` + file edits), and
-        # skipping them keeps a compromised transitive dependency away from
-        # this job's write token.
         run: npm ci --ignore-scripts
 
       - name: Download digests
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           path: /tmp/digests
           pattern: digest-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
 
       - name: Login to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -392,14 +359,6 @@ jobs:
           git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
 
       - name: Push changes to repository
-        # The `release-main` concurrency group with cancel-in-progress: false
-        # serializes whole runs, so concurrent sibling runs cannot race here.
-        # If a push ever fails, fail loudly rather than swallow it — a silent
-        # exit upstream of the GitHub Release step would leave a dangling
-        # Docker manifest with no matching tag or release.
-        #
-        # Checkout ran with persist-credentials: false, so the token only
-        # exists in this step's environment.
         env:
           NEW_VERSION: ${{ needs.decide.outputs.new_version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -410,7 +369,7 @@ jobs:
           git push "$REMOTE" "v${NEW_VERSION}"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           tag_name: v${{ needs.decide.outputs.new_version }}
           name: Release v${{ needs.decide.outputs.new_version }}

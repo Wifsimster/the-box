@@ -43,32 +43,10 @@ export interface ResolveMetadataResult {
   skipped: number
 }
 
-/**
- * Resolve missing Steam app id, wiki subdomain, and Fandom Interactive Map
- * page name for curated games (`geo_curated = true`,
- * `geo_metadata_status = 'pending'`).
- *
- * Strategy:
- *   1. Steam app id — hit Steam `storesearch`, pick the first hit whose
- *      normalized title matches the game name.
- *   2. Wiki subdomain + Map: page name — for each `<slug-variant>.fandom.com`,
- *      list pages in the Fandom Interactive Maps namespace
- *      (`?action=query&list=allpages&apnamespace=2900`). The first
- *      subdomain that returns at least one map wins; we score the returned
- *      titles and keep the highest-scoring one (without the `Map:` prefix).
- *
- * On any success → status='resolved'. On total failure → status='unresolved'
- * + tombstone with exponential backoff so we don't loop.
- */
 export async function resolveGeoMetadataBatch(
   batchSize = 25,
   gameId?: number,
 ): Promise<ResolveMetadataResult> {
-  // When `gameId` is set we run the resolver for that single game regardless
-  // of its current `geo_metadata_status` — manual admin runs need to re-resolve
-  // a 'resolved' or 'unresolved' game without an extra round-trip to flip the
-  // column first. Batch (recurring) runs keep the 'pending' filter so already
-  // resolved games aren't re-resolved every tick.
   const query = db<CuratedGameRow>('games').where('geo_curated', true)
   if (gameId === undefined) {
     query.where('geo_metadata_status', 'pending').orderBy('id').limit(batchSize)
@@ -94,33 +72,16 @@ export async function resolveGeoMetadataBatch(
   for (const row of rows) {
     try {
       const steamAppId = row.steam_app_id ?? (await resolveSteamAppId(row.name))
-      // RAWG covers Switch / PS / Xbox / mobile titles that Steam can't,
-      // so resolving rawg_id for curated rows that don't already have one
-      // unblocks the rawg capture importer for the long tail of console
-      // exclusives (e.g. Zelda BotW). Gated on RAWG_API_KEY because the
-      // search endpoint requires it.
       const rawgId =
         row.rawg_id ?? (env.RAWG_API_KEY ? await resolveRawgId(row.name) : null)
       const wiki =
         row.wiki_subdomain && row.wiki_page_title
           ? { subdomain: row.wiki_subdomain, mapName: row.wiki_page_title }
           : await resolveFandomInteractiveMap(row.name, row.slug)
-      // Tier 3 (Wikidata P242 locator) only meaningfully exists for
-      // open-world / exploration games. Skipping the lookup for
-      // genre-ineligible games avoids tombstoning Wikidata forever on
-      // every Puzzle/Platformer/Racing title in the catalog.
       const genreEligible = isMapEligibleByGenre(row.genres)
       const wikidataQid =
         row.wikidata_qid ??
         (genreEligible === false ? null : await resolveWikidataQid(row.name))
-      // Tier 1 hit short-circuits the "did we find anything" check — even if
-      // Steam/Fandom/Wikidata all whiff, a curated registry entry is enough
-      // to mark this game `resolved` and let the tick enqueue the import.
-      // The StrategyWiki and Fextralife tiers don't need pre-resolution
-      // (they probe upstream APIs inline using just the game name + slug),
-      // so every curated game implicitly has at least those two fallbacks
-      // — we no longer mark `unresolved` here. Per-tier tombstones still
-      // enforce backoff if every tier whiffs at import time.
       const hasRegistry = (await findRegistryEntryBySlug(row.slug)) !== null
 
       await db('games')
@@ -159,15 +120,8 @@ async function resolveSteamAppId(name: string): Promise<number | null> {
     const body = (await res.json()) as { items?: Array<{ id: number; name: string }> }
     if (!body.items?.length) return null
     const target = normalizeGameTitle(name)
-    // Exact normalized match always wins (handles "Game™" → "Game" trims).
     const exact = body.items.find((it) => normalizeGameTitle(it.name) === target)
     if (exact) return exact.id
-    // Steam's storesearch happily returns sequels alongside the original
-    // entry — searching "Baldur's Gate" returns "Baldur's Gate II: Enhanced
-    // Edition" first. Falling back to `items[0]` would silently bind the
-    // curated row to the wrong appid and pollute the candidates list with
-    // sequel screenshots. Filter to items whose version tokens match the
-    // target (no extra "ii" / "2" / "3" introduced).
     const targetTokens = extractVersionTokens(target)
     const compatible = body.items.find((it) =>
       versionTokensMatch(targetTokens, extractVersionTokens(normalizeGameTitle(it.name))),
@@ -206,9 +160,6 @@ async function resolveRawgId(name: string): Promise<number | null> {
     }
     if (!body.results?.length) return null
     const target = normalizeGameTitle(name)
-    // Same disambiguation rules we apply to Steam storesearch — exact
-    // normalized match wins, otherwise the first version-token-compatible
-    // hit. Without this guard "Diablo" silently binds to "Diablo II" / III.
     const exact = body.results.find((it) => normalizeGameTitle(it.name) === target)
     if (exact) return exact.id
     const targetTokens = extractVersionTokens(target)
@@ -237,12 +188,6 @@ interface AllPagesResponse {
   query?: { allpages?: Array<{ title: string }> }
 }
 
-/**
- * Walk subdomain candidates and ask each wiki for its `Map:` namespace
- * via `action=query&list=allpages&apnamespace=2900`. The first subdomain
- * that returns ≥1 map wins; we then score those titles to pick the most
- * "main" map and strip the `Map:` prefix before storing.
- */
 async function resolveFandomInteractiveMap(
   gameName: string,
   slug: string,
@@ -266,10 +211,6 @@ async function resolveFandomInteractiveMap(
     if (!pages.length) continue
 
     const titles = pages.map((p) => stripMapPrefix(p.title)).filter((t): t is string => Boolean(t))
-    // On a franchise wiki, a shared franchise token (legend/zelda) isn't enough
-    // — demand the full game name so a sibling installment's map (e.g. the 1986
-    // "Level 1" map for Ocarina of Time) can't slip past the scorer's gate.
-    // Game-specific wikis pass through unchanged.
     const eligible = titles.filter((title) =>
       fandomMapTitleAcceptable(title, gameName, sub, slug),
     )
@@ -278,10 +219,6 @@ async function resolveFandomInteractiveMap(
       log.info({ sub, choice: best, candidates: titles.length }, 'fandom map discovered')
       return { subdomain: sub, mapName: best }
     }
-    // Every title on this subdomain failed the game-specific-evidence gate
-    // (e.g. a franchise-wide wiki whose only pages belong to other
-    // installments) — try the next subdomain candidate rather than falling
-    // back to an unrelated page.
   }
   return null
 }

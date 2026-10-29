@@ -20,7 +20,6 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
     const { t } = useTranslation()
     const { status, openModal, isLoading } = useDailyLoginStore()
 
-    // Don't render if no status or loading
     if (isLoading || !status) return null
 
     const canClaim = status.canClaim
@@ -57,7 +56,6 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
                             )}
                         />
 
-                        {/* Streak count as subtle badge */}
                         {streak > 0 && (
                             <Badge
                                 variant="secondary"
@@ -68,7 +66,6 @@ export function DailyRewardBadge({ className, onClick }: DailyRewardBadgeProps) 
                             </Badge>
                         )}
 
-                        {/* Notification dot when can claim */}
                         {canClaim && (
                             <span aria-hidden="true" className="absolute top-1.5 right-1.5 flex size-2">
                                 <span className="absolute inline-flex size-full rounded-full bg-primary opacity-75 motion-safe:animate-ping" />

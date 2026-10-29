@@ -23,23 +23,15 @@ import { userApi, UserApiError } from '@/lib/api/user'
 import { sortedCountryOptions } from '@/lib/countries'
 import type { CountryCode, User } from '@the-box/types'
 
-// Radix Select cannot hold an empty value, so "no country" gets a sentinel.
 const NO_COUNTRY = 'none'
 
 interface EditProfileCardProps {
   displayName: string
   username: string
   country?: CountryCode
-  // Called with the updated User so the parent can refresh its cached profile.
   onUpdated?: (user: User) => void
 }
 
-/**
- * Lets the user edit their display name, username and optional country
- * (used only by the monthly country ranking, never inferred from the IP). Submits to
- * PUT /api/user/profile and surfaces field-specific errors (taken username,
- * invalid formats) as toasts.
- */
 export function EditProfileCard({
   displayName: initialDisplayName,
   username: initialUsername,

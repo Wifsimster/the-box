@@ -1,27 +1,13 @@
 import { Page, expect } from '@playwright/test'
 
-/**
- * Test helpers for daily game E2E tests
- */
-
-// E2E Test User Credentials (must match e2e-seed.ts)
 export const E2E_USER_EMAIL = 'e2e_user@test.local'
 export const E2E_USER_PASSWORD = 'test123'
 export const E2E_ADMIN_EMAIL = 'e2e_admin@test.local'
 export const E2E_ADMIN_PASSWORD = 'test123'
 
-/**
- * Close the Daily Reward modal if it appears
- */
 export async function closeDailyRewardModal(page: Page) {
-  // Wait a moment for modal to potentially appear
   await page.waitForTimeout(500)
 
-  // Every interaction here is best-effort: the modal is shared mutable state
-  // across parallel workers (all using e2e_user), so the claim button can be
-  // mid-transition — claimed by another worker, animating out, or about to
-  // disable. Dismissing the modal must never fail the caller's login, so each
-  // click is guarded and `.first()` avoids strict-mode if a label repeats.
   const claimButton = page.getByRole('button', { name: /claim/i }).first()
   if (await claimButton.isVisible().catch(() => false)) {
     await claimButton.click({ timeout: 3000 }).catch(() => {})
@@ -34,21 +20,15 @@ export async function closeDailyRewardModal(page: Page) {
     await page.waitForTimeout(500)
   }
 
-  // Also check for dialog close button (X button)
   const dialogCloseButton = page.locator('[role="dialog"] button[aria-label*="close"], [role="dialog"] button:has(svg)').first()
   if (await dialogCloseButton.isVisible().catch(() => false)) {
     await dialogCloseButton.click({ timeout: 3000 }).catch(() => {})
     await page.waitForTimeout(500)
   }
 
-  // Last resort: Escape dismisses any lingering Radix dialog without needing
-  // to resolve a specific button.
   await page.keyboard.press('Escape').catch(() => {})
 }
 
-/**
- * Login as a regular user
- */
 export async function loginAsUser(page: Page) {
   await page.goto('/en/login')
   await page.waitForSelector('form')
@@ -56,34 +36,28 @@ export async function loginAsUser(page: Page) {
   const userEmail = process.env.TEST_USER_EMAIL || E2E_USER_EMAIL
   const userPassword = process.env.TEST_USER_PASSWORD || E2E_USER_PASSWORD
 
-  // Clear and fill email field with a small delay to ensure React state updates
   const emailInput = page.getByPlaceholder(/you@example.com|email|username/i)
   await emailInput.click()
   await emailInput.fill('')
   await emailInput.fill(userEmail)
   await page.waitForTimeout(100)
 
-  // Clear and fill password field
   const passwordInput = page.locator('input[type="password"]').first()
   await passwordInput.click()
   await passwordInput.fill('')
   await passwordInput.fill(userPassword)
   await page.waitForTimeout(100)
 
-  // Wait for login button to be enabled (form validation)
   const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
 
-  // Wait a bit longer for React state to propagate
   await page.waitForTimeout(300)
 
-  // Try clicking even if button appears disabled (it should be enabled)
   await loginButton.click()
   await page.waitForTimeout(3000)
 
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
-    // Check for any error message - using class selector that matches the actual error div
     const errorSelector = '[class*="text-destructive"], [class*="bg-destructive"], [role="alert"]'
     const error = await page
       .locator(errorSelector)
@@ -100,13 +74,9 @@ export async function loginAsUser(page: Page) {
     throw new Error('Login did not redirect - check credentials')
   }
 
-  // Close Daily Reward modal if it appears after login
   await closeDailyRewardModal(page)
 }
 
-/**
- * Login as an admin user
- */
 export async function loginAsAdmin(page: Page) {
   await page.goto('/en/login')
   await page.waitForSelector('form')
@@ -114,34 +84,28 @@ export async function loginAsAdmin(page: Page) {
   const adminEmail = process.env.TEST_ADMIN_EMAIL || E2E_ADMIN_EMAIL
   const adminPassword = process.env.TEST_ADMIN_PASSWORD || E2E_ADMIN_PASSWORD
 
-  // Clear and fill email field with a small delay to ensure React state updates
   const emailInput = page.getByPlaceholder(/you@example.com|email|username/i)
   await emailInput.click()
   await emailInput.fill('')
   await emailInput.fill(adminEmail)
   await page.waitForTimeout(100)
 
-  // Clear and fill password field
   const passwordInput = page.locator('input[type="password"]').first()
   await passwordInput.click()
   await passwordInput.fill('')
   await passwordInput.fill(adminPassword)
   await page.waitForTimeout(100)
 
-  // Wait for login button to be enabled (form validation)
   const loginButton = page.getByRole('button', { name: /^(log ?in|sign in)$/i })
   await loginButton.waitFor({ state: 'visible', timeout: 5000 })
 
-  // Wait a bit longer for React state to propagate
   await page.waitForTimeout(300)
 
-  // Try clicking even if button appears disabled (it should be enabled)
   await loginButton.click()
   await page.waitForTimeout(3000)
 
   const currentUrl = page.url()
   if (currentUrl.includes('/login')) {
-    // Check for any error message - using class selector that matches the actual error div
     const errorSelector = '[class*="text-destructive"], [class*="bg-destructive"], [role="alert"]'
     const error = await page
       .locator(errorSelector)
@@ -158,21 +122,14 @@ export async function loginAsAdmin(page: Page) {
     throw new Error('Login did not redirect - check credentials')
   }
 
-  // Close Daily Reward modal if it appears after login
   await closeDailyRewardModal(page)
 }
 
-/**
- * Wait for the game to load (intro or playing state)
- */
 export async function waitForGameLoad(page: Page) {
-  // Wait for any game-related elements to appear
   await page.waitForTimeout(1000)
 
-  // Close any modal that might be showing (Daily Reward)
   await closeDailyRewardModal(page)
 
-  // Wait for game elements - could be intro screen or playing state
   const gameLoaded = await Promise.race([
     page.waitForSelector('h1, h2', { timeout: 10000 }).then(() => true).catch(() => false),
     page.waitForSelector('input[type="text"]', { timeout: 10000 }).then(() => true).catch(() => false),
@@ -180,34 +137,23 @@ export async function waitForGameLoad(page: Page) {
   ])
 
   if (!gameLoaded) {
-    // Try closing modal again in case it appeared late
     await closeDailyRewardModal(page)
   }
 }
 
-/**
- * Open the daily box if it is still closed (one tap, no account gate)
- */
 export async function startDailyGame(page: Page) {
-  // First close any modals
   await closeDailyRewardModal(page)
 
-  // The closed box ("Open today's box", decision D1) replaced the intro's
-  // Start button; it carries a stable test id.
   const startButton = page.getByTestId('today-open-box')
   const hasStartButton = await startButton.isVisible().catch(() => false)
 
   if (hasStartButton) {
     await startButton.click()
     await page.waitForTimeout(2000)
-    // Close modal again if it appears after starting
     await closeDailyRewardModal(page)
   }
 }
 
-/**
- * Navigate to a specific position in the game
- */
 export async function navigateToPosition(page: Page, position: number) {
   if (position < 1 || position > 10) {
     throw new Error('Position must be between 1 and 10')
@@ -226,18 +172,12 @@ export async function navigateToPosition(page: Page, position: number) {
   }
 }
 
-/**
- * Visit all positions to enable end game button
- */
 export async function visitAllPositions(page: Page) {
   for (let i = 1; i <= 10; i++) {
     await navigateToPosition(page, i)
   }
 }
 
-/**
- * Submit a guess for the current screenshot
- */
 export async function submitGuess(page: Page, gameName: string) {
   const gameInput = page.locator('input[type="text"]').first()
   await expect(gameInput).toBeVisible()
@@ -247,13 +187,9 @@ export async function submitGuess(page: Page, gameName: string) {
   const submitButton = page.getByRole('button', { name: /submit|send|envoyer/i })
   await submitButton.click()
 
-  // Wait for result
   await page.waitForTimeout(2000)
 }
 
-/**
- * Skip the current screenshot
- */
 export async function skipScreenshot(page: Page) {
   const skipButton = page.getByRole('button', { name: /skip/i })
   await expect(skipButton).toBeVisible()
@@ -262,9 +198,6 @@ export async function skipScreenshot(page: Page) {
   await page.waitForTimeout(1000)
 }
 
-/**
- * End the game (must have visited all positions first)
- */
 export async function endGame(page: Page, confirm: boolean = true) {
   const endGameButton = page.getByRole('button', { name: /end game|terminer|forfeit/i })
   await expect(endGameButton).toBeVisible({ timeout: 5000 })
@@ -283,11 +216,7 @@ export async function endGame(page: Page, confirm: boolean = true) {
   }
 }
 
-/**
- * Get the current score from the game
- */
 export async function getCurrentScore(page: Page): Promise<number> {
-  // Try to find score display
   const scoreText = await page
     .locator('text=/^\\d{1,4}$/')
     .first()
@@ -297,9 +226,6 @@ export async function getCurrentScore(page: Page): Promise<number> {
   return parseInt(scoreText || '0', 10)
 }
 
-/**
- * Check if currently on a specific position
- */
 export async function isOnPosition(page: Page, position: number): Promise<boolean> {
   const activeDot = page.locator('button[class*="ring"]').first()
   const activeText = await activeDot.textContent().catch(() => '0')
@@ -307,13 +233,6 @@ export async function isOnPosition(page: Page, position: number): Promise<boolea
   return parseInt(activeText || '0', 10) === position
 }
 
-/**
- * Click the letter-reveal button in the guess-field dock.
- *
- * Note: the button is gated server-side (one wrong guess first) and uses
- * aria-disabled rather than the disabled attribute — clicking while locked
- * is a no-op that surfaces an explanatory toast.
- */
 export async function revealLetter(page: Page) {
   const revealButton = page.locator('[data-testid=letter-reveal-button]')
   await expect(revealButton).toBeVisible()
@@ -321,9 +240,6 @@ export async function revealLetter(page: Page) {
   await page.waitForTimeout(500)
 }
 
-/**
- * Register a new test user
- */
 export async function registerTestUser(
   page: Page,
   username?: string,
@@ -348,7 +264,6 @@ export async function registerTestUser(
   await page.getByRole('button', { name: /register|sign up|create account/i }).click()
   await page.waitForTimeout(3000)
 
-  // Check if registration succeeded
   const currentUrl = page.url()
   if (currentUrl.includes('/register')) {
     const error = await page
@@ -368,11 +283,7 @@ export async function registerTestUser(
   return { username: testUsername, email: testEmail, password: testPassword }
 }
 
-/**
- * Logout the current user
- */
 export async function logout(page: Page) {
-  // Look for logout button in header or menu
   const logoutButton = page
     .getByRole('button', { name: /logout|sign out|déconnexion/i })
     .or(page.getByRole('link', { name: /logout|sign out|déconnexion/i }))
@@ -381,7 +292,6 @@ export async function logout(page: Page) {
     await logoutButton.click()
     await page.waitForTimeout(2000)
   } else {
-    // Try opening a menu first (mobile menu or user menu)
     const menuButton = page.getByRole('button', { name: /menu/i })
     if (await menuButton.isVisible().catch(() => false)) {
       await menuButton.click()

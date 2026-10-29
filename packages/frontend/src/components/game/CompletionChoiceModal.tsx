@@ -25,7 +25,6 @@ export function CompletionChoiceModal() {
     endGameAction,
   } = useGameStore()
 
-  // Count remaining unguessed games (skipped positions)
   const remainingGames = Object.values(positionStates).filter(
     (state) => state?.status === 'skipped'
   ).length

@@ -19,12 +19,6 @@ const SCREENSHOT_REPORT_REASONS = [
 
 const router = Router()
 
-// User-driven eligibility flag for any in-game capture, regardless of mode.
-// Exactly one of `screenshotId` (main daily / catch-up) or
-// `geoScreenshotCandidateId` (geo pin game) must be provided. Idempotent per
-// (user, target) thanks to partial unique indexes on `screenshot_reports`;
-// once enough distinct users hit it for the same target the repository
-// auto-flips `is_active=false` so the capture stops appearing in every mode.
 const reportBodySchema = z
   .object({
     geoScreenshotCandidateId: z.number().int().positive().optional(),
@@ -42,8 +36,6 @@ router.post('/', authMiddleware, validateBody(reportBodySchema), async (req, res
     const userId = req.userId!
     const body = req.body as z.infer<typeof reportBodySchema>
 
-    // Reject orphaned reports up front; otherwise we'd silently accumulate
-    // rows that admins can't act on without scrubbing the DB by hand.
     if (body.geoScreenshotCandidateId != null) {
       const candidate = await geoScreenshotRepository.findCandidateById(
         body.geoScreenshotCandidateId,

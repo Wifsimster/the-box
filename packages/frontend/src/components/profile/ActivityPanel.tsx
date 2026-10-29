@@ -20,8 +20,6 @@ function ymd(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-// Score-range bounds are fixed; kept at module scope so they don't occupy a
-// useState slot or get reallocated each render.
 const SCORE_RANGE: readonly [number, number] = [-1000, 2000]
 
 interface HistoryDataState {
@@ -64,9 +62,6 @@ function historyDataReducer(
   }
 }
 
-// Current streak = consecutive completed days ending today (or yesterday if
-// today not yet played). Counts back from the most recent of {today,
-// yesterday} that the user actually played.
 function calculateStreak(entries: GameHistoryEntry[]): number {
   const playedDates = new Set<string>()
   for (const e of entries) {
@@ -93,12 +88,6 @@ function calculateStreak(entries: GameHistoryEntry[]): number {
   return count
 }
 
-/**
- * ActivityPanel — the player's game history (timeline of played sessions and
- * missed challenges). Extracted from the former standalone HistoryPage so it
- * can live inside the profile hub's "Activity" tab; the `/history` route now
- * redirects here, while `/history/:sessionId` still opens the detail page.
- */
 export function ActivityPanel() {
   const { t, i18n } = useTranslation()
   const { localizedPath } = useLocalizedPath()
@@ -109,12 +98,10 @@ export function ActivityPanel() {
   )
   const reducedMotion = useReducedMotionSafe()
 
-  // Filter states
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'inProgress'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const scoreRange = SCORE_RANGE
 
-  // Fetch history when session is available
   const fetchHistory = useCallback(() => {
     if (!session) return
     dispatchData({ type: 'loadStart' })
@@ -131,15 +118,10 @@ export function ActivityPanel() {
       })
   }, [session])
 
-  // Fetch on mount
   useEffect(() => {
     fetchHistory()
   }, [fetchHistory])
 
-  // Refetch when page becomes visible (user returns from game). `fetchHistory`
-  // is only read inside the visibilitychange handler, so it's wrapped in an
-  // effect event — the effect itself only re-subscribes when the session
-  // identity changes, not on every parent render.
   const onVisibilityChange = useEffectEvent(() => {
     if (document.visibilityState === 'visible' && session) {
       fetchHistory()
@@ -151,8 +133,6 @@ export function ActivityPanel() {
     return () => document.removeEventListener('visibilitychange', handler)
   }, [])
 
-  // Format date for display. Stable across renders for a given language so it
-  // can safely appear in the timeline memo's dependency list.
   const formatDate = useCallback(
     (dateStr: string) => {
       const date = new Date(dateStr)
@@ -166,14 +146,12 @@ export function ActivityPanel() {
     [i18n.language],
   )
 
-  // Aggregate stats — computed client-side from already-fetched entries.
   const aggregates = useMemo(() => {
     const playedCount = history.filter(e => e.isCompleted).length
     const streak = calculateStreak(history)
     return { playedCount, streak }
   }, [history])
 
-  // Filter history entries
   const filteredHistory = history.filter(entry => {
     if (statusFilter === 'completed' && !entry.isCompleted) return false
     if (statusFilter === 'inProgress' && entry.isCompleted) return false
@@ -184,8 +162,6 @@ export function ActivityPanel() {
     return true
   })
 
-  // Unified chronological timeline — interleaves played sessions with missed
-  // challenges so today's game appears at the top alongside older dates.
   const timeline: TimelineItem[] = useMemo(() => {
     const items: TimelineItem[] = filteredHistory.map(entry => ({
       kind: 'played' as const,

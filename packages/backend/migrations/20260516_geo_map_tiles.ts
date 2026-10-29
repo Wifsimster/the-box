@@ -1,14 +1,5 @@
 import type { Knex } from 'knex'
 
-// Adds tiled-map support to geo_map. Existing rows stay valid (kind defaults
-// to 'image'); a new 'tiles' kind references a Leaflet-style tile pyramid by
-// URL template + zoom range + scheme. The CHECK constraint is the invariant
-// that prevents half-formed tile rows from sneaking past the worker.
-//
-// `image_url` stays NOT NULL — tile entries still set it to a representative
-// thumbnail (e.g. a single tile from the deepest zoom) so admin grids and
-// non-Leaflet renderers keep working without a separate preview pipeline.
-
 const TILE_KIND_CHECK_NAME = 'geo_map_tile_kind_check'
 
 export async function up(knex: Knex): Promise<void> {
@@ -21,8 +12,6 @@ export async function up(knex: Knex): Promise<void> {
     table.string('tile_scheme', 32).nullable()
   })
 
-  // Backfill is implicit via the column default, but make it explicit so a
-  // mid-migration crash leaves the DB in a known state.
   await knex('geo_map').whereNull('kind').update({ kind: 'image' })
 
   await knex.raw(

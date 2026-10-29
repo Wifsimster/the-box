@@ -9,15 +9,6 @@ import { emitUserPremiumGranted } from '../../../infrastructure/socket/socket.js
 
 const router = Router()
 
-// === Users billing (premium status + admin grant/revoke) ===
-//
-// Better-auth's /admin/list-users only knows about the `user` table, so the
-// admin UI fetches billing entitlement separately for the visible page. The
-// grant/revoke endpoints flip `supporter_lifetime_at` directly — they do not
-// touch Stripe, so they're safe even if billing is misconfigured. Supporter
-// lifetime takes priority over recurring subs in `getEntitlement`, so a
-// granted user stays premium even if they later cancel a paid subscription.
-
 router.get('/users/billing', async (req, res, next) => {
   try {
     const raw = typeof req.query['userIds'] === 'string' ? req.query['userIds'] : ''
@@ -68,8 +59,6 @@ router.post('/users/:userId/grant-supporter', async (req, res, next) => {
       'admin granted supporter lifetime',
     )
 
-    // Fire one-shot notifications only on the transition from non-premium →
-    // premium so a duplicate grant click doesn't re-spam the user.
     if (newlyGranted) {
       emitUserPremiumGranted({
         userId,
@@ -79,8 +68,6 @@ router.post('/users/:userId/grant-supporter', async (req, res, next) => {
 
       const target = await userRepository.findById(userId)
       if (target?.email && !target.isGuest) {
-        // Don't block the admin response on the mail provider; failures are
-        // already captured in `email_log` by the sendEmail chokepoint.
         void sendPremiumGrantedEmail({
           userId,
           to: target.email,

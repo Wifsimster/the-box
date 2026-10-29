@@ -35,15 +35,12 @@ describe('letter-reveal masking', () => {
   })
 
   it('shows a leading article for free without consuming a reveal', () => {
-    // "The" is free; the first PAID letter is the W of Witcher.
     assert.equal(buildMaskedTitle('The Witcher 3: Wild Hunt', 0), 'The _______ 3: ____ ____')
     assert.equal(buildMaskedTitle('The Witcher 3: Wild Hunt', 1), 'The W______ 3: ____ ____')
-    // French article too.
     assert.equal(buildMaskedTitle('La Mulana', 1), 'La M_____')
   })
 
   it('only treats a leading article as free when followed by a space', () => {
-    // "Anthem" starts with "An" but is not the article "An".
     assert.equal(buildMaskedTitle('Anthem', 0), '______')
   })
 
@@ -54,14 +51,13 @@ describe('letter-reveal masking', () => {
   it('is idempotent and clamps the count to the cap', () => {
     const at = (n: number) => buildMaskedTitle('Elden Ring', n)
     assert.equal(at(2), at(2))
-    // Counts beyond the cap can never widen the leak.
     assert.equal(at(99), at(maxRevealableLetters('Elden Ring')))
   })
 
   it('static bound caps reveals at min(2, ceil(maskable × 0.3))', () => {
-    assert.equal(maxRevealableLetters('Ico'), 1) // 3 maskable
-    assert.equal(maxRevealableLetters('Doom'), 2) // 4 maskable
-    assert.equal(maxRevealableLetters('Elden Ring'), 2) // 9 maskable
+    assert.equal(maxRevealableLetters('Ico'), 1)
+    assert.equal(maxRevealableLetters('Doom'), 2)
+    assert.equal(maxRevealableLetters('Elden Ring'), 2)
     assert.equal(maxRevealableLetters('The Witcher 3: Wild Hunt'), 2)
   })
 
@@ -78,19 +74,10 @@ describe('letter-reveal masking', () => {
     assert.equal(nextPenaltyPct(2, 0), LETTER_PENALTY_STEPS[0])
     assert.equal(nextPenaltyPct(2, 1), LETTER_PENALTY_STEPS[1])
     assert.equal(nextPenaltyPct(2, 2), null)
-    // Single-reveal title hits the cap after one letter.
     assert.equal(nextPenaltyPct(1, 1), null)
   })
 })
 
-// ---------------------------------------------------------------------------
-// SHIP GATE — the reveal cap is verified against the SAME fuzzy matcher that
-// scores guesses (effectiveMaxReveals), so the revealed prefix can never
-// satisfy it on its own. These tests pin the property on a representative
-// corpus AND document the leaks the static formula alone would have allowed
-// ("Do" → "Doom", the free article in "La Mu" → "La Mulana"). If a masking
-// change makes any of these pass, the feature leaks answers and must not ship.
-// ---------------------------------------------------------------------------
 describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
   const fuzzy = createFuzzyMatchService({ logger: silentLogger })
   const expectNoCredit = (cases: Array<[string, string]>): void => {
@@ -102,12 +89,8 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
       )
     }
   }
-  // Any credit is a leak: a revealed fragment worth even a partial match
-  // would solve the position at 40%.
   const isMatch = (input: string, name: string) => fuzzy.evaluateMatch(input, name).matched
 
-  // Representative shapes: short, long, articled, numbered, subtitled,
-  // diacritics, colon-joined, expansion-suffixed, single-word, digit-only.
   const corpus = [
     'Ico',
     'Doom',
@@ -135,8 +118,6 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
       const max = effectiveMaxReveals(title, isMatch)
       for (let n = 0; n <= max; n++) {
         const fragment = revealedFragment(title, n)
-        // A player types the fragment as shown, glued ("p2"), or without
-        // the free article: none of these may earn anything.
         for (const variant of fragmentVariants(fragment)) {
           assert.equal(
             fuzzy.evaluateMatch(variant, title).precision,
@@ -149,8 +130,6 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
   })
 
   it('one paid letter glued to the free digit is never a name', () => {
-    // "P_____ 2" typed as "p2", "The W______ 3" typed as "w3" / "tw3":
-    // exactly the shorthand the hint hands out, so the matcher refuses it.
     expectNoCredit([
       ['p2', 'Portal 2'],
       ['h3', 'Halo 3'],
@@ -167,8 +146,6 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
   })
 
   it('the free skeleton (digits, years, punctuation) earns nothing', () => {
-    // Digits and years ship for free with the first paid reveal, so a
-    // number alone can never be worth even partial credit.
     for (const title of ['God of War (2018)', 'Battlefield 1942', 'Portal 2', 'Kingdom Hearts 358/2 Days']) {
       const skeleton = revealedFragment(title, 0)
       assert.equal(
@@ -180,16 +157,9 @@ describe('letter-reveal × fuzzy-match safety (ship gate)', () => {
   })
 
   it('shrinks the cap where the static formula would leak', () => {
-    // Two letters plus the free digit spell the acronym "Re 4", which the
-    // matcher reads as "Resident Evil 4": static says 2, the matcher-
-    // verified cap must stop at 1.
     assert.equal(maxRevealableLetters('Resident Evil 4'), 2)
     assert.equal(effectiveMaxReveals('Resident Evil 4', isMatch), 1)
-    // "Bi" is the acronym of "BioShock Infinite" (partial credit).
     assert.equal(effectiveMaxReveals('BioShock Infinite', isMatch), 1)
-    // Word-level matching no longer lets a two-letter prefix match a short
-    // title ("Do" is not "Doom", "La M" is not "La Mulana"), so these keep
-    // their full static cap.
     assert.equal(effectiveMaxReveals('Doom', isMatch), 2)
     assert.equal(effectiveMaxReveals('La Mulana', isMatch), 2)
   })

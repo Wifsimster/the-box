@@ -1,21 +1,3 @@
-/**
- * Generic runtime settings (Admin → Paramètres, settings MCP tools).
- *
- * The registry below is the single list of known settings: key, type, group,
- * default and validation. Adding a setting is one entry here plus its i18n
- * label; storage, caching, masking, the admin UI and the MCP tools pick it up.
- *
- * Rules:
- * - A missing row means the default. Writing `null` deletes the row (back to
- *   the default, or "not set" for a secret).
- * - Secrets are write-only: encrypted before storage, never returned by
- *   `list`/`get`, only `{ set, mask }`. `getValue` (server-internal) is the
- *   only way to read one in plaintext.
- * - Reads go through an in-process cache of the whole table, invalidated on
- *   every write and refreshed after `cacheTtlMs` (covers out-of-band edits).
- *   One backend instance today; a multi-instance deploy would see up to
- *   `cacheTtlMs` of staleness on the other instances.
- */
 import type { AppSettingType, AppSettingView } from '@the-box/types'
 import type { AppSettingRow, AppSettingsRepository, SecretCipher } from '../ports/app-settings.js'
 import type { DomainLogger } from '../ports/logger.js'
@@ -28,7 +10,6 @@ interface SettingDefinition {
   group: string
   defaultValue: Scalar | null
   constraints?: AppSettingView['constraints']
-  /** Returns the normalised value, or an error message. */
   validate(value: unknown): { ok: true; value: Scalar } | { ok: false; error: string }
 }
 
@@ -96,17 +77,12 @@ export class AppSettingError extends Error {
   }
 }
 
-/**
- * Show enough of a secret to recognise it, never enough to use it:
- * `sk-ant-…abcd`. Short values only show the last two characters.
- */
 export function maskSecret(secret: string): string {
   if (secret.length < 12) return `…${secret.slice(-2)}`
   const prefix = secret.startsWith('sk-ant-') ? 'sk-ant-' : secret.slice(0, 3)
   return `${prefix}…${secret.slice(-4)}`
 }
 
-/** What an audit entry may record about a change. Secrets: only whether one is set. */
 export interface SettingAuditSnapshot {
   before: { value?: Scalar | null; set?: boolean }
   after: { value?: Scalar | null; set?: boolean }
@@ -115,9 +91,7 @@ export interface SettingAuditSnapshot {
 export interface AppSettingsService {
   list(): Promise<AppSettingView[]>
   get(key: string): Promise<AppSettingView>
-  /** Server-internal typed read (secrets decrypted). Falls back to the default. */
   getValue(key: AppSettingKey): Promise<Scalar | null>
-  /** `value === null` resets to the default (or clears a secret). */
   set(key: string, value: unknown, actorId: string | null): Promise<{ view: AppSettingView; audit: SettingAuditSnapshot }>
   invalidate(): void
 }
@@ -161,7 +135,6 @@ export function createAppSettingsService(deps: AppSettingsServiceDeps): AppSetti
     return def
   }
 
-  /** Stored non-secret value if it is still valid for the definition, else null. */
   function storedValue(def: SettingDefinition, row: AppSettingRow | undefined): Scalar | null {
     if (!row || def.type === 'secret') return null
     const checked = def.validate(row.value)
@@ -172,7 +145,6 @@ export function createAppSettingsService(deps: AppSettingsServiceDeps): AppSetti
     if (!row?.secretCiphertext) return null
     const plain = deps.cipher.decrypt(row.secretCiphertext)
     if (plain === null) {
-      // Wrong key (BETTER_AUTH_SECRET rotated) or tampering: read as unset.
       log.warn({ key: row.key }, 'secret setting could not be decrypted; treating it as unset')
     }
     return plain
@@ -247,7 +219,6 @@ export function createAppSettingsService(deps: AppSettingsServiceDeps): AppSetti
       cache = null
       const fresh = (await rows()).get(key)
       const after = snapshot(def, fresh)
-      // Never the secret itself: the key and whether it is set.
       log.info({ key, actorId, ...(def.type === 'secret' ? { set: after.set } : {}) }, 'app setting updated')
       return { view: view(def, fresh), audit: { before, after } }
     },

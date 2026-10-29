@@ -26,10 +26,6 @@ export interface UpsertSubscriptionInput {
 }
 
 export const pushSubscriptionRepository = {
-  // Upsert keyed on `endpoint` so re-subscribing the same device just bumps
-  // user/active rather than creating duplicate rows. A device that re-binds
-  // to a different user (account switch on the same browser) cleanly moves
-  // the row to the new user_id thanks to the conflict target.
   async upsert(input: UpsertSubscriptionInput): Promise<PushSubscriptionRow> {
     const rows = await db('push_subscriptions')
       .insert({
@@ -61,9 +57,6 @@ export const pushSubscriptionRepository = {
       .select<PushSubscriptionRow[]>('*')
   },
 
-  // Used by the subscribe route to enforce a per-user device cap. Counted at
-  // the repository layer rather than the route so the same SQL/index hits
-  // the partial index on (user_id, is_active).
   async countActiveForUser(userId: string): Promise<number> {
     const result = await db('push_subscriptions')
       .where({ user_id: userId, is_active: true })
@@ -72,9 +65,6 @@ export const pushSubscriptionRepository = {
     return first ? Number(first.count) : 0
   },
 
-  // Used by the subscribe route to decide whether a new endpoint counts
-  // toward the per-user cap. If a row already exists, upsert will replace
-  // it (re-bind to the user) so the cap doesn't apply.
   async findByEndpoint(endpoint: string): Promise<PushSubscriptionRow | null> {
     const row = await db('push_subscriptions')
       .where({ endpoint })
@@ -82,11 +72,6 @@ export const pushSubscriptionRepository = {
     return row ?? null
   },
 
-  // Endpoint is globally unique, so this either deletes one row or zero. We
-  // hard-delete on explicit unsubscribe (vs. is_active=false) because the
-  // user has signaled intent to revoke; keeping the row would just clutter.
-  // Scoped by user_id to prevent any authenticated caller from unsubscribing
-  // someone else's device by guessing or learning their endpoint URL.
   async deleteByEndpoint(endpoint: string, userId: string): Promise<boolean> {
     const deleted = await db('push_subscriptions').where({ endpoint, user_id: userId }).del()
     return deleted > 0
@@ -98,8 +83,6 @@ export const pushSubscriptionRepository = {
       .update({ last_success_at: db.fn.now(), last_failure_at: null, last_failure_status: null })
   },
 
-  // 4xx/5xx response. Service decides whether to flip is_active based on
-  // status (410/404 → terminally gone → flip).
   async markFailure(
     endpoint: string,
     userId: string,
@@ -115,9 +98,6 @@ export const pushSubscriptionRepository = {
       })
   },
 
-  // Hard-delete deactivated rows that haven't seen a successful send in a
-  // long time. Run from the daily prune cron so the table doesn't grow
-  // monotonically with churned browsers / reinstalls.
   async pruneStale(deactivatedBeforeMs: number): Promise<number> {
     const cutoff = new Date(Date.now() - deactivatedBeforeMs)
     return db('push_subscriptions')
@@ -129,8 +109,6 @@ export const pushSubscriptionRepository = {
   },
 }
 
-// Endpoints contain a per-device token; redact the path tail when logging so
-// the full token doesn't end up in log aggregators.
 function redact(endpoint: string): string {
   const idx = endpoint.lastIndexOf('/')
   if (idx < 0 || idx >= endpoint.length - 1) return endpoint

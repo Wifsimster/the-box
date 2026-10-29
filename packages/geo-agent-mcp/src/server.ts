@@ -1,11 +1,3 @@
-// Zero-dependency MCP server core for The Box agent tools: geo content
-// sourcing (issue #331) and app settings (scope admin:settings). Pure JSON-RPC dispatch — no stdio, no network — so it
-// is fully unit-testable. `index.ts` wires this to a newline-delimited stdio
-// transport and a real HTTP client.
-
-// Server identity. `version` here is only a fallback: the stdio entrypoint
-// (index.ts) injects the real version read from package.json at startup, so the
-// advertised version tracks the release-bumped package.json instead of drifting.
 export const SERVER_INFO = { name: 'the-box-geo-agent', version: '0.0.0-dev' } as const
 export const DEFAULT_PROTOCOL_VERSION = '2024-11-05'
 
@@ -20,8 +12,6 @@ export interface ToolDef {
   }
 }
 
-// Maps a tool call to a GET path on /api/agent/v1/geo. Kept declarative so the
-// tool list and the routing agree by construction.
 export const TOOLS: ToolDef[] = [
   {
     name: 'geo_health',
@@ -249,7 +239,6 @@ export const TOOLS: ToolDef[] = [
       additionalProperties: false,
     },
   },
-  // ── App settings (scope admin:settings) ─────────────────────────────────
   {
     name: 'list_settings',
     description:
@@ -297,7 +286,6 @@ export interface ApiRequest {
   body?: unknown
 }
 
-/** Resolve a tool call to an agent-API request, or an error message. */
 export function resolveToolPath(
   name: string,
   args: Record<string, unknown> | undefined,
@@ -486,12 +474,8 @@ export interface JsonRpcMessage {
 }
 
 export interface RpcDeps {
-  // Perform an authenticated request against the agent API, returning parsed
-  // JSON. Defaults to GET; the ingest tool issues a POST with a JSON body.
   callApi: (req: ApiRequest) => Promise<unknown>
   protocolVersion?: string
-  // Overrides SERVER_INFO for the initialize reply (index.ts passes the
-  // package.json version). Falls back to SERVER_INFO when omitted (tests).
   serverInfo?: { name: string; version: string }
 }
 
@@ -505,15 +489,10 @@ function toolText(text: string, isError = false) {
   return { content: [{ type: 'text', text }], isError }
 }
 
-/**
- * Handle a single JSON-RPC message. Returns the response object to write, or
- * null for notifications (no id) which take no reply.
- */
 export async function handleRpc(
   msg: JsonRpcMessage,
   deps: RpcDeps,
 ): Promise<object | null> {
-  // Notifications carry no id and expect no response.
   if (msg.id === undefined || msg.id === null) return null
 
   switch (msg.method) {

@@ -74,9 +74,6 @@ function UserSortableHeader({
   )
 }
 
-// At most one user-action confirmation is pending at a time, so the five
-// confirmation targets (delete/ban/unban/grant/revoke) plus the in-flight role
-// change are one mutually-exclusive slice rather than six independent flags.
 type PendingAction =
   | { kind: 'delete' | 'ban' | 'unban' | 'grant' | 'revoke'; user: User }
   | { kind: 'role'; user: User; newRole: string }
@@ -140,7 +137,6 @@ export function UserList() {
     onSettled: closePendingAction,
   })
 
-  // Debounced search
   const debouncedSearch = useMemo(
     () =>
       debounce((value: string) => {
@@ -150,18 +146,15 @@ export function UserList() {
     [setUsersSearch, fetchUsers]
   )
 
-  // Fetch users on mount
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
 
-  // Handle search input change
   const handleSearchChange = (value: string) => {
     setSearchInput(value)
     debouncedSearch(value)
   }
 
-  // Handle sort change
   const handleSort = useCallback(
     (field: string) => {
       const newOrder =
@@ -173,13 +166,10 @@ export function UserList() {
 
   const totalPages = Math.ceil(usersPagination.total / usersPagination.limit)
 
-  // Map a row's action button to the matching confirmation dialog.
   const handleRowAction = (kind: UserActionKind, user: User) => {
     dispatchAction({ type: 'open', kind, user })
   }
 
-  // The role <Select> fires immediately (no confirmation step); record the
-  // pending change for in-flight UI, then run the mutation.
   const handleRoleSelect = (user: User, newRole: string) => {
     dispatchAction({ type: 'roleChange', user, newRole })
     void handleRoleChange(user, newRole)
@@ -199,7 +189,6 @@ export function UserList() {
       </CardHeader>
 
       <CardContent>
-        {/* Search */}
         <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -214,7 +203,6 @@ export function UserList() {
           </div>
         </div>
 
-        {/* Error state */}
         {usersError && (
           <div role="alert" className="mb-4 flex flex-col gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
             <span className="flex items-start gap-2">
@@ -241,7 +229,6 @@ export function UserList() {
             )}
           </div>
         ) : (
-          /* Table (md+) / Cards (mobile) */
           <>
             <div className="relative" aria-busy={usersLoading}>
               {usersLoading && (
@@ -250,7 +237,6 @@ export function UserList() {
                 </div>
               )}
 
-              {/* Mobile cards */}
               <div className="md:hidden space-y-3">
                 <AnimatePresence mode="popLayout">
                   {users.map((user, index) => (
@@ -267,7 +253,6 @@ export function UserList() {
                 </AnimatePresence>
               </div>
 
-              {/* Table (md+) */}
               <div className="hidden md:block rounded-lg border border-border overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -302,7 +287,6 @@ export function UserList() {
               </div>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-4">
                 <Pagination
@@ -316,7 +300,6 @@ export function UserList() {
         )}
       </CardContent>
 
-      {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
         isOpen={!!deletingUser}
         onClose={() => dispatchAction({ type: 'close' })}

@@ -15,20 +15,13 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/lib/i18n'
 type SeoProps = {
   title: string
   description: string
-  /**
-   * Path suffix without the language prefix (e.g. `/leaderboard`). Defaults to
-   * the current location's suffix so canonical and hreflang stay in sync.
-   */
   pathSuffix?: string
   image?: string
-  /** Discourage indexing (used for auth flows, admin, history detail, results). */
   noindex?: boolean
-  /** Structured data (Schema.org). Rendered as a JSON-LD `<script>`. */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   ogType?: 'website' | 'article' | 'profile'
 }
 
-// Marker attribute so we only remove tags this component owns on cleanup.
 const MARKER = 'data-seo'
 
 function upsertMeta(selector: string, attrs: Record<string, string>): HTMLElement {
@@ -71,7 +64,6 @@ export function Seo({
 
     upsertMeta('meta[name="description"]', { name: 'description', content: description })
 
-    // Canonical
     let canonicalEl = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
     if (!canonicalEl) {
       canonicalEl = document.createElement('link')
@@ -80,7 +72,6 @@ export function Seo({
     }
     canonicalEl.setAttribute('href', canonical)
 
-    // hreflang alternates (always managed by this component).
     clearManaged('hreflang')
     for (const alt of buildHreflangAlternates(suffix)) {
       const link = document.createElement('link')
@@ -91,7 +82,6 @@ export function Seo({
       document.head.appendChild(link)
     }
 
-    // Open Graph + Twitter
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: ogType })
     upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: SITE_NAME })
     upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title })
@@ -114,7 +104,6 @@ export function Seo({
       content: image.startsWith('http') ? image : `${SITE_URL}${image}`,
     })
 
-    // robots
     if (noindex) {
       upsertMeta('meta[name="robots"]', { name: 'robots', content: 'noindex, nofollow' })
     } else {
@@ -122,7 +111,6 @@ export function Seo({
       if (existing) existing.remove()
     }
 
-    // JSON-LD
     clearManaged('jsonld')
     if (jsonLd) {
       const items = Array.isArray(jsonLd) ? jsonLd : [jsonLd]
@@ -136,8 +124,6 @@ export function Seo({
     }
 
     return () => {
-      // Only the per-page extras get cleaned; canonical/og stay set so the next
-      // page can overwrite them without a missing-tag flash.
       clearManaged('hreflang')
       clearManaged('jsonld')
     }

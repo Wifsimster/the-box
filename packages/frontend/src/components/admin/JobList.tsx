@@ -8,13 +8,10 @@ import { useAdminStore } from '@/stores/adminStore'
 import { RefreshCw } from 'lucide-react'
 import { JobRow } from './JobRow'
 
-// Jobs that wipe player data ask for confirmation before running.
 const CONFIRM_BEFORE_RUN: Record<string, string> = {
   'clear-daily-data': 'admin.jobs.descriptions.clearDailyData',
 }
 
-// Manual jobs that are not scheduled but can be triggered. Static, so it lives
-// at module scope for a single stable allocation rather than rebuilding each render.
 const MANUAL_JOBS = [
   {
     id: 'manual-refresh-game-aliases',
@@ -55,7 +52,6 @@ export function JobList() {
   const [showCancelSyncDialog, setShowCancelSyncDialog] = useState(false)
   const [pendingConfirmJob, setPendingConfirmJob] = useState<string | null>(null)
 
-  // Combine recurring jobs with manual jobs
   const allJobs = [
     ...recurringJobs.map(job => ({ ...job, isManual: false })),
     ...MANUAL_JOBS,
@@ -90,7 +86,6 @@ export function JobList() {
         await triggerRefreshGameAliasesJob()
       }
     } catch (err) {
-      // Handle conflict error for sync-all jobs
       if (jobName === 'sync-all-games' && err instanceof Error && err.message.includes('already in progress or paused')) {
         setShowCancelSyncDialog(true)
       }
@@ -112,7 +107,6 @@ export function JobList() {
     setRecurringJobLoading('sync-all-games')
     try {
       await cancelActiveSyncAll()
-      // Now try to start again
       await triggerSyncAllJob()
     } catch (err) {
       console.error('Failed to cancel and restart sync-all:', err)
@@ -150,7 +144,6 @@ export function JobList() {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      {/* Jobs List */}
       {allJobs.length > 0 && (
         <m.div
           initial={{ opacity: 0, y: 20 }}

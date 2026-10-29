@@ -4,9 +4,6 @@ import type { GeoGamersJokerRepository } from '../../domain/services/geogamers.s
 
 const log = repoLogger.child({ repository: 'geogamers-joker' })
 
-// Once-per-season joker ledger. The (user_id, season_month) primary key is the
-// real enforcement; `record` lets a unique violation propagate so the service
-// can map a race to JOKER_ALREADY_USED.
 export const geoGamersJokerRepository: GeoGamersJokerRepository = {
   async hasUsed(userId: string, seasonMonth: string): Promise<boolean> {
     const row = await db('geogamers_joker')

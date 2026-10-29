@@ -81,13 +81,6 @@ export const geoScreenshotRepository = {
     return row ? mapCandidate(row) : null
   },
 
-  /**
-   * Whether a candidate already exists for a (source, external_id) pair.
-   *
-   * `createCandidate` is already protected by that unique constraint, so this
-   * is not the correctness guard — it exists so a bulk import can report an
-   * honest inserted/skipped split rather than claiming every row was new.
-   */
   async candidateExists(source: string, externalId: string): Promise<boolean> {
     const row = await db('geo_screenshot_candidate')
       .where({ source, external_id: externalId })
@@ -122,15 +115,10 @@ export const geoScreenshotRepository = {
       .returning<GeoScreenshotCandidateRow[]>('*')
     if (row) return mapCandidate(row)
 
-    // Conflict path: the unique (source, external_id) row already exists.
-    // Re-fetch instead of dereferencing `row!` (which would crash here).
     const existing = await db('geo_screenshot_candidate')
       .where({ source: data.source, external_id: data.externalId ?? null })
       .first<GeoScreenshotCandidateRow>()
     if (!existing) {
-      // The row was inserted-then-deleted between INSERT and SELECT, or
-      // the unique constraint shape changed. Treat as a real failure
-      // rather than silently returning empty data.
       throw new Error('createCandidate: insert ignored but no existing row')
     }
     return mapCandidate(existing)
@@ -161,13 +149,6 @@ export const geoScreenshotRepository = {
     await db('geo_screenshot_candidate').where({ id: candidateId }).update({ status })
   },
 
-  /**
-   * Soft-delete a candidate that isn't suitable for the geo game (e.g. a UI
-   * screenshot that has no in-world location). Marks it `rejected` and
-   * deactivates it so contributors stop seeing it and the daily picker skips
-   * it. Existing pins are kept for audit. Refuses to act if the candidate is
-   * already promoted — the admin must demote the meta first.
-   */
   async rejectCandidate(
     candidateId: number,
   ): Promise<{ rejected: boolean; alreadyPromoted: boolean }> {
@@ -228,26 +209,6 @@ export const geoScreenshotRepository = {
     })
   },
 
-  /**
-   * Re-point a game's still-open capture candidates onto a new map. When the
-   * capture-default map changes (a map swap via select, or an enable that
-   * becomes the new default) the game's existing candidates keep their OLD
-   * `geo_map_id`; `createCandidate` dedups on `(source, external_id)` so a
-   * re-import can't repair them, and `promoteCandidateToMeta` copies
-   * `candidate.geoMapId` — so promoting a stranded capture builds a broken
-   * challenge (its meta references a disabled map, and its pin coordinates live
-   * in a different map's pixel space). This moves every active, un-promoted
-   * candidate onto `newMapId`.
-   *
-   * Left untouched by design:
-   * - PROMOTED candidates (`status = 'promoted'`) — their meta already froze
-   *   ground truth against the old map, and moving them would shift canonical
-   *   coordinates under players.
-   * - REJECTED candidates (`is_active = false`) — no longer in play.
-   * - candidates already on `newMapId` — nothing to move.
-   *
-   * Returns the number of candidates re-pointed.
-   */
   async repointPendingCandidates(gameId: number, newMapId: number): Promise<number> {
     log.info({ gameId, newMapId }, 'repointPendingCandidates')
     const updated = await db('geo_screenshot_candidate')
@@ -258,16 +219,6 @@ export const geoScreenshotRepository = {
     return updated
   },
 
-  /**
-   * Whole-pool catalog for the agent content-creation surface (issue #331,
-   * phase 5) — every geo-curated game with capture/map/canonical-pin counts
-   * and two derived flags: `eligible` mirrors the GeoGamers eligibility gate
-   * (an active map + at least one canonical pin); `starved` flags a game
-   * whose active capture count hasn't reached the ingest pipeline's per-game
-   * target, i.e. where `geo_import_captures` would help. Restricted to
-   * `geo_curated = true` — an agent shouldn't see the entire games table,
-   * only the geo-mode pool it can act on.
-   */
   async listGeoCatalog(limit = 200): Promise<GeoCatalogGame[]> {
     const rows = await db('games as g')
       .where('g.geo_curated', true)
@@ -352,12 +303,6 @@ export const geoScreenshotRepository = {
     return row ? mapMeta(row) : null
   },
 
-  // Catalog of games that the free-play browser can offer: any game whose
-  // catalogue contains at least one promoted (consensus-confirmed) screenshot
-  // on an active candidate. Returned with the count of enabled maps and the
-  // count of playable screenshots so the picker can render badges without an
-  // N+1. Ordered by recent activity (most promoted-screenshots first) so the
-  // list feels alive.
   async listPlayableGames(): Promise<
     Array<{
       id: number
@@ -402,14 +347,6 @@ export const geoScreenshotRepository = {
     }))
   },
 
-  /**
-   * Per-game summary for the moderation overview. One row per game that has
-   * any candidate (active or not — we still want rejected/promoted counts so
-   * the moderator can audit). Counts are computed via conditional aggregates
-   * on a single GROUP BY so the totals are honest even when the per-candidate
-   * listing is paginated. `oldestPendingAt` drives the default sort: games
-   * with the longest-waiting captures float to the top.
-   */
   async summarizeCandidatesByGame(args: {
     statusFilter?: GeoScreenshotCandidateRow['status']
     limit?: number
@@ -419,10 +356,6 @@ export const geoScreenshotRepository = {
       .leftJoin('games as g', 'g.id', 'gsc.game_id')
       .groupBy('gsc.game_id', 'g.name')
       .orderByRaw(
-        // Games with the oldest pending capture come first. NULLS LAST so
-        // games without any pending captures fall to the bottom regardless
-        // of their other counts. Tie-break on pending count desc, then game id
-        // for a stable ordering.
         `MIN(CASE WHEN gsc.status = 'pending' THEN gsc.created_at END) ASC NULLS LAST,
          COUNT(*) FILTER (WHERE gsc.status = 'pending') DESC,
          gsc.game_id ASC`,
@@ -454,10 +387,6 @@ export const geoScreenshotRepository = {
         db.raw(
           `COUNT(*) FILTER (WHERE gsc.status = 'rejected') as rejected_count`,
         ),
-        // Refused captures are soft-deleted (is_active=false) and hidden
-        // from the moderation listing, so the "all" filter count must
-        // exclude them — otherwise a game with only rejected captures
-        // would still show a non-zero badge with nothing to act on.
         db.raw(
           'COUNT(*) FILTER (WHERE gsc.is_active = true) as total_count',
         ),
@@ -479,10 +408,6 @@ export const geoScreenshotRepository = {
         : null,
     }))
 
-    // Status filter is applied AFTER aggregation so a "pending" view only
-    // surfaces games that actually have pending captures while still
-    // exposing the full counts the row needs to render context (e.g.
-    // showing how many promoted captures the same game has).
     if (statusFilter === 'collecting') {
       return summaries.filter((s) => s.collectingCount > 0)
     }
@@ -498,19 +423,6 @@ export const geoScreenshotRepository = {
     return summaries
   },
 
-  /**
-   * The "one pin away" diagnostic. Games that have an active map and captures
-   * still collecting pins (pending/collecting, active) but NO canonical pin yet
-   * — i.e. promoting one of their candidates would grow the GeoGamers-eligible
-   * pool by one (assuming the game has never been a challenge). Games that
-   * already have a promoted meta are excluded: their content exists, so they
-   * don't need pinning effort.
-   *
-   * Per game we surface the candidate count and the single best candidate (most
-   * pins, ties broken by id), so the admin card can deep-link straight to the
-   * capture closest to promotion. Ordered by top pin count desc so the games
-   * nearest the next consensus recompute float to the top.
-   */
   async listGamesNeedingContent(limit = 25): Promise<
     Array<{
       gameId: number
@@ -578,15 +490,6 @@ export const geoScreenshotRepository = {
     }))
   },
 
-  /**
-   * Candidates for the backfill discovery worker (issue #331, phase 6):
-   * curated + metadata-resolved games (so the ingest pipeline can act on them)
-   * that are NOT yet eligible — i.e. have no promoted meta on any active
-   * candidate. Returns the raw signals the ranking needs (active map? captures
-   * collecting pins? top pin count?); the pure `rankBackfillTargets` decides
-   * ordering. Coarsely pre-sorted + capped so a huge catalog doesn't fetch the
-   * whole table.
-   */
   async listBackfillCandidates(limit = 500): Promise<
     Array<{
       gameId: number
@@ -648,18 +551,10 @@ export const geoScreenshotRepository = {
     limit?: number
   }): Promise<GeoScreenshotCandidate[]> {
     const { status, gameId, limit = 50 } = args
-    // Join games so the Pins list can show game names without N+1 lookups.
-    // The status/gameId filters narrow the set before the join, keeping the
-    // query cheap even at full catalog scale.
     const q = db('geo_screenshot_candidate as gsc')
       .leftJoin('games as g', 'g.id', 'gsc.game_id')
       .orderBy('gsc.pin_count', 'desc')
       .limit(limit)
-    // Refused captures soft-delete to is_active=false (see rejectCandidate).
-    // Hide them from the moderation listing so the queue, the per-game drill-
-    // down, and the prev/next picker stop re-surfacing a capture the
-    // moderator just refused. An explicit `status='rejected'` request still
-    // returns those rows so audit flows can opt in.
     if (status === 'rejected') {
       q.where('gsc.status', 'rejected')
     } else {
@@ -677,12 +572,6 @@ export const geoScreenshotRepository = {
     }))
   },
 
-  /**
-   * Demote a canonical meta back to an unlabeled candidate. Fails at the DB
-   * layer (FK RESTRICT on geo_challenge) if any challenge references it —
-   * the caller should surface a 409 so admins explicitly unlink challenges
-   * before retrying rather than silently breaking an active day.
-   */
   async deleteMeta(metaId: number): Promise<{ deleted: boolean; candidateId?: number }> {
     log.info({ metaId }, 'deleteMeta')
     return await db.transaction(async (trx: Knex.Transaction) => {

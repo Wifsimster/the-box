@@ -16,18 +16,10 @@ import { HomeSocialProof } from '@/components/home/HomeSocialProof'
 import { useBillingStore } from '@/stores/billingStore'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
-// CubeBackground pulls in Three.js + react-three-fiber, so split it into
-// its own chunk and skip rendering entirely when the visitor prefers
-// reduced motion or is on a low-power device (the chunk also never gets
-// fetched in that case).
 const CubeBackground = lazy(() =>
   import('@/components/backgrounds/CubeBackground').then((mod) => ({ default: mod.CubeBackground })),
 )
 
-/**
- * Phones that ask for less data or report little memory / few cores get the
- * plain themed backdrop instead of a WebGL canvas.
- */
 function prefersLiteBackground(): boolean {
   if (typeof navigator === 'undefined') return true
   const nav = navigator as Navigator & {
@@ -40,10 +32,6 @@ function prefersLiteBackground(): boolean {
   return false
 }
 
-/**
- * Mounts the Three.js background only once the browser is idle, so the WebGL
- * chunk never competes with the hero and the Play button for first paint.
- */
 function useIdleReady(enabled: boolean): boolean {
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -142,8 +130,6 @@ export default function HomePage() {
   const billingEntitlement = useBillingStore((state) => state.entitlement)
   const billingPrices = useBillingStore((state) => state.prices)
   const fetchBillingPrices = useBillingStore((state) => state.fetchPrices)
-  // Header hydrates the entitlement on mount; treat unknown as "not premium"
-  // so the teaser shows for anonymous visitors and free users alike.
   const showPremiumTeaser = !billingEntitlement?.isPremium
 
   useEffect(() => {
@@ -151,8 +137,6 @@ export default function HomePage() {
     void fetchBillingPrices()
   }, [showPremiumTeaser, fetchBillingPrices])
 
-  // Cheapest entry price for the teaser hook. Hidden until prices arrive so
-  // we never flash a "From €0.00" placeholder.
   const monthlyPriceLabel = useMemo(() => {
     const monthly = billingPrices.find((p) => p.tier === 'premium_monthly' && p.active)
     if (!monthly) return null
@@ -168,16 +152,10 @@ export default function HomePage() {
   const [liteBackground] = useState(prefersLiteBackground)
   const showCubeBackground = useIdleReady(!reducedMotion && !liteBackground)
 
-  // Helper: drop `initial`/`animate`/`transition` when reduced motion is
-  // preferred so motion components render statically without changing layout.
   const motionProps = (props: MotionProps): MotionProps => (reducedMotion ? {} : props)
 
-  // Pick a stable random fraction once on mount so the chosen message stays
-  // fixed across countdown re-renders (and so selection stays pure during
-  // render — Math.random() may not be called while rendering).
   const [messageSeed] = useState(Math.random)
 
-  // Memoize humorous message to prevent re-selection on countdown re-renders
   const humorousMessage = useMemo(() => {
     if (!isTodayCompleted) return ''
 
@@ -199,8 +177,6 @@ export default function HomePage() {
     return messages[Math.floor(messageSeed * messages.length)]
   }, [isTodayCompleted, todayScore, screenshotsFound, messageSeed, t])
 
-  // Probe the public preview endpoint so we only render the teaser card
-  // when a challenge actually exists for today.
   useEffect(() => {
     if (session?.user?.id) return
     let cancelled = false
@@ -210,7 +186,6 @@ export default function HomePage() {
     return () => { cancelled = true }
   }, [session?.user?.id])
 
-  // Check if user has already completed today's challenge
   useEffect(() => {
     const checkTodayChallenge = async () => {
       if (!session?.user?.id) {
@@ -243,14 +218,10 @@ export default function HomePage() {
           <CubeBackground />
         </Suspense>
       ) : (
-        // Plain themed backdrop — no Canvas, no chunk fetch.
         <div className="fixed inset-0 z-0 bg-background" aria-hidden="true" />
       )}
-      {/* D8: the guided tour is gone; the first-run welcome dialog is only
-          mounted on this page (/about), the former landing. */}
       <WelcomeModal />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12 relative z-10 space-y-8 md:space-y-12">
-        {/* Hero Section */}
         <m.div
           {...motionProps({
             initial: { opacity: 0, y: 20 },
@@ -259,11 +230,6 @@ export default function HomePage() {
           })}
           className="text-center"
         >
-          {/* The mark carries state, not just identity: open while today's box
-              is still unplayed, closed once it's done (docs/brand.md §4). The
-              wordmark is gone from the hero — the header lockup carries the
-              brand on every route now, so the headline is the loudest thing
-              here. */}
           <m.img
             src={isTodayCompleted ? '/logo.svg' : '/logo-open.svg'}
             alt=""
@@ -287,8 +253,6 @@ export default function HomePage() {
           <HomeSocialProof />
         </m.div>
 
-        {/* The one thing to do today: streak warning (when relevant) sits
-            right on top of the Play button it points to. */}
         <div className="space-y-4">
           <StreakRiskBanner />
           <HomeDailyCta
@@ -308,15 +272,8 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Game-modes showcase — explains the secondary modes (Geo,
-            GeoGamers) in one sentence each with a direct link, so the nav
-            badges aren't the only hint that these modes exist. */}
         <HomeModesShowcase />
 
-        {/* Premium teaser — surfaces subscriptions now that paid features
-            are live. Hidden once the visitor already has Premium so we don't
-            nag paying users. Falls back to "show" for anonymous visitors
-            since the entitlement store treats 401 as the free tier. */}
         {showPremiumTeaser && (
           <HomePremiumTeaser
             premiumHref={localizedPath('/premium')}
@@ -325,11 +282,6 @@ export default function HomePage() {
           />
         )}
 
-        {/* Achievement teaser — replaces the static "Panorama / Daily"
-            features grid with aspirational social proof: three locked
-            achievements pulled from the catalog (or the visitor's own
-            unearned set when authenticated). Fail-soft: renders nothing
-            if the API errors. */}
         <HomeAchievementTeaser />
       </div>
     </>

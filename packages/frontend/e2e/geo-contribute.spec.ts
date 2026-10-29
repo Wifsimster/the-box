@@ -2,14 +2,6 @@ import { test, expect } from '@playwright/test'
 import { loginAsUser } from './helpers/game-helpers'
 import { geoCommunityEnabled } from './helpers/features'
 
-/**
- * E2E tests for the /geo/contribute pin mini-game.
- *
- * Skipped gracefully when the community geo surface is switched off
- * (`GEO_COMMUNITY_ENABLED=false`, the default since the identity revamp) or
- * when there are no unlabeled candidates to tag for the default gameId.
- */
-
 async function geoRoutesAvailable(page: import('@playwright/test').Page): Promise<boolean> {
     return geoCommunityEnabled(page.request)
 }
@@ -25,13 +17,9 @@ test.describe('Geo Contribute', () => {
         await page.goto('/en/geo/contribute')
         await page.waitForLoadState('networkidle')
 
-        // Either the pin UI shows up, or the backend replied with an
-        // expected empty/rate-limit state (no content / 429).
         const map = page.getByRole('button', { name: /pin location on the map/i })
         const noCandidate = page.getByText(/no.*screenshots available|no unlabeled/i)
         const rateLimit = page.getByText(/pin limit reached|rate limit/i)
-        // Contributing unlocks only after a few daily games; a seeded test user
-        // with no play history sees this eligibility gate rather than pin UI.
         const locked = page.getByText(/unlocks after|tagging unlocks/i)
 
         const hasPinUi = await map.isVisible().catch(() => false)
@@ -41,10 +29,6 @@ test.describe('Geo Contribute', () => {
             (await locked.isVisible().catch(() => false))
 
         if (!hasPinUi) {
-            // No pinnable candidate in this environment (the seed ships a
-            // promoted/labelled capture, not an unlabelled one). Accept any of
-            // the explicit empty/limited/locked states, or — failing those —
-            // that the contribute surface at least rendered without erroring.
             const pageLoaded = await page
                 .getByRole('heading', { name: /tag a screenshot|étiqueter/i })
                 .isVisible()
@@ -61,7 +45,6 @@ test.describe('Geo Contribute', () => {
         await expect(submit).toBeEnabled({ timeout: 5_000 })
         await submit.click()
 
-        // Backend may auto-advance to another candidate or show the thanks message.
         const thanks = page.getByText(/thanks.*agree|merci.*confirmeront/i)
         const nextMap = page.getByRole('button', { name: /pin location on the map/i })
         await expect(thanks.or(nextMap).first()).toBeVisible({ timeout: 10_000 })

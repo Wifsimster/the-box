@@ -18,7 +18,6 @@ describe('secret-box (AES-256-GCM)', () => {
     const a = encryptSecret('same-input')
     const b = encryptSecret('same-input')
     assert.notEqual(a, b)
-    // …but both still decrypt back to the original.
     assert.equal(decryptSecret(a), 'same-input')
     assert.equal(decryptSecret(b), 'same-input')
   })
@@ -36,7 +35,6 @@ describe('secret-box (AES-256-GCM)', () => {
   it('returns null when the ciphertext is tampered (auth tag fails)', () => {
     const encoded = encryptSecret('tamper-me')
     const [iv, tag] = encoded.split('.')
-    // Swap the ciphertext for a different valid-base64 blob.
     const tampered = [iv, tag, Buffer.from('garbagegarbage').toString('base64')].join('.')
     assert.equal(decryptSecret(tampered), null)
   })

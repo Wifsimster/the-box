@@ -1,13 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SUMMARY: Anti-triche « lire l'historique des autres » — réunion sous-agents (2026-05-20).
-  Verdict: la garde `getPublicGameSessionDetails` (user.service.ts:245-270) est **du code mort**
-  à cause d'un mismatch `Date === string` (DATE pg renvoyé en JS Date, comparé à une string ISO),
-  et même réparée elle serait contournée par un `start` + `end` instantané qui valide
-  `is_completed=true` sans aucun guess. Deux recettes one-shot triviales exposent aujourd'hui
-  les 10 jeux du challenge quotidien à n'importe quel joueur connecté. Branche de revue :
-  `claude/review-game-cheating-prevention-BMjpB` — aucun correctif n'a été poussé.
--->
 <html lang="fr">
 <head>
 <meta charset="utf-8">

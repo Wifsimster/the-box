@@ -41,7 +41,6 @@ function rowTo(row: Row): MapPipelineState {
   }
 }
 
-/** A pipeline row joined to its game, as the admin Geo-Fetch table renders it. */
 export interface GeoPipelineListRow {
   game_id: number
   current_stage: string
@@ -58,7 +57,6 @@ export interface GeoPipelineListRow {
 }
 
 export const geoPipelineStateRepository = {
-  /** How many games sit in each pipeline stage. Powers the panel's sticky header. */
   async countByStage(): Promise<Array<{ current_stage: string; count: string }>> {
     const result = await db.raw<{ rows: Array<{ current_stage: string; count: string }> }>(
       `
@@ -70,14 +68,6 @@ export const geoPipelineStateRepository = {
     return (result as unknown as { rows: Array<{ current_stage: string; count: string }> }).rows
   },
 
-  /**
-   * One page of the pipeline table, joined to game names, plus the total
-   * matching the same filters so the caller can page.
-   *
-   * The page query and the count query necessarily share their WHERE clauses;
-   * they are built from one filter function here so the two can't drift and
-   * report a total that disagrees with the rows.
-   */
   async listPaged(filters: {
     stage?: string | undefined
     search?: string | undefined
@@ -163,11 +153,6 @@ export const geoPipelineStateRepository = {
   }): Promise<MapPipelineState> {
     log.debug({ gameId: input.gameId, stage: input.currentStage }, 'upsert')
 
-    // Distinguish "field not provided" from "explicit null". Without this,
-    // calling upsert({ gameId, currentStage: 'queued' }) would clobber a
-    // previously-set `next_eligible_at` cooldown (and `active_source`) to
-    // NULL. We send a sentinel "keep existing" flag for each clear-only
-    // field so the SQL can branch.
     const clearActiveSource = input.activeSource === null
     const setActiveSource = input.activeSource ?? null
     const clearNextEligibleAt = input.nextEligibleAt === null
@@ -224,9 +209,6 @@ export const geoPipelineStateRepository = {
     return rowTo(row)
   },
 
-  // Recompute zone counts from geo_map. Called after the pipeline writes maps
-  // or after admin curation flips selection. Single-zone games (NULL
-  // zone_slug) are counted as one zone if any map exists.
   async recomputeZoneCounts(gameId: number): Promise<void> {
     log.debug({ gameId }, 'recomputeZoneCounts')
     await db.raw(

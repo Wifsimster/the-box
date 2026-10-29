@@ -5,13 +5,6 @@ import { authMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()
 
-/**
- * GET /api/koe/identity
- *
- * Returns the HMAC-SHA256(userId) hex digest used by the Koe widget for
- * identity verification. Without KOE_IDENTITY_SECRET configured the
- * endpoint returns 204 so the widget falls back to unverified mode.
- */
 router.get('/identity', authMiddleware, (req, res, next) => {
     try {
         if (!env.KOE_IDENTITY_SECRET) {

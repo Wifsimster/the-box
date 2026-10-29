@@ -1,9 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useGeoFetchStore } from '@/stores/geoFetchStore'
 
-// Sticky-ish summary at the top of the panel. Single progress bar based on
-// (ready / total). Per-stage counts shown as tiny chips below.
-
 export function GeoFetchProgressHeader() {
   const { t } = useTranslation()
   const status = useGeoFetchStore((s) => s.status)

@@ -16,27 +16,15 @@ import { useOnline } from '@/hooks/useOnline'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
-/**
- * Trigger device haptics when supported. Pure helper with no component state.
- */
 function vibrate(pattern: number | number[]) {
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
     try {
       navigator.vibrate(pattern)
     } catch {
-      // ignore unsupported
     }
   }
 }
 
-/**
- * Game guess input component with simple text input
- *
- * Users type the game name and submit - fuzzy matching is done on the backend.
- * The masked-title letter-reveal bar is fused to the input's top edge inside
- * one shared neon frame (one bordered unit — see the 2026-06-11 decision
- * record on legacy hint retirement).
- */
 export function GuessInput() {
   const { t } = useTranslation()
   const isOnline = useOnline()
@@ -44,14 +32,7 @@ export function GuessInput() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  // Drives the assertive screen-reader announcement for a wrong guess.
-  // Kept SEPARATE from `isShaking` (the shake animation) so reduced-motion
-  // users — who never get `isShaking` — still hear the miss.
   const [announceIncorrect, setAnnounceIncorrect] = useState(false)
-  // Visible "wrong guess" line. The red border flash lasts 1s and is the
-  // only visual cue under reduced motion (no shake), i.e. colour alone —
-  // docs/oxygen-design-system.md §2.1. Stays until the player edits the
-  // guess or 2.5s pass.
   const [showMiss, setShowMiss] = useState(false)
   const missTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => () => {
@@ -59,13 +40,11 @@ export function GuessInput() {
   }, [])
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Services (dependency injection via factory functions)
   const guessSubmissionService = useMemo(
     () => createGuessSubmissionService(),
     []
   )
 
-  // Custom hook for guess submission logic
   const { submitGuess } = useGameGuess(guessSubmissionService)
 
   const {
@@ -77,9 +56,6 @@ export function GuessInput() {
     positionStates,
   } = useGameStore()
 
-  // Focus input when playing.
-  // `preventScroll: true` stops Android Chrome from scrolling the screenshot out
-  // of view when the input becomes active.
   useEffect(() => {
     if (gamePhase === 'playing' && inputRef.current) {
       inputRef.current.focus({ preventScroll: true })
@@ -90,9 +66,6 @@ export function GuessInput() {
 
   const handleSubmit = async () => {
     if (isSubmitting || !query.trim()) return
-    // The submit button carried `!isOnline`, but Enter called straight through
-    // to here — so offline players fired a request that could only fail, while
-    // the button next to them sat greyed out. Guard the action, not the button.
     if (!isOnline) {
       toast.error(t('game.offlineGuess'))
       return
@@ -102,29 +75,21 @@ export function GuessInput() {
     try {
       const result = await submitGuess(null, query.trim())
 
-      // Show error toast if submission failed. `result.error` is an i18n key
-      // (or a server-provided message); translate it so the unhappy-path toast
-      // respects the user's locale. defaultValue keeps a non-key message as-is.
       if (!result.success && result.error) {
         toast.error(t(result.error, { defaultValue: result.error }))
       }
 
-      // Trigger animations based on result
       if (result.success) {
         if (result.isCorrect) {
           setIsSuccess(true)
           setTimeout(() => setIsSuccess(false), 800)
           vibrate(15)
         } else {
-          // Announce the miss to assistive tech regardless of motion
-          // preference (the shake below is the visual-only channel).
           setAnnounceIncorrect(true)
           setTimeout(() => setAnnounceIncorrect(false), 1000)
           setShowMiss(true)
           if (missTimer.current) clearTimeout(missTimer.current)
           missTimer.current = setTimeout(() => setShowMiss(false), 2500)
-          // Skip the shake for users who prefer reduced motion; the colour
-          // change on the border still signals the error.
           if (!prefersReducedMotion) {
             setIsShaking(true)
             setTimeout(() => setIsShaking(false), 500)
@@ -133,23 +98,15 @@ export function GuessInput() {
         }
       }
 
-      // Clear input logic:
-      // - Always clear on correct guess (user advances to next screenshot)
-      // - In daily challenge mode: Keep value on wrong guess (user can fix and retry)
-      // - In other modes: Always clear (preserve current behavior)
       if (result.success) {
-        // Get current challenge ID to check if we're in daily challenge mode
         const currentChallengeId = useGameStore.getState().challengeId
         const isDailyChallengeMode = currentChallengeId !== null
 
         if (result.isCorrect) {
-          // Correct guess - always clear
           setQuery('')
         } else if (!isDailyChallengeMode) {
-          // Wrong guess in non-daily challenge mode - clear (preserve current behavior)
           setQuery('')
         }
-        // Wrong guess in daily challenge mode - keep value (don't clear)
       }
     } finally {
       setIsSubmitting(false)
@@ -159,12 +116,10 @@ export function GuessInput() {
   const handleSkip = () => {
     if (isSubmitting) return
 
-    // Skip to next position without using a try (preserves tries for later)
     skipToNextPosition()
     setQuery('')
   }
 
-  // Find previous navigable position (include all positions: skipped, not_visited, correct)
   const findPreviousPosition = () => {
     for (let i = currentPosition - 1; i >= 1; i--) {
       const state = positionStates[i]
@@ -185,19 +140,13 @@ export function GuessInput() {
     }
   }
 
-  // Can show previous button if position > 1 and there's a skipped position before
   const previousPosition = findPreviousPosition()
   const canGoPrevious = currentPosition > 1 && previousPosition !== null
 
-  // Hide skip button on last screenshot
   const isLastPosition = currentPosition === totalScreenshots
 
-  // Smart-guess "warmer" hint for the active screenshot, set by the backend
-  // after a related wrong guess (same franchise / studio / publisher).
   const proximityHint = positionStates[currentPosition]?.proximityHint
 
-  // Tapping a dock button would otherwise blur the input and drop the mobile
-  // keyboard between guesses; keyboard activation still fires `click`.
   const keepKeyboardOpen = (e: React.PointerEvent) => {
     e.preventDefault()
   }
@@ -211,7 +160,6 @@ export function GuessInput() {
 
   return (
     <div className="relative">
-      {/* Screen reader announcements */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {isSuccess && t('game.guessCorrect', { defaultValue: 'Correct guess!' })}
       </div>
@@ -219,10 +167,7 @@ export function GuessInput() {
         {announceIncorrect && t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}
       </div>
 
-      {/* Input with submit button. `items-end` keeps the nav buttons level
-          with the input row when the letter bar makes the shell taller. */}
       <div className="flex items-end gap-1.5 sm:gap-2">
-        {/* Previous button - shown when there are skipped positions before current */}
         {canGoPrevious && (
           <Tooltip content={t('game.navigation.previous')}>
             <Button
@@ -244,9 +189,6 @@ export function GuessInput() {
           animate={isShaking ? { x: [-10, 10, -10, 10, 0] } : {}}
           transition={{ duration: 0.4 }}
         >
-          {/* One bordered shell shared by the letter-reveal bar and the
-              input — the neon frame lives here (focus-within mirrors the
-              old input focus styles). */}
           <div
             className={cn(
               'rounded-xl overflow-hidden border-2 border-primary/30 shadow-[var(--glow-md)] bg-linear-to-r from-background/40 to-card/30 backdrop-blur-md md:backdrop-blur-xl focus-within:border-primary focus-within:shadow-[var(--glow-lg)] transition-all duration-300',
@@ -278,7 +220,6 @@ export function GuessInput() {
                 disabled={gamePhase !== 'playing'}
               />
 
-              {/* Submit button inside input */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -294,9 +235,6 @@ export function GuessInput() {
                 )}
               >
                 {isSubmitting ? (
-                  // `solving` reads as "checking your guess". Decorative here —
-                  // the Button already carries the `game.submit` aria-label, so
-                  // the orb is hidden from assistive tech to avoid a double read.
                   <ThinkingOrb
                     state="solving"
                     size={20}
@@ -311,7 +249,6 @@ export function GuessInput() {
           </div>
         </m.div>
 
-        {/* Skip/Next button - hidden on last screenshot */}
         {!isLastPosition && (
           <Tooltip content={t('game.navigation.skip')}>
             <Button
@@ -329,7 +266,6 @@ export function GuessInput() {
         )}
       </div>
 
-      {/* A dead submit button with no explanation reads as a broken app. */}
       {gamePhase === 'playing' && !isOnline && (
         <p role="status" className="mt-2 text-center text-xs text-warning">
           {t('game.offlineGuess')}
@@ -337,7 +273,6 @@ export function GuessInput() {
       )}
 
       {gamePhase === 'playing' && showMiss && !proximityHint && (
-        // aria-hidden: the assertive live region above already announces it.
         <p aria-hidden="true" className="mt-2 flex items-center justify-center gap-1.5 text-xs text-error">
           <XCircle className="size-3.5 shrink-0" />
           {t('game.guessIncorrect', { defaultValue: 'Incorrect guess. Try again.' })}

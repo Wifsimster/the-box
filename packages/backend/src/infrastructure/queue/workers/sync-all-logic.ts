@@ -1,13 +1,3 @@
-/**
- * Sync All Games Logic
- *
- * This module handles syncing ALL games from RAWG API with:
- * - Finding missing games that meet the metacritic threshold
- * - Updating existing games with fresh metadata
- * - Batch processing with pause/resume capability
- * - Weekly recurring execution
- */
-
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -27,7 +17,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..', '..', '..', '..')
 const UPLOADS_DIR = path.resolve(ROOT_DIR, '..', '..', 'uploads', 'screenshots')
 
-// Progress callback type
 export type SyncAllProgressCallback = (
   current: number,
   total: number,
@@ -35,7 +24,6 @@ export type SyncAllProgressCallback = (
   state: ImportState
 ) => void
 
-// RAWG API Types
 interface RAWGGenre {
   id: number
   name: string
@@ -91,7 +79,6 @@ interface RAWGPaginatedResponse<T> {
   results: T[]
 }
 
-// Sync result type
 export interface SyncAllResult {
   gamesProcessed: number
   gamesImported: number
@@ -107,7 +94,6 @@ export interface SyncAllResult {
   totalGamesAvailable: number | null
 }
 
-// Timing utilities
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   const seconds = Math.floor(ms / 1000)
@@ -132,7 +118,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// Rate Limiter
 class RateLimiter {
   private requests: number[] = []
   private readonly windowMs = 60000
@@ -167,7 +152,6 @@ class RateLimiter {
   }
 }
 
-// RAWG API Client
 class RAWGSyncClient {
   private baseUrl = 'https://api.rawg.io/api'
   private apiKey: string
@@ -252,9 +236,6 @@ async function downloadImage(url: string, outputPath: string, retries: number = 
   return false
 }
 
-/**
- * Configuration for sync-all-games job
- */
 export interface SyncAllConfig {
   batchSize?: number
   minMetacritic?: number
@@ -262,22 +243,17 @@ export interface SyncAllConfig {
   updateExistingMetadata?: boolean
 }
 
-/**
- * Start a new sync-all job
- */
 export async function startSyncAll(config: SyncAllConfig): Promise<{ syncState: ImportState; job: BullJob<JobData> }> {
   const apiKey = env.RAWG_API_KEY
   if (!apiKey) {
     throw new Error('RAWG_API_KEY environment variable is required')
   }
 
-  // Check for existing active sync
   const activeSync = await importStateRepository.findActiveByType('sync-all')
   if (activeSync) {
     throw new Error('A sync-all job is already in progress or paused')
   }
 
-  // Create sync state
   const syncState = await importStateRepository.create({
     importType: 'sync-all',
     batchSize: config.batchSize ?? 100,
@@ -285,12 +261,10 @@ export async function startSyncAll(config: SyncAllConfig): Promise<{ syncState: 
     screenshotsPerGame: config.screenshotsPerGame ?? 5,
   })
 
-  // Fetch total count from RAWG
   const client = new RAWGSyncClient(apiKey)
   const totalGamesAvailable = await client.fetchTotalCount(syncState.minMetacritic)
   const totalBatches = Math.ceil(totalGamesAvailable / syncState.batchSize)
 
-  // Update sync state with totals
   await importStateRepository.update(syncState.id, {
     totalGamesAvailable,
     totalBatchesEstimated: totalBatches,
@@ -314,7 +288,6 @@ export async function startSyncAll(config: SyncAllConfig): Promise<{ syncState: 
   }, `Config: ${syncState.batchSize} games/batch, Metacritic >= ${syncState.minMetacritic}`)
   log.info(`Target: ${totalGamesAvailable.toLocaleString()} games across ${totalBatches} batches`)
 
-  // Create the first batch job with lowest priority (runs after all other tasks)
   const job = await importQueue.add('sync-all-games', {
     syncStateId: syncState.id,
     batchSize: syncState.batchSize,
@@ -322,15 +295,12 @@ export async function startSyncAll(config: SyncAllConfig): Promise<{ syncState: 
     minMetacritic: syncState.minMetacritic,
     updateExistingMetadata: config.updateExistingMetadata ?? true,
   }, {
-    priority: 1000, // Lowest priority - yields to all other tasks
+    priority: 1000,
   })
 
   return { syncState: updatedState!, job }
 }
 
-/**
- * Process a single batch for sync-all
- */
 export async function processSyncAllBatch(
   syncStateId: number,
   updateExistingMetadata: boolean = true,
@@ -346,7 +316,6 @@ export async function processSyncAllBatch(
     throw new Error(`Sync state ${syncStateId} not found`)
   }
 
-  // Check if paused before starting
   if (state.status === 'paused') {
     log.info('──────────────────────────────────────────────────────────────────────────')
     log.info(`SYNC PAUSED - Skipping batch processing`)
@@ -384,7 +353,6 @@ export async function processSyncAllBatch(
   await fs.mkdir(UPLOADS_DIR, { recursive: true })
 
   while (gamesInBatch < state.batchSize && hasMorePages) {
-    // Check for pause signal
     const currentState = await importStateRepository.findById(syncStateId)
     if (currentState?.status === 'paused') {
       log.info('PAUSE SIGNAL RECEIVED - Saving progress and stopping batch')
@@ -407,7 +375,6 @@ export async function processSyncAllBatch(
     for (const rawGame of response.results) {
       if (gamesInBatch >= state.batchSize) break
 
-      // Check for pause signal during game processing
       const midState = await importStateRepository.findById(syncStateId)
       if (midState?.status === 'paused') {
         log.info('PAUSE SIGNAL RECEIVED during game processing')
@@ -420,11 +387,9 @@ export async function processSyncAllBatch(
       const gameIndex = state.gamesProcessed + gamesInBatch
 
       try {
-        // Check if game already exists
         const existingGame = await gameRepository.findBySlug(rawGame.slug)
 
         if (existingGame) {
-          // UPDATE existing game metadata
           if (updateExistingMetadata) {
             const details = await client.fetchGameDetails(rawGame.id)
             await gameRepository.updateFromRawg(existingGame.id, {
@@ -456,7 +421,6 @@ export async function processSyncAllBatch(
           continue
         }
 
-        // NEW GAME - Fetch screenshots first
         const screenshotResponse = await client.fetchGameScreenshots(rawGame.id)
         if (screenshotResponse.results.length === 0) {
           gamesSkipped++
@@ -464,10 +428,8 @@ export async function processSyncAllBatch(
           continue
         }
 
-        // Fetch detailed game info
         const details = await client.fetchGameDetails(rawGame.id)
 
-        // Insert game to database
         const game = await gameRepository.create({
           name: rawGame.name,
           slug: rawGame.slug,
@@ -483,7 +445,6 @@ export async function processSyncAllBatch(
           lastSyncedAt: new Date().toISOString(),
         })
 
-        // Process screenshots
         const screenshotsToAdd = screenshotResponse.results.slice(0, state.screenshotsPerGame)
         for (let i = 0; i < screenshotsToAdd.length; i++) {
           const rawScreenshot = screenshotsToAdd[i]!
@@ -524,7 +485,6 @@ export async function processSyncAllBatch(
         log.error(`  [${gameIndex}/${totalGames}] FAIL "${rawGame.slug}": ${String(error)}`)
       }
 
-      // Update progress every 10 games
       if (gamesInBatch % 10 === 0) {
         await saveProgress(syncStateId, state, page, gamesInBatch, gamesImported, gamesUpdated, gamesSkipped, screenshotsDownloaded, failedCount)
         const elapsed = formatDuration(Date.now() - batchStartTime)
@@ -543,7 +503,6 @@ export async function processSyncAllBatch(
 
   const batchDuration = Date.now() - batchStartTime
 
-  // Update final progress for this batch
   const newCurrentBatch = state.currentBatch + 1
   await importStateRepository.updateProgress(syncStateId, {
     currentPage: page,
@@ -555,12 +514,10 @@ export async function processSyncAllBatch(
     currentBatch: newCurrentBatch,
   })
 
-  // Check if sync is complete
   const updatedState = await importStateRepository.findById(syncStateId)
   const totalProcessed = updatedState!.gamesProcessed
   const isComplete = !hasMorePages || totalProcessed >= (updatedState!.totalGamesAvailable || 0)
 
-  // Log batch summary
   log.info('──────────────────────────────────────────────────────────────────────────')
   log.info(`SYNC BATCH ${newCurrentBatch} COMPLETED in ${formatDuration(batchDuration)}`)
   log.info('──────────────────────────────────────────────────────────────────────────')
@@ -596,9 +553,6 @@ export async function processSyncAllBatch(
   return createResult(finalState!, gamesUpdated, false, isComplete)
 }
 
-/**
- * Schedule the next batch job
- */
 export async function scheduleSyncAllNextBatch(syncStateId: number): Promise<BullJob<JobData> | null> {
   const state = await importStateRepository.findById(syncStateId)
   if (!state) {
@@ -620,15 +574,12 @@ export async function scheduleSyncAllNextBatch(syncStateId: number): Promise<Bul
     minMetacritic: state.minMetacritic,
     updateExistingMetadata: true,
   }, {
-    priority: 1000, // Lowest priority - yields to all other tasks
+    priority: 1000,
   })
 
   return job
 }
 
-/**
- * Pause an ongoing sync
- */
 export async function pauseSyncAll(syncStateId: number): Promise<ImportState> {
   const state = await importStateRepository.findById(syncStateId)
   if (!state) {
@@ -652,9 +603,6 @@ export async function pauseSyncAll(syncStateId: number): Promise<ImportState> {
   return updated!
 }
 
-/**
- * Resume a paused sync
- */
 export async function resumeSyncAll(syncStateId: number): Promise<{ syncState: ImportState; job: BullJob<JobData> }> {
   const state = await importStateRepository.findById(syncStateId)
   if (!state) {
@@ -684,15 +632,12 @@ export async function resumeSyncAll(syncStateId: number): Promise<{ syncState: I
     updateExistingMetadata: true,
     isResume: true,
   }, {
-    priority: 1000, // Lowest priority - yields to all other tasks
+    priority: 1000,
   })
 
   return { syncState: updated!, job }
 }
 
-/**
- * Cancel/abort a sync (marks as failed so a new one can be started)
- */
 export async function cancelSyncAll(syncStateId: number): Promise<ImportState> {
   const state = await importStateRepository.findById(syncStateId)
   if (!state) {
@@ -718,21 +663,14 @@ export async function cancelSyncAll(syncStateId: number): Promise<ImportState> {
   return updated!
 }
 
-/**
- * Get current active sync
- */
 export async function getActiveSyncAll(): Promise<ImportState | null> {
   return importStateRepository.findActiveByType('sync-all')
 }
 
-/**
- * Get sync state by ID
- */
 export async function getSyncAllState(id: number): Promise<ImportState | null> {
   return importStateRepository.findById(id)
 }
 
-// Helper functions
 async function saveProgress(
   syncStateId: number,
   state: ImportState,
@@ -748,7 +686,7 @@ async function saveProgress(
     currentPage: page,
     gamesProcessed: state.gamesProcessed + gamesInBatch,
     gamesImported: state.gamesImported + gamesImported,
-    gamesSkipped: state.gamesSkipped + gamesSkipped + gamesUpdated, // Count updates as "skipped" for progress
+    gamesSkipped: state.gamesSkipped + gamesSkipped + gamesUpdated,
     screenshotsDownloaded: state.screenshotsDownloaded + screenshotsDownloaded,
     failedCount: state.failedCount + failedCount,
   })

@@ -13,9 +13,7 @@ describe('buildEveningNudge', () => {
     })
     assert.match(title, /boîte du jour/)
     assert.ok(body.includes('PixelHero'))
-    // FR groups thousands with a narrow no-break space (U+202F); match any separator.
     assert.match(body, /4\s820/, `expected grouped score, got: ${body}`)
-    // No gendered past-participle agreement on the player.
     assert.doesNotMatch(body, /détrôné|battu·e|le coiffer/)
   })
 
@@ -33,7 +31,7 @@ describe('buildEveningNudge', () => {
     const fr = buildEveningNudge('fr', { leaderName: null, leaderScore: 900 })
     assert.ok(fr.body.includes('900'))
     assert.doesNotMatch(fr.body, /null|undefined/)
-    assert.doesNotMatch(fr.body, /\bmène\b/) // not the named-leader phrasing
+    assert.doesNotMatch(fr.body, /\bmène\b/)
 
     const en = buildEveningNudge('en', { leaderName: null, leaderScore: 900 })
     assert.ok(en.body.includes('900'))

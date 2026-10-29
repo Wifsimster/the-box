@@ -5,23 +5,8 @@ import {
   startDailyGame,
 } from './helpers/game-helpers'
 
-/**
- * E2E Tests for Daily Party Game
- *
- * Prerequisites:
- * - Backend server must be running (npm run dev:backend)
- * - Frontend dev server will be started automatically by playwright.config.ts
- * - Database should have at least one daily challenge with 10 screenshots
- * - Test user credentials should be available for authenticated tests
- *
- * Environment Variables:
- * - TEST_USER_EMAIL: Email for test user (default: testuser@example.com)
- * - TEST_USER_PASSWORD: Password for test user (default: testpass123)
- */
-
 test.describe('Daily Game - Start Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Login before accessing game
     await loginAsUser(page)
   })
 
@@ -29,18 +14,14 @@ test.describe('Daily Game - Start Flow', () => {
     await page.goto('/en/play')
     await waitForGameLoad(page)
 
-    // Game can be in one of two states: intro screen or already playing
-    // Check for the closed box (daily-first: one "Open today's box" button)
     const hasIntro = await page.getByTestId('today-open-box').isVisible().catch(() => false)
 
-    // Or check for game playing state (progress dots, input)
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
     const hasInput = await gameInput.isVisible().catch(() => false)
 
     const progressDots = page.locator('button').filter({ hasText: /^1$/ }).first()
     const hasProgress = await progressDots.isVisible().catch(() => false)
 
-    // Either intro screen OR playing state should be visible
     expect(hasIntro || hasInput || hasProgress).toBeTruthy()
   })
 
@@ -48,17 +29,14 @@ test.describe('Daily Game - Start Flow', () => {
     await page.goto('/en/play')
     await waitForGameLoad(page)
 
-    // Start the game using helper (handles both states)
     await startDailyGame(page)
 
-    // Check for game elements: input field, score, or progress dots
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
     const hasInput = await gameInput.isVisible().catch(() => false)
 
     const progressDots = page.locator('button').filter({ hasText: /^[1-9]$|^10$/ }).first()
     const hasProgress = await progressDots.isVisible().catch(() => false)
 
-    // Either input or progress dots should be visible
     expect(hasInput || hasProgress).toBeTruthy()
   })
 
@@ -66,14 +44,12 @@ test.describe('Daily Game - Start Flow', () => {
     await page.goto('/en/play')
     await waitForGameLoad(page)
 
-    // Check current state - either intro or playing
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
     const hasInput = await gameInput.isVisible().catch(() => false)
 
     const startButton = page.getByRole('button', { name: /start|commencer|play/i })
     const hasStart = await startButton.isVisible().catch(() => false)
 
-    // Should be in one of these states
     expect(hasInput || hasStart).toBeTruthy()
   })
 })
@@ -87,9 +63,6 @@ test.describe('Daily Game - Gameplay', () => {
   })
 
   test('should display progress dots for 10 positions', async ({ page }) => {
-    // Progress dots are role="tab" position markers labelled 1..10. Use
-    // expect()'s auto-retry (not a one-shot isVisible) so a slow first render
-    // under suite load doesn't flake the assertion.
     const dot1 = page.getByRole('tab').filter({ hasText: /^1$/ }).first()
     const dot10 = page.getByRole('tab').filter({ hasText: /^10$/ }).first()
 
@@ -100,31 +73,25 @@ test.describe('Daily Game - Gameplay', () => {
   test('should display score at the top', async ({ page }) => {
     await page.waitForTimeout(1000)
 
-    // Look for score display - could be labeled "Score" or just a number
     const scoreLabel = page.locator('text=/score/i').first()
     const hasScoreLabel = await scoreLabel.isVisible().catch(() => false)
 
-    // Also check for score number (usually 0 at start)
     const scoreValue = page.locator('text="0"').first()
     const hasScoreValue = await scoreValue.isVisible().catch(() => false)
 
-    // Either score label or value should be visible
     expect(hasScoreLabel || hasScoreValue).toBeTruthy()
   })
 
   test('should allow typing in guess input', async ({ page }) => {
     await page.waitForTimeout(1000)
 
-    // Find the game input field
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i], input[placeholder*="Game" i]').first()
     const hasInput = await gameInput.isVisible().catch(() => false)
 
     if (hasInput) {
-      // Type a game name
       await gameInput.fill('The Legend of Zelda')
       await expect(gameInput).toHaveValue('The Legend of Zelda')
     } else {
-      // Input might not be available if all screenshots already guessed
       expect(true).toBeTruthy()
     }
   })
@@ -137,9 +104,8 @@ test.describe('Daily Game - Gameplay', () => {
 
     if (hasInput) {
       await gameInput.fill('Super Mario')
-      await page.waitForTimeout(500) // Wait for button state to update
+      await page.waitForTimeout(500)
 
-      // The submit button carries the game.submit aria-label
       const submitButton = page.getByRole('button', { name: /submit guess|valider la proposition/i }).first()
       await expect(submitButton).toBeVisible()
       await expect(submitButton).toBeEnabled()
@@ -151,7 +117,6 @@ test.describe('Daily Game - Gameplay', () => {
   test('should be able to skip a screenshot', async ({ page }) => {
     await page.waitForTimeout(1000)
 
-    // Find skip button - might have text "skip" or just be an icon
     const skipButton = page.locator('button').filter({ hasText: /skip/i }).first()
     const skipIconButton = page.locator('button[aria-label*="skip" i]').first()
 
@@ -161,16 +126,13 @@ test.describe('Daily Game - Gameplay', () => {
     if (hasSkip || hasSkipIcon) {
       const buttonToClick = hasSkip ? skipButton : skipIconButton
 
-      // Click skip
       await buttonToClick.click()
       await page.waitForTimeout(1000)
 
-      // Just verify we're still on the game page (didn't crash)
       const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
       const hasInput = await gameInput.isVisible().catch(() => false)
       expect(hasInput).toBeTruthy()
     } else {
-      // Skip might not be available - that's OK
       expect(true).toBeTruthy()
     }
   })
@@ -178,7 +140,6 @@ test.describe('Daily Game - Gameplay', () => {
   test('should navigate to different position by clicking progress dot', async ({ page }) => {
     await page.waitForTimeout(1000)
 
-    // Click on position 3
     const dot3 = page.locator('button').filter({ hasText: /^3$/ }).first()
     const hasDot3 = await dot3.isVisible().catch(() => false)
 
@@ -186,12 +147,10 @@ test.describe('Daily Game - Gameplay', () => {
       await dot3.click()
       await page.waitForTimeout(1000)
 
-      // Just verify the page didn't crash and we're still in game
       const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
       const hasInput = await gameInput.isVisible().catch(() => false)
       expect(hasInput).toBeTruthy()
     } else {
-      // If dot3 not visible, might already be completed
       expect(true).toBeTruthy()
     }
   })
@@ -205,18 +164,15 @@ test.describe('Daily Game - Gameplay', () => {
     if (hasInput) {
       await gameInput.fill('Minecraft')
 
-      // The submit button carries the game.submit aria-label
       const submitButton = page.getByRole('button', { name: /submit guess|valider la proposition/i }).first()
 
       if (await submitButton.isVisible().catch(() => false)) {
         await submitButton.click()
 
-        // Wait for any response
         await page.waitForTimeout(2000)
       }
     }
 
-    // Just verify game didn't crash
     const pageTitle = page.locator('h1, h2, [class*="score" i]').first()
     const hasTitle = await pageTitle.isVisible().catch(() => false)
     expect(hasTitle || hasInput).toBeTruthy()
@@ -229,32 +185,23 @@ test.describe('Daily Game - Gameplay', () => {
     const hasInput = await gameInput.isVisible().catch(() => false)
 
     if (hasInput) {
-      // The letter-reveal bar is fused into the guess field: masked title
-      // glyphs plus the reveal button, which must exist (never a dead
-      // `disabled` control) and be aria-disabled until a first wrong guess
-      // opens the server gate.
       await expect(page.getByTestId('masked-title')).toBeVisible()
       const revealButton = page.getByTestId('letter-reveal-button')
       await expect(revealButton).toBeVisible()
       await expect(revealButton).toHaveAttribute('aria-disabled', 'true')
     } else {
-      // Session may already be complete - nothing to assert on the dock
       expect(true).toBeTruthy()
     }
   })
 })
 
 test.describe('Daily Game - End Game Flow', () => {
-  // Skip these tests as they require visiting all 10 positions which is slow
-  // and can cause timeouts in CI environments
-
   test.skip('should show end game button after visiting all positions', async ({ page }) => {
     await loginAsUser(page)
     await page.goto('/en/play')
     await waitForGameLoad(page)
     await startDailyGame(page)
 
-    // This would need to visit all 10 positions
     expect(true).toBeTruthy()
   })
 
@@ -275,11 +222,9 @@ test.describe('Daily Game - Results Page', () => {
   test('should display results page after completing game', async ({ page }) => {
     await loginAsUser(page)
 
-    // Try to navigate directly to results (if game was completed)
     await page.goto('/en/results')
     await page.waitForTimeout(2000)
 
-    // Results page might redirect if no results available - that's OK
     const pageLoaded = await page.locator('body').isVisible()
     expect(pageLoaded).toBeTruthy()
   })
@@ -289,7 +234,6 @@ test.describe('Daily Game - Results Page', () => {
     await page.goto('/en/results')
     await page.waitForTimeout(2000)
 
-    // Page should load without error - content depends on whether game was completed
     const pageLoaded = await page.locator('body').isVisible()
     expect(pageLoaded).toBeTruthy()
   })
@@ -299,7 +243,6 @@ test.describe('Daily Game - Results Page', () => {
     await page.goto('/en/results')
     await page.waitForTimeout(2000)
 
-    // Page should load - may redirect if no results
     const pageLoaded = await page.locator('body').isVisible()
     expect(pageLoaded).toBeTruthy()
   })
@@ -309,7 +252,6 @@ test.describe('Daily Game - Results Page', () => {
     await page.goto('/en/results')
     await page.waitForTimeout(2000)
 
-    // Page should load - navigation options depend on results state
     const pageLoaded = await page.locator('body').isVisible()
     expect(pageLoaded).toBeTruthy()
   })
@@ -328,7 +270,6 @@ test.describe('Daily Game - Results Page', () => {
         await leaderboardButton.click()
         await page.waitForTimeout(2000)
 
-        // Should navigate to leaderboard
         const currentUrl = page.url()
         expect(currentUrl).toContain('/leaderboard')
       }
@@ -349,7 +290,6 @@ test.describe('Daily Game - Results Page', () => {
         await homeButton.click()
         await page.waitForTimeout(2000)
 
-        // Should navigate to home
         const currentUrl = page.url()
         expect(currentUrl).toMatch(/\/(en\/?)?$/)
       }
@@ -359,11 +299,9 @@ test.describe('Daily Game - Results Page', () => {
 
 test.describe('Daily Game - Error Handling', () => {
   test('should handle unauthenticated access appropriately', async ({ page }) => {
-    // Try to access game without logging in
     await page.goto('/en/play')
     await page.waitForTimeout(2000)
 
-    // Any of these outcomes is valid - the test just verifies the page loads without error
     const pageLoaded = await page.locator('body').isVisible()
     expect(pageLoaded).toBeTruthy()
   })
@@ -371,22 +309,19 @@ test.describe('Daily Game - Error Handling', () => {
   test('should handle invalid date parameter gracefully', async ({ page }) => {
     await loginAsUser(page)
 
-    // Navigate with invalid date parameter
     await page.goto('/en/play?date=2099-12-31')
     await page.waitForTimeout(3000)
 
-    // Should either show error, redirect, or show current game
     const currentUrl = page.url()
     const isOnValidPage = currentUrl.includes('/play') || currentUrl.includes('/') || currentUrl.includes('/results')
 
-    // Page should load something valid
     expect(isOnValidPage).toBeTruthy()
   })
 })
 
 test.describe('Daily Game - Mobile Responsiveness', () => {
   test.use({
-    viewport: { width: 375, height: 667 }, // iPhone SE
+    viewport: { width: 375, height: 667 },
   })
 
   test('should display game correctly on mobile viewport', async ({ page }) => {
@@ -395,7 +330,6 @@ test.describe('Daily Game - Mobile Responsiveness', () => {
     await waitForGameLoad(page)
     await startDailyGame(page)
 
-    // Check mobile elements are visible - be flexible about what's shown
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
     const hasInput = await gameInput.isVisible().catch(() => false)
 
@@ -414,7 +348,6 @@ test.describe('Daily Game - Mobile Responsiveness', () => {
     await waitForGameLoad(page)
     await startDailyGame(page)
 
-    // Try to type in input if available
     const gameInput = page.locator('input[type="text"], input[placeholder*="name" i]').first()
     const hasInput = await gameInput.isVisible().catch(() => false)
 
@@ -422,7 +355,6 @@ test.describe('Daily Game - Mobile Responsiveness', () => {
       await gameInput.fill('Test Game')
       await expect(gameInput).toHaveValue('Test Game')
     } else {
-      // Game might be in a state without input - that's OK
       const anyElement = page.locator('button, a, h1, h2').first()
       const hasElement = await anyElement.isVisible().catch(() => false)
       expect(hasElement).toBeTruthy()

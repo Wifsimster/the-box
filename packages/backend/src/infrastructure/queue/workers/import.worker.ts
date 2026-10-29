@@ -98,7 +98,6 @@ export const importWorker = new Worker<JobData, JobResult>(
           job.updateProgress(progress)
         })
 
-        // If not complete and not paused, schedule next batch
         let nextBatchScheduled = false
         if (!result.isComplete && !result.isPaused) {
           const nextJob = await scheduleNextBatch(importStateId)
@@ -135,9 +134,6 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'create-daily-challenge') {
-        // For repeatable BullMQ jobs the scheduled fire time is encoded in the
-        // job id as `repeat:<key>:<ms>`. `job.timestamp` is the queue-add time
-        // of the previous iteration, so using it would compute yesterday.
         let referenceMs = Date.now()
         if (typeof id === 'string' && id.startsWith('repeat:')) {
           const parsed = Number(id.split(':').pop())
@@ -168,16 +164,12 @@ export const importWorker = new Worker<JobData, JobResult>(
       }
 
       if (name === 'create-geogamers-challenge') {
-        // Same repeat-id -> scheduled-fire-time decoding as the classic daily
-        // challenge, so a near-midnight restart computes the right date.
         let referenceMs = Date.now()
         if (typeof id === 'string' && id.startsWith('repeat:')) {
           const parsed = Number(id.split(':').pop())
           if (Number.isFinite(parsed)) referenceMs = parsed
         }
         const result = await createGeoGamersChallenge({ referenceMs })
-        // Notify subscribers only on the day's first successful creation, so a
-        // restart re-running the (idempotent) challenge job won't re-notify.
         if (result.created) {
           try {
             const push = await sendGeoGamersDailyPush()
@@ -212,7 +204,6 @@ export const importWorker = new Worker<JobData, JobResult>(
           }
         )
 
-        // If not complete and not paused, schedule next batch
         let nextBatchScheduled = false
         if (!result.isComplete && !result.isPaused) {
           const nextJob = await scheduleSyncAllNextBatch(syncStateId)
@@ -268,7 +259,6 @@ export const importWorker = new Worker<JobData, JobResult>(
         let { recalculateStateId } = data
         const { isResume } = data
 
-        // For recurring jobs, recalculateStateId may not be provided - create one
         if (!recalculateStateId) {
           const { importStateRepository } = await import('../../repositories/import-state.repository.js')
           const newState = await importStateRepository.create({
@@ -276,7 +266,6 @@ export const importWorker = new Worker<JobData, JobResult>(
             batchSize: data.batchSize || 100,
           })
           recalculateStateId = newState.id
-          // Update job data with the new state ID for tracking
           await job.updateData({ ...data, recalculateStateId })
           log.info({ recalculateStateId }, 'Created new recalculate state for recurring job')
         }
@@ -363,7 +352,7 @@ export const importWorker = new Worker<JobData, JobResult>(
         if (result.nextOffset !== null) {
           await importQueue.add('refresh-game-aliases', { offset: result.nextOffset }, {
             jobId: `refresh-game-aliases-${Date.now()}`,
-            priority: 1000, // Lowest priority - yields to all other tasks (as sync-all)
+            priority: 1000,
           })
         }
 
@@ -527,10 +516,10 @@ export const importWorker = new Worker<JobData, JobResult>(
   },
   {
     connection: redisConnectionOptions,
-    concurrency: 1, // One job at a time due to RAWG rate limits
-    lockDuration: 300000, // 5 minutes lock (some jobs take a while)
-    stalledInterval: 30000, // Check for stalled jobs every 30 seconds
-    maxStalledCount: 2, // Allow 2 stalled attempts before failing
+    concurrency: 1,
+    lockDuration: 300000,
+    stalledInterval: 30000,
+    maxStalledCount: 2,
   }
 )
 

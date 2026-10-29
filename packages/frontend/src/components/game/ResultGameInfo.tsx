@@ -9,16 +9,11 @@ interface ResultGameInfoProps {
   userGuess: string | null
 }
 
-/**
- * Presentational block for the revealed game: cover image, title, release
- * year / metascore, publisher / developer, and the user's wrong guess.
- */
 export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoProps) {
   const { t } = useTranslation()
 
   return (
     <>
-      {/* Game Cover Image */}
       <m.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -38,7 +33,6 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
         )}
       </m.div>
 
-      {/* Game Title */}
       <m.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -48,7 +42,6 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
         {game.name}
       </m.h2>
 
-      {/* Game Details (Release Year and Metascore) */}
       {(game.releaseYear || game.metacritic != null) && (
         <m.div
           initial={{ opacity: 0, y: 10 }}
@@ -72,7 +65,6 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
         </m.div>
       )}
 
-      {/* Publisher and Developer */}
       {(game.publisher || game.developer) && (
         <m.div
           initial={{ opacity: 0, y: 10 }}
@@ -89,7 +81,6 @@ export function ResultGameInfo({ game, isCorrect, userGuess }: ResultGameInfoPro
         </m.div>
       )}
 
-      {/* User's wrong guess */}
       {!isCorrect && userGuess && (
         <m.p
           initial={{ opacity: 0 }}

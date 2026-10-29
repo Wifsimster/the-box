@@ -27,12 +27,6 @@ interface AccountDataCardProps {
   username: string
 }
 
-/**
- * GDPR / RGPD account-data controls: export (right to portability) and
- * permanent account deletion (right to erasure). The destructive delete is
- * guarded by a confirmation dialog that requires the user to re-type their
- * exact username.
- */
 export function AccountDataCard({ username }: AccountDataCardProps) {
   const { t } = useTranslation()
   const { signOut } = useAuth()
@@ -61,7 +55,6 @@ export function AccountDataCard({ username }: AccountDataCardProps) {
     try {
       await userApi.deleteAccount(confirmValue)
       setDialogOpen(false)
-      // Clears per-user client state and redirects home.
       await signOut()
     } catch (err) {
       if (err instanceof UserApiError && err.code === 'CONFIRMATION_MISMATCH') {

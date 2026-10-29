@@ -9,10 +9,6 @@ import { TodayDone } from '@/components/today/TodayDone'
 import { useDailyGame } from '@/hooks/useDailyGame'
 import { useOnline } from '@/hooks/useOnline'
 
-/**
- * Active streak for a signed-in player, from the same `/api/user/me` payload
- * the streak-risk banner reads. Null for guests and on any failure.
- */
 function useCurrentStreak(userId: string | undefined, isGuest: boolean): number | null {
   const [streak, setStreak] = useState<number | null>(null)
   useEffect(() => {
@@ -29,12 +25,6 @@ function useCurrentStreak(userId: string | undefined, isGuest: boolean): number 
   return userId && !isGuest ? streak : null
 }
 
-/**
- * Daily-first home. Opening the site lands on today's box: one tap opens it
- * and the first screenshot appears in place — no landing page, no intro
- * screen, no account gate. Once the box is done, the same route becomes the
- * daily loop (score, streak, countdown, share, yesterday's box).
- */
 export default function TodayPage() {
   const { t } = useTranslation()
   const isOnline = useOnline()

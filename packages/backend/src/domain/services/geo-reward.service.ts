@@ -12,7 +12,6 @@ import type {
 } from './geo-consensus.service.js'
 import { grantsForAcceptedPin } from './geo-consensus.service.js'
 
-// One-shot summary emitted to the socket namespace + returned from the worker.
 export interface GeoRewardSummary {
   userId: string
   geoScreenshotCandidateId: number
@@ -21,15 +20,6 @@ export interface GeoRewardSummary {
 }
 
 export interface GeoRewardService {
-  /**
-   * Persist a consensus decision: update each pin's status, grant tokens to
-   * accepted contributors, bump contributor counters, promote the candidate
-   * if consensus says so, and shadow-ban abusers whose 7-day rejection ratio
-   * crosses the threshold.
-   *
-   * Idempotent on `applyDecision` (pins already reviewed are skipped by the
-   * repository via their status check).
-   */
   applyConsensus(args: {
     geoScreenshotCandidateId: number
     geoMapId: number
@@ -70,7 +60,6 @@ export function createGeoRewardService(deps: GeoRewardServiceDeps): GeoRewardSer
         'applyConsensus',
       )
 
-      // 1. Persist each pin decision (no-op for already-reviewed pins is fine).
       for (const d of result.decisions) {
         await geoPinRepository.applyDecision({
           pinId: d.pinId,
@@ -79,7 +68,6 @@ export function createGeoRewardService(deps: GeoRewardServiceDeps): GeoRewardSer
         })
       }
 
-      // 2. Aggregate submitted/accepted/rejected per user and bump counters.
       const perUser = aggregatePerUser(result.decisions, pinOwners)
       for (const [userId, counts] of perUser) {
         await geoContributorRepository.bumpCounters({
@@ -90,8 +78,6 @@ export function createGeoRewardService(deps: GeoRewardServiceDeps): GeoRewardSer
         })
       }
 
-      // 3. Grant tokens to users with accepted pins, respecting tightness
-      // relative to the centroid. Shadow-banned users receive zero rewards.
       const summaries: GeoRewardSummary[] = []
       for (const [userId, counts] of perUser) {
         if (counts.accepted === 0) continue
@@ -125,7 +111,6 @@ export function createGeoRewardService(deps: GeoRewardServiceDeps): GeoRewardSer
         })
       }
 
-      // 4. Anti-abuse: re-check shadow-ban for anyone touched this pass.
       for (const userId of perUser.keys()) {
         const { submitted, rejected } = await geoPinRepository.userRejectionRatio7d(userId)
         if (submitted >= SHADOW_BAN_MIN_SUBMISSIONS) {
@@ -136,7 +121,6 @@ export function createGeoRewardService(deps: GeoRewardServiceDeps): GeoRewardSer
         }
       }
 
-      // 5. Promote the candidate if consensus cleared the bar.
       if (result.promote) {
         const existing =
           await geoScreenshotRepository.findMetaByCandidateId(geoScreenshotCandidateId)

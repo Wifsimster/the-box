@@ -11,19 +11,6 @@ interface ReactivationCopy {
     footer: string
 }
 
-/**
- * IMPORTANT — copy ban-list (per the rewards meeting + PRD):
- *
- *   FR: never use *perdre*, *manquer*, *rater*, *oublier*, countdown timers,
- *       streak-shaming ("ta série de X jours est en danger"), exclamation
- *       stacking, or red CTA framing.
- *   EN: never use *miss*, *lose*, *forget*, countdown timers, streak-shaming,
- *       or exclamation-mark stacking.
- *
- * Tone is invitation, never loss-aversion. Subject lines are declarative,
- * not interrogative-anxious. Below copy is the canonical version — review
- * EVERY edit against the ban list (a CI grep test enforces it for FR).
- */
 const COPY: Record<ReactivationLocale, ReactivationCopy> = {
     fr: {
         subject: 'Le screenshot du jour t\'attend',
@@ -77,14 +64,8 @@ export function buildReactivationEmail(input: BuildReactivationEmailInput): {
     return { subject: c.subject, html, text }
 }
 
-/**
- * Words and patterns that are forbidden in reactivation copy. Exposed so a
- * unit test can grep the canonical strings (and any future tweak) for them
- * — keeps the ban-list mechanically enforced rather than just documented.
- */
 export const REACTIVATION_COPY_BAN_LIST = {
     fr: [
-        // loss-aversion verbs / nouns
         'perdre',
         'perdras',
         'perds',
@@ -93,7 +74,6 @@ export const REACTIVATION_COPY_BAN_LIST = {
         'rater',
         'raté',
         'oublier',
-        // streak-anxiety phrasings
         'ta série',
         'série en danger',
         'plus que',

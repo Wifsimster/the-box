@@ -5,21 +5,21 @@ module.exports = {
             2,
             'always',
             [
-                'feat',     // New feature
-                'fix',      // Bug fix
-                'docs',     // Documentation changes
-                'style',    // Code style changes (formatting, semicolons, etc.)
-                'refactor', // Code refactoring
-                'perf',     // Performance improvements
-                'test',     // Adding or updating tests
-                'build',    // Build system or dependencies
-                'ci',       // CI/CD changes
-                'chore',    // Other changes (maintenance, etc.)
-                'revert',   // Revert a previous commit
+                'feat',
+                'fix',
+                'docs',
+                'style',
+                'refactor',
+                'perf',
+                'test',
+                'build',
+                'ci',
+                'chore',
+                'revert',
             ],
         ],
-        'subject-case': [0], // Allow any case for subject
-        'subject-full-stop': [0], // Allow full stop at end
-        'header-max-length': [2, 'always', 150], // Allow up to 150 characters
+        'subject-case': [0],
+        'subject-full-stop': [0],
+        'header-max-length': [2, 'always', 150],
     },
 }

@@ -11,14 +11,14 @@ interface LeaderboardRow {
   username: string | null
   display_name: string | null
   avatar_url: string | null
-  captures_found: string | null // count comes as string
-  avg_capture_time_ms: string | null // AVG comes as string
+  captures_found: string | null
+  avg_capture_time_ms: string | null
 }
 
 interface MonthlyLeaderboardRow {
   user_id: string
-  total_score: string // aggregate sum comes as string
-  games_played: string // count comes as string
+  total_score: string
+  games_played: string
   username: string | null
   display_name: string | null
   avatar_url: string | null
@@ -26,9 +26,6 @@ interface MonthlyLeaderboardRow {
   avg_capture_time_ms: string | null
 }
 
-// Per-session stats over correct guesses only: how many captures the
-// player found and the time spent on the guesses that found them.
-// Joined into both boards so each row can show discovery count + speed.
 function correctGuessStatsSubquery() {
   return db('guesses')
     .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
@@ -44,15 +41,12 @@ function correctGuessStatsSubquery() {
 
 export const leaderboardRepository = {
   async findByChallenge(challengeId: number, limit = 100): Promise<LeaderboardEntry[]> {
-    // Deterministic tiebreakers: faster finish wins over slower for the
-    // same score, then user id breaks any remaining tie so the rendered
-    // order is stable across refreshes.
     const sessions = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
       .leftJoin(correctGuessStatsSubquery(), 'guess_stats.game_session_id', 'game_sessions.id')
       .where('game_sessions.daily_challenge_id', challengeId)
       .andWhere('game_sessions.is_completed', true)
-      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions from leaderboard
+      .andWhere('game_sessions.is_catch_up', false)
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .orderBy([
         { column: 'game_sessions.total_score', order: 'desc' },
@@ -72,8 +66,6 @@ export const leaderboardRepository = {
         db.raw(
           'guess_stats.capture_time_ms / NULLIF(guess_stats.captures_found, 0) as avg_capture_time_ms'
         ),
-        // DENSE_RANK so tied scores share the same rank instead of
-        // pushing the rest of the board down a slot.
         db.raw(
           'DENSE_RANK() OVER (ORDER BY game_sessions.total_score DESC) as dense_rank'
         )
@@ -97,9 +89,6 @@ export const leaderboardRepository = {
   },
 
   async countPlayersByChallenge(challengeId: number): Promise<number> {
-    // Mirrors the ranked-session filter in countStandingForScore: ranked
-    // sessions only (completed, not catch-up, not anonymous). Used by the
-    // public "players today" social-proof badge on the home page.
     const result = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
@@ -112,9 +101,6 @@ export const leaderboardRepository = {
   },
 
   async countGuestPlayersByChallenge(challengeId: number): Promise<number> {
-    // Same session filter as the ranked board, but for guests: they finished
-    // today's box without an account, so they stay off the board. The daily
-    // board shows the count ("+ N guests also played").
     const result = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
       .where('game_sessions.daily_challenge_id', challengeId)
@@ -127,10 +113,6 @@ export const leaderboardRepository = {
   },
 
   async countStandingForScore(challengeId: number, score: number): Promise<StandingCounts> {
-    // One statement for both counts (ranked sessions: completed, not
-    // catch-up, not anonymous), so rank and total come from the same
-    // snapshot. Two separate COUNTs let a session completing in between
-    // push the rank past the total.
     const { rows } = await db.raw<{ rows: Array<{ ranked_players: string; players_above: string }> }>(
       `select count(*) as ranked_players,
               count(*) filter (where gs.total_score > ?) as players_above
@@ -149,10 +131,6 @@ export const leaderboardRepository = {
   },
 
   async findSessionStandingCounts(sessionId: string, userId: string): Promise<SessionStandingCounts | null> {
-    // Places the session by its *stored* score on its own challenge, in one
-    // statement: the score, the ranked total, the players above and whether
-    // the session itself is among the ranked rows all read from one snapshot.
-    // A client-supplied score (possibly stale on another device) never enters.
     const { rows } = await db.raw<{
       rows: Array<{ id: string; total_score: number; ranked_players: string; players_above: string; self_counted: boolean | null }>
     }>(
@@ -189,11 +167,6 @@ export const leaderboardRepository = {
     }
   },
 
-  // Final leaderboard rank for a score on a challenge: 1 + the number of
-  // ranked sessions (completed, not catch-up, not anonymous) that scored
-  // higher. The public profile / streamer endpoints and the session-completed
-  // webhook hook all share this so the ranking rule lives in exactly one
-  // place rather than being copy-pasted as a raw query.
   async rankForScore(challengeId: number, score: number): Promise<number> {
     const higher = await db('game_sessions')
       .join('user', 'game_sessions.user_id', 'user.id')
@@ -213,13 +186,11 @@ export const leaderboardRepository = {
       .join('daily_challenges', 'game_sessions.daily_challenge_id', 'daily_challenges.id')
       .leftJoin(correctGuessStatsSubquery(), 'guess_stats.game_session_id', 'game_sessions.id')
       .where('game_sessions.is_completed', true)
-      .andWhere('game_sessions.is_catch_up', false) // Exclude catch-up sessions from monthly leaderboard
+      .andWhere('game_sessions.is_catch_up', false)
       .whereRaw('"user"."isAnonymous" = ?', [false])
       .whereRaw('EXTRACT(YEAR FROM daily_challenges.challenge_date) = ?', [year])
       .whereRaw('EXTRACT(MONTH FROM daily_challenges.challenge_date) = ?', [month])
       .groupBy('game_sessions.user_id', 'user.username', 'user.display_name', 'user.avatar_url')
-      // Stable monthly ordering — tie on summed score breaks on user id so
-      // refreshes don't shuffle rows.
       .orderByRaw('SUM(game_sessions.total_score) DESC, game_sessions.user_id ASC')
       .limit(limit)
       .select<(MonthlyLeaderboardRow & { dense_rank: string })[]>(
@@ -233,8 +204,6 @@ export const leaderboardRepository = {
         'user.username',
         'user.display_name',
         'user.avatar_url',
-        // DENSE_RANK so tied monthly totals share the same rank, matching
-        // the daily board instead of splitting ties by user id.
         db.raw(
           'DENSE_RANK() OVER (ORDER BY SUM(game_sessions.total_score) DESC) as dense_rank'
         )
@@ -289,7 +258,6 @@ export const leaderboardRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { LeaderboardRepository as LeaderboardRepositoryPort } from '../../domain/ports/repositories.js'
 export const _leaderboardRepositoryTypeCheck: LeaderboardRepositoryPort = leaderboardRepository

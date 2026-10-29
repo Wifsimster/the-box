@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 
-// Zod-validated shape so a backend deploy that drifts from the contract
-// surfaces as a clean parse error rather than mysteriously crashing the
-// counter strip / cold-start banner with `undefined.curated`.
 const GeoHealthSchema = z.object({
     coverage: z.object({
         curated: z.number(),
@@ -28,11 +25,6 @@ const GeoHealthSchema = z.object({
 
 export type GeoHealth = z.infer<typeof GeoHealthSchema>
 
-/**
- * Polls /api/admin/geo/health every 30s. Consumed by ModerationStatusRail
- * (counter row + cold-start / readiness sections) via GeoReviewPanel, so
- * all status surfaces stay in sync without duplicate fetches.
- */
 export function useGeoHealth(intervalMs = 30_000) {
     const [data, setData] = useState<GeoHealth | null>(null)
     const [loading, setLoading] = useState(true)
@@ -55,9 +47,6 @@ export function useGeoHealth(intervalMs = 30_000) {
     }, [])
 
     useEffect(() => {
-        // Pause the 30s health poll when the tab is hidden — without this
-        // an admin who leaves the panel in a background tab keeps a slow
-        // drumbeat against /admin/geo/health forever.
         let id: number | null = null
         const start = () => {
             if (id != null) return

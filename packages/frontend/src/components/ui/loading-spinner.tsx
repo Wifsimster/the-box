@@ -37,25 +37,21 @@ export function LoadingSpinner({
       className={cn('relative', className)}
       style={{ width: s, height: s }}
     >
-      {/* Outer ring - slow rotation */}
       <m.div
         className="absolute inset-0 rounded-full border-2 border-neon-purple/20"
         animate={{ rotate: 360 }}
         transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
       />
-      {/* Middle ring - medium rotation */}
       <m.div
         className="absolute inset-[2px] rounded-full border-2 border-transparent border-t-neon-purple/50 border-r-neon-pink/50"
         animate={{ rotate: -360 }}
         transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
       />
-      {/* Inner arc - fast rotation with glow */}
       <m.div
         className="absolute inset-1 rounded-full border-2 border-transparent border-t-neon-purple glow-sm"
         animate={{ rotate: 360 }}
         transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
       />
-      {/* Center pulsing glow */}
       <m.div
         className="absolute inset-[30%] rounded-full bg-neon-purple/30"
         animate={{

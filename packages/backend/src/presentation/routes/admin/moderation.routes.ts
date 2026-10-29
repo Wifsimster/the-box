@@ -7,13 +7,6 @@ import {
 
 const router = Router()
 
-// ---------- Capture report moderation ----------
-
-// Aggregated view of which captures have been reported. Defaults to all
-// reports (so admins can see brewing problems before the threshold trips);
-// pass `?onlyDeactivated=true` to focus on captures already pulled from
-// rotation. `limit` caps the queue depth — typical moderation pages won't
-// need more than a hundred at a time.
 router.get('/screenshot-reports', async (req, res, next) => {
   try {
     const limit = Math.min(Math.max(Number(req.query.limit ?? 100) || 100, 1), 500)
@@ -25,14 +18,6 @@ router.get('/screenshot-reports', async (req, res, next) => {
   }
 })
 
-// Reactivate a capture an admin reviewed and judged a false positive.
-// Body: { screenshotId } | { geoScreenshotCandidateId } — exactly one.
-// Drops the existing reports so a single 3-report wave doesn't immediately
-// re-trip the threshold; the audit log still has the request via Pino.
-// Zod-validated discriminated union: exactly one of screenshotId /
-// geoScreenshotCandidateId must be present, both as positive integers.
-// Without Zod, raw `Boolean(undefined) === Boolean(0)` was true, so a
-// caller could legally send `screenshotId: 0` and skip the type coercion.
 const reactivateBodySchema = z
   .union([
     z.object({

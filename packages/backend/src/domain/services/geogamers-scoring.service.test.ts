@@ -10,7 +10,6 @@ import {
   GEOGAMERS_SCORE_VERSION,
 } from './geogamers-scoring.service.js'
 
-// Minimal no-op logger satisfying the DomainLogger port.
 const noopLogger: DomainLogger = {
   info() {},
   warn() {},
@@ -81,7 +80,6 @@ describe('createGeoGamersScoringService', () => {
 
   it('scoreLocation floors distance to 1.0 on wrong map (≈0 points)', () => {
     const r = svc.scoreLocation({ x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, { wrongMap: true })
-    // Same pin, but wrongMap overrides distance to the maximum.
     assert.equal(r.distance, 1)
     assert.equal(r.wrongMap, true)
     assert.equal(r.locationPoints, locationPointsFromDistance(1))

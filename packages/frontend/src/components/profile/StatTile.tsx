@@ -7,11 +7,6 @@ interface StatTileProps {
   icon: LucideIcon
   value: ReactNode
   label: ReactNode
-  /**
-   * Tailwind color stop used for the icon-bubble background and the value
-   * gradient. Pass the base token name only ("warning", "primary", "success",
-   * "score-low") — the component builds the bubble + gradient classes itself.
-   */
   tone: 'warning' | 'primary' | 'success' | 'score-low'
   tooltipTitle: ReactNode
   tooltipBody?: ReactNode

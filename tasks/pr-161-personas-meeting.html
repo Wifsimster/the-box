@@ -1,11 +1,4 @@
 <!doctype html>
-<!-- SUMMARY:
-PR #161 personas meeting (backend, frontend/a11y, QA). Backend persona cleared the
-double-advance race (runSourceFetch rethrows without advancing); only doc fix is
-needed. Frontend persona found two real bugs: Escape collides with Radix Dialog
-(closes both), and Shift+A triggers Promote (modifier guard misses shiftKey). QA
-pinned the test surface: extract predicate, unit-test via node --test.
--->
 <html lang="en">
 <head>
 <meta charset="utf-8">

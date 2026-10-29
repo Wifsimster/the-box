@@ -5,24 +5,9 @@ import {
 import { isDisplayNameSafe } from '../../../domain/services/display-name-safety.js'
 import { truncateDisplayName } from '../../../domain/services/evening-nudge-copy.js'
 
-/**
- * Resolves today's title holder into the shape outbound nudges actually need,
- * applying the two privacy gates the meeting made launch blockers:
- *   1. the leader's display name must pass {@link isDisplayNameSafe};
- *   2. the leader must not have opted out via `feature_in_notifications`.
- *
- * When either gate fails we still surface the (public) score so callers can
- * fall back to score-only copy — only the *name* is withheld.
- *
- * Shared by the evening-nudge push worker and the streak-risk email worker so
- * the gate is applied identically in both places.
- */
 export interface FeaturedLeader {
-  /** Rank-1 user id, or null when nobody has played today. */
   userId: string | null
-  /** Today's top score, or null when nobody has played today. */
   score: number | null
-  /** Safe, truncated name to feature, or null (unsafe / opted out / empty). */
   safeName: string | null
 }
 

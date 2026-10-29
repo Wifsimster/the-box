@@ -47,10 +47,6 @@ describe('isSubscriptionEntitled', () => {
   })
 })
 
-// ---- getEntitlement end-to-end (with fakes) ----------------------------
-
-// No cast needed since DomainLogger was segregated: `trace` and `fatal`
-// were on the port but called by no domain service.
 const noopLogger: DomainLogger = {
   child: () => noopLogger,
   info() {},

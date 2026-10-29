@@ -4,7 +4,6 @@ import type { Job, Game, RecurringJob, ImportState, User, BillingEntitlement } f
 import { adminApi } from '@/lib/api'
 import { getAdminSocket, connectAdminSocket, disconnectAdminSocket } from '@/lib/socket'
 
-// Define missing event types locally
 interface JobProgressEvent {
   jobId: string
   progress: number
@@ -65,15 +64,12 @@ interface UsersSort {
 }
 
 interface AdminState {
-  // Jobs data
   jobs: Job[]
   isLoading: boolean
   error: string | null
 
-  // Recurring jobs
   recurringJobs: RecurringJob[]
 
-  // Stats
   stats: {
     waiting: number
     active: number
@@ -81,7 +77,6 @@ interface AdminState {
     failed: number
   } | null
 
-  // Games data
   games: Game[]
   gamesLoading: boolean
   gamesError: string | null
@@ -89,7 +84,6 @@ interface AdminState {
   gamesSearch: string
   gamesSort: GamesSort
 
-  // Jobs Actions
   fetchJobs: () => Promise<void>
   fetchStats: () => Promise<void>
   fetchRecurringJobs: () => Promise<void>
@@ -106,7 +100,6 @@ interface AdminState {
   cancelJob: (id: string) => Promise<void>
   clearCompleted: () => Promise<void>
 
-  // Socket event handlers
   updateJobProgress: (event: JobProgressEvent) => void
   updateJobCompleted: (jobId: string, result: unknown) => void
   updateJobFailed: (jobId: string, error: string) => void
@@ -117,11 +110,9 @@ interface AdminState {
   handleJobRemoved: (jobId: string) => void
   handleJobStalled: (jobId: string) => void
 
-  // Socket connection management
   connectSocket: () => void
   disconnectSocket: () => void
 
-  // Games Actions
   fetchGames: (params?: { page?: number; search?: string }) => Promise<void>
   createGame: (data: Omit<Game, 'id'>) => Promise<Game>
   updateGame: (id: number, data: Partial<Omit<Game, 'id'>>) => Promise<Game>
@@ -130,11 +121,9 @@ interface AdminState {
   setGamesSort: (field: string, order: 'asc' | 'desc') => void
   setGamesPage: (page: number) => void
 
-  // Challenges
   rerollLoading: boolean
   rerollDailyChallenge: (date?: string, minMetacritic?: number) => Promise<void>
 
-  // Full Import (Batch Processing)
   currentImport: ImportState | null
   fullImportLoading: boolean
   fullImportError: string | null
@@ -148,7 +137,6 @@ interface AdminState {
   resumeFullImport: () => Promise<void>
   updateBatchImportProgress: (event: BatchImportProgressEvent) => void
 
-  // Recalculate Scores
   currentRecalculateScores: ImportState | null
   recalculateScoresLoading: boolean
   recalculateScoresError: string | null
@@ -163,7 +151,6 @@ interface AdminState {
   resumeRecalculateScores: () => Promise<void>
   updateRecalculateScoresProgress: (event: RecalculateScoresProgressEvent) => void
 
-  // Users data
   users: User[]
   usersLoading: boolean
   usersError: string | null
@@ -172,7 +159,6 @@ interface AdminState {
   usersSort: UsersSort
   usersBilling: Record<string, BillingEntitlement>
 
-  // Users Actions
   fetchUsers: (params?: { page?: number; search?: string }) => Promise<void>
   setUsersSearch: (search: string) => void
   setUsersSort: (field: string, order: 'asc' | 'desc') => void
@@ -188,14 +174,12 @@ interface AdminState {
 export const useAdminStore = create<AdminState>()(
   devtools(
     (set, get) => ({
-      // Jobs initial state
       jobs: [],
       isLoading: false,
       error: null,
       recurringJobs: [],
       stats: null,
 
-      // Games initial state
       games: [],
       gamesLoading: false,
       gamesError: null,
@@ -203,20 +187,16 @@ export const useAdminStore = create<AdminState>()(
       gamesSearch: '',
       gamesSort: { field: 'name', order: 'asc' },
 
-      // Challenges initial state
       rerollLoading: false,
 
-      // Full Import initial state
       currentImport: null,
       fullImportLoading: false,
       fullImportError: null,
 
-      // Recalculate Scores initial state
       currentRecalculateScores: null,
       recalculateScoresLoading: false,
       recalculateScoresError: null,
 
-      // Users initial state
       users: [],
       usersLoading: false,
       usersError: null,
@@ -256,7 +236,6 @@ export const useAdminStore = create<AdminState>()(
       triggerDailyChallengeJob: async () => {
         try {
           await adminApi.triggerDailyChallenge()
-          // Refresh job list after triggering
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger daily challenge job:', err)
@@ -267,7 +246,6 @@ export const useAdminStore = create<AdminState>()(
       triggerSyncAllJob: async () => {
         try {
           await adminApi.startSyncAll()
-          // Refresh job list after triggering
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger sync-all job:', err)
@@ -277,14 +255,11 @@ export const useAdminStore = create<AdminState>()(
 
       cancelActiveSyncAll: async () => {
         try {
-          // Get active sync-all state
           const { syncState } = await adminApi.getActiveSyncAll()
           if (!syncState) {
             throw new Error('No active sync-all job found')
           }
-          // Cancel it
           await adminApi.cancelSyncAll(syncState.id)
-          // Refresh job list
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to cancel sync-all job:', err)
@@ -295,7 +270,6 @@ export const useAdminStore = create<AdminState>()(
       triggerCleanupAnonymousUsersJob: async () => {
         try {
           await adminApi.triggerCleanupAnonymousUsers()
-          // Refresh job list after triggering
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger cleanup anonymous users job:', err)
@@ -306,7 +280,6 @@ export const useAdminStore = create<AdminState>()(
       triggerClearDailyDataJob: async () => {
         try {
           await adminApi.triggerClearDailyData()
-          // Refresh job list after triggering
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger clear daily data job:', err)
@@ -317,7 +290,6 @@ export const useAdminStore = create<AdminState>()(
       triggerRefreshGameAliasesJob: async () => {
         try {
           await adminApi.triggerRefreshGameAliases()
-          // Refresh job list after triggering
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger refresh game aliases job:', err)
@@ -328,7 +300,6 @@ export const useAdminStore = create<AdminState>()(
       triggerImportGames: async (targetGames, screenshotsPerGame) => {
         try {
           await adminApi.triggerImportGames(targetGames, screenshotsPerGame)
-          // Refresh job list after triggering
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger import games job:', err)
@@ -339,7 +310,6 @@ export const useAdminStore = create<AdminState>()(
       triggerImportScreenshots: async () => {
         try {
           await adminApi.triggerImportScreenshots()
-          // Refresh job list after triggering
           get().fetchJobs()
         } catch (err) {
           console.error('Failed to trigger import screenshots job:', err)
@@ -373,17 +343,14 @@ export const useAdminStore = create<AdminState>()(
 
       cancelJob: async (id) => {
         try {
-          // Optimistically update UI - remove job immediately
           set({
             jobs: get().jobs.filter((j) => j.id !== id),
           })
 
           await adminApi.cancelJob(id)
-          // Refresh jobs list to ensure consistency
           get().fetchJobs()
         } catch (err) {
           set({ error: (err as Error).message })
-          // Refresh on error to restore accurate state
           get().fetchJobs()
         }
       },
@@ -391,7 +358,6 @@ export const useAdminStore = create<AdminState>()(
       clearCompleted: async () => {
         try {
           await adminApi.clearCompleted()
-          // Refresh jobs list
           get().fetchJobs()
         } catch (err) {
           set({ error: (err as Error).message })
@@ -422,7 +388,6 @@ export const useAdminStore = create<AdminState>()(
               : j
           ),
         })
-        // Refresh recurring jobs list to update status
         get().fetchRecurringJobs()
       },
 
@@ -439,11 +404,9 @@ export const useAdminStore = create<AdminState>()(
               : j
           ),
         })
-        // Refresh recurring jobs list to update status
         get().fetchRecurringJobs()
       },
 
-      // Games Actions
       fetchGames: async (params) => {
         const { gamesPagination, gamesSearch, gamesSort } = get()
         set({ gamesLoading: true, gamesError: null })
@@ -473,7 +436,6 @@ export const useAdminStore = create<AdminState>()(
         set({ gamesError: null })
         try {
           const { game } = await adminApi.createGame(data)
-          // Refresh the list
           get().fetchGames()
           return game
         } catch (err) {
@@ -486,7 +448,6 @@ export const useAdminStore = create<AdminState>()(
         set({ gamesError: null })
         try {
           const { game } = await adminApi.updateGame(id, data)
-          // Refresh the list
           get().fetchGames()
           return game
         } catch (err) {
@@ -499,7 +460,6 @@ export const useAdminStore = create<AdminState>()(
         set({ gamesError: null })
         try {
           await adminApi.deleteGame(id)
-          // Refresh the list
           get().fetchGames()
         } catch (err) {
           set({ gamesError: (err as Error).message })
@@ -513,17 +473,14 @@ export const useAdminStore = create<AdminState>()(
 
       setGamesSort: (field, order) => {
         set({ gamesSort: { field, order } })
-        // Fetch with new sort
         get().fetchGames()
       },
 
       setGamesPage: (page) => {
         set({ gamesPagination: { ...get().gamesPagination, page } })
-        // Fetch the new page
         get().fetchGames({ page })
       },
 
-      // Challenges Actions
       rerollDailyChallenge: async (date?: string, minMetacritic?: number) => {
         set({ rerollLoading: true })
         try {
@@ -536,7 +493,6 @@ export const useAdminStore = create<AdminState>()(
         }
       },
 
-      // Full Import Actions
       fetchCurrentImport: async () => {
         try {
           const { importState } = await adminApi.getCurrentImport()
@@ -551,7 +507,6 @@ export const useAdminStore = create<AdminState>()(
         try {
           const { importState } = await adminApi.startFullImport(config)
           set({ currentImport: importState, fullImportLoading: false })
-          // Refresh jobs list
           get().fetchJobs()
           return importState
         } catch (err) {
@@ -582,7 +537,6 @@ export const useAdminStore = create<AdminState>()(
         try {
           const { importState } = await adminApi.resumeFullImport(currentImport.id)
           set({ currentImport: importState, fullImportLoading: false })
-          // Refresh jobs list
           get().fetchJobs()
         } catch (err) {
           set({ fullImportError: (err as Error).message, fullImportLoading: false })
@@ -611,8 +565,6 @@ export const useAdminStore = create<AdminState>()(
       updateRecalculateScoresProgress: (event) => {
         const { currentRecalculateScores } = get()
         if (currentRecalculateScores && currentRecalculateScores.id === event.recalculateStateId) {
-          // Event properties (current, total, etc.) are tracked via the event system
-          // ImportState doesn't need these specific fields
           set({
             currentRecalculateScores: {
               ...currentRecalculateScores,
@@ -621,7 +573,6 @@ export const useAdminStore = create<AdminState>()(
         }
       },
 
-      // Recalculate Scores Actions
       fetchCurrentRecalculateScores: async () => {
         try {
           const { recalculateState } = await adminApi.getCurrentRecalculateScores()
@@ -636,7 +587,6 @@ export const useAdminStore = create<AdminState>()(
         try {
           const { recalculateState } = await adminApi.startRecalculateScores(config)
           set({ currentRecalculateScores: recalculateState, recalculateScoresLoading: false })
-          // Refresh jobs list
           get().fetchJobs()
           return recalculateState
         } catch (err) {
@@ -667,7 +617,6 @@ export const useAdminStore = create<AdminState>()(
         try {
           const { recalculateState } = await adminApi.resumeRecalculateScores(currentRecalculateScores.id)
           set({ currentRecalculateScores: recalculateState, recalculateScoresLoading: false })
-          // Refresh jobs list
           get().fetchJobs()
         } catch (err) {
           set({ recalculateScoresError: (err as Error).message, recalculateScoresLoading: false })
@@ -675,7 +624,6 @@ export const useAdminStore = create<AdminState>()(
         }
       },
 
-      // Users Actions
       fetchUsers: async (params) => {
         const { usersPagination, usersSearch, usersSort } = get()
         const page = params?.page ?? usersPagination.page
@@ -693,11 +641,8 @@ export const useAdminStore = create<AdminState>()(
             sortBy: usersSort.field,
             sortDirection: usersSort.order,
           })
-          // Transform users to ensure isAdmin is correctly set from role field
-          // Better-auth returns users with a 'role' field, but our User type uses 'isAdmin'
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Backend response typing varies
           const transformedUsers = result.users.map((user: any) => {
-            // Check both role field (from better-auth) and isAdmin field
             const isAdmin = user.role === 'admin' || user.isAdmin === true
             return {
               ...user,
@@ -715,16 +660,12 @@ export const useAdminStore = create<AdminState>()(
             usersLoading: false,
           })
 
-          // Fetch billing entitlement for the visible users in parallel.
-          // Failure is non-fatal — the table still renders without the
-          // premium column populated.
           const ids = transformedUsers.flatMap((u) => (u.id ? [u.id] : []))
           if (ids.length > 0) {
             try {
               const entitlements = await adminApi.getUsersBilling(ids)
               set({ usersBilling: { ...get().usersBilling, ...entitlements } })
             } catch {
-              // ignore — column will just stay blank for these rows
             }
           }
         } catch (err) {
@@ -738,13 +679,11 @@ export const useAdminStore = create<AdminState>()(
 
       setUsersSort: (field, order) => {
         set({ usersSort: { field, order } })
-        // Fetch with new sort
         get().fetchUsers()
       },
 
       setUsersPage: (page) => {
         set({ usersPagination: { ...get().usersPagination, page } })
-        // Fetch the new page
         get().fetchUsers({ page })
       },
 
@@ -752,7 +691,6 @@ export const useAdminStore = create<AdminState>()(
         set({ usersError: null })
         try {
           await adminApi.setUserRole(userId, role)
-          // Refresh the list
           get().fetchUsers()
         } catch (err) {
           set({ usersError: (err as Error).message })
@@ -764,7 +702,6 @@ export const useAdminStore = create<AdminState>()(
         set({ usersError: null })
         try {
           await adminApi.banUser(userId, reason, banExpiresIn)
-          // Refresh the list
           get().fetchUsers()
         } catch (err) {
           set({ usersError: (err as Error).message })
@@ -776,7 +713,6 @@ export const useAdminStore = create<AdminState>()(
         set({ usersError: null })
         try {
           await adminApi.unbanUser(userId)
-          // Refresh the list
           get().fetchUsers()
         } catch (err) {
           set({ usersError: (err as Error).message })
@@ -788,7 +724,6 @@ export const useAdminStore = create<AdminState>()(
         set({ usersError: null })
         try {
           await adminApi.deleteUser(userId)
-          // Refresh the list
           get().fetchUsers()
         } catch (err) {
           set({ usersError: (err as Error).message })
@@ -818,11 +753,9 @@ export const useAdminStore = create<AdminState>()(
         }
       },
 
-      // Socket Connection Management
       connectSocket: () => {
         const socket = getAdminSocket()
 
-        // Set up event listeners
         socket.on('job_progress', (data: JobProgressEvent) => {
           get().updateJobProgress(data)
         })
@@ -867,14 +800,12 @@ export const useAdminStore = create<AdminState>()(
           get().updateRecalculateScoresProgress(data)
         })
 
-        // Connect and join admin room
         connectAdminSocket()
       },
 
       disconnectSocket: () => {
         const socket = getAdminSocket()
 
-        // Remove all event listeners
         socket.off('job_progress')
         socket.off('job_completed')
         socket.off('job_failed')
@@ -887,17 +818,14 @@ export const useAdminStore = create<AdminState>()(
         socket.off('batch_import_progress')
         socket.off('recalculate_scores_progress')
 
-        // Disconnect socket
         disconnectAdminSocket()
       },
 
       handleJobAdded: (_jobId) => {
-        // Fetch updated job list when a new job is added
         get().fetchJobs()
       },
 
       handleJobActive: (jobId) => {
-        // Update job status to active
         set({
           jobs: get().jobs.map((j) =>
             j.id === jobId
@@ -908,7 +836,6 @@ export const useAdminStore = create<AdminState>()(
       },
 
       handleJobDelayed: (jobId, _delay) => {
-        // Update job status to delayed
         set({
           jobs: get().jobs.map((j) =>
             j.id === jobId
@@ -919,7 +846,6 @@ export const useAdminStore = create<AdminState>()(
       },
 
       handleJobWaiting: (jobId) => {
-        // Update job status to waiting
         set({
           jobs: get().jobs.map((j) =>
             j.id === jobId
@@ -930,14 +856,12 @@ export const useAdminStore = create<AdminState>()(
       },
 
       handleJobRemoved: (jobId) => {
-        // Remove job from list
         set({
           jobs: get().jobs.filter((j) => j.id !== jobId),
         })
       },
 
       handleJobStalled: (jobId) => {
-        // Mark job as stalled (treat as failed)
         set({
           jobs: get().jobs.map((j) =>
             j.id === jobId

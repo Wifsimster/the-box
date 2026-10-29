@@ -25,7 +25,6 @@ async function seed() {
   const userPassword = await hashPassword('testpass123');
   const adminPassword = await hashPassword('admin123');
 
-  // Delete existing test users by email or username
   const existingUsers = await db('user').where(function() {
     this.whereIn('email', ['testuser@example.com', 'admin@example.com'])
         .orWhereIn('username', ['e2e_testuser', 'e2e_admin']);
@@ -38,7 +37,6 @@ async function seed() {
     console.log('Deleted existing test users');
   }
 
-  // Insert test user
   const testUserId = randomBytes(16).toString('hex');
   await db('user').insert({
     id: testUserId,
@@ -66,7 +64,6 @@ async function seed() {
     updatedAt: now,
   });
 
-  // Insert admin user
   const adminUserId = randomBytes(16).toString('hex');
   await db('user').insert({
     id: adminUserId,

@@ -1,14 +1,3 @@
-/**
- * Admin analytics reporting.
- *
- * Pure derivation: counters in, report DTOs out. Every rate on the admin
- * dashboard (retention, churn, DAU/MAU stickiness, activation, week-1
- * retention, consent rate) is computed here, so the rules can be unit-tested
- * without a database and the Express layer stays a transport shim.
- *
- * No infrastructure imports — the only dependency is the
- * `AdminAnalyticsRepository` port.
- */
 import type { LogWriter } from '../ports/logger.js'
 import type {
   AdminAnalyticsRepository,
@@ -21,22 +10,16 @@ import type {
   UserAnalyticsCounters,
 } from '../ports/analytics.js'
 
-/** Postgres hands back `COUNT(*)` as a string; normalize once, here. */
 function count(value: Counter): number {
   const n = Number(value ?? 0)
   return Number.isFinite(n) ? n : 0
 }
 
-/**
- * Percentage with one decimal place, guarding zero denominators. Every rate
- * on the dashboard goes through this so they round identically.
- */
 export function percent(numerator: number, denominator: number): number {
   if (denominator === 0) return 0
   return Math.round((numerator / denominator) * 1000) / 10
 }
 
-/** Mean with two decimals, guarding zero denominators. */
 function round2(value: Counter): number {
   return Math.round(count(value) * 100) / 100
 }
@@ -45,12 +28,9 @@ function iso(date: Date | null | undefined): string | null {
   return date?.toISOString() ?? null
 }
 
-/** Username wins over the auth provider's display name when both exist. */
 function displayName(row: { username: string | null; name: string }): string {
   return row.username ?? row.name
 }
-
-// ---------- Report DTOs ----------
 
 export interface UserAnalyticsReport {
   users: {
@@ -162,8 +142,6 @@ export interface GrowthStatsReport {
   relanceEmail: { sentLast24h: number; sentLast7d: number; lastSentAt: string | null }
 }
 
-// ---------- Pure mappers (exported for direct unit testing) ----------
-
 function mapTopBySessions(rows: TopPlayerBySessionsRow[]): UserAnalyticsReport['topBySessions'] {
   return rows.map((row) => ({
     userId: row.user_id,
@@ -211,19 +189,6 @@ function mapAtRiskStreaks(rows: AtRiskStreakRow[]): UserAnalyticsReport['atRiskS
   }))
 }
 
-/**
- * Turn raw engagement counters into the dashboard report.
- *
- * Rate definitions live here and nowhere else:
- *  - retention30d  = 30-day actives / all non-guest users
- *  - churnRate(N)  = users silent past N days / users who EVER logged in
- *                    (denominator excludes never-activated users, so the
- *                    rate measures abandonment, not activation failure)
- *  - stickiness    = DAU / MAU (30 ≈ the average monthly user logs in ~9
- *                    days a month)
- *  - activation    = signups in the last 30d that played at least once
- *  - week1         = signups in the last 30d still playing 7 days later
- */
 export function buildUserAnalyticsReport(raw: UserAnalyticsCounters): UserAnalyticsReport {
   const totalUsers = count(raw.totals?.total)
   const everPlayed = count(raw.totals?.ever_played)
@@ -314,7 +279,6 @@ export function buildUserAnalyticsReport(raw: UserAnalyticsCounters): UserAnalyt
   }
 }
 
-/** Turn raw growth counters into the lead-gen report. */
 export function buildGrowthStatsReport(raw: GrowthStatsCounters): GrowthStatsReport {
   const totalUsers = count(raw.totalNonGuestUsers)
   const consentedUsers = count(raw.consented)
@@ -346,14 +310,7 @@ export function buildGrowthStatsReport(raw: GrowthStatsCounters): GrowthStatsRep
   }
 }
 
-// ---------- Service ----------
-
 export interface AdminAnalyticsServiceDeps {
-  /**
-   * Narrowed on purpose: this service only ever writes log lines, so it
-   * depends on `LogWriter` rather than the wider `DomainLogger`. A test
-   * double is four no-ops (see admin-analytics.service.test.ts).
-   */
   logger: LogWriter
   analyticsRepository: AdminAnalyticsRepository
 }

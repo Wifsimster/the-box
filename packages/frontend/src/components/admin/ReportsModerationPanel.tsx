@@ -54,9 +54,6 @@ export function ReportsModerationPanel() {
     const [loading, setLoading] = useState(true)
     const [pendingKey, setPendingKey] = useState<string | null>(null)
 
-    // The spinner flag is raised by whatever starts a fetch: the initial state
-    // on mount, the filter toggle, or load() for refresh/reactivate. The
-    // filter-driven effect only writes state once the request settles.
     const fetchAndApply = useCallback(
         () =>
             fetchReports(onlyDeactivated)

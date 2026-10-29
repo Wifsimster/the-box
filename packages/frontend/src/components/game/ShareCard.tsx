@@ -39,11 +39,9 @@ export function ShareCard({
     const [todayIso] = useState(() => new Date().toISOString().split('T')[0]!)
     const shareDate = challengeDate || todayIso
 
-    // Generate emoji grid (Wordle-style)
     const generateEmojiGrid = (): string => {
         const sortedResults = guessResults.toSorted((a, b) => a.position - b.position)
 
-        // Create rows of 5 emojis each (2 rows for 10 screenshots)
         const row1 = sortedResults.slice(0, 5).map(r => r.isCorrect ? '✅' : '❌').join('')
         const row2 = sortedResults.slice(5, 10).map(r => r.isCorrect ? '✅' : '❌').join('')
 
@@ -52,9 +50,6 @@ export function ShareCard({
 
     type ShareChannel = 'twitter' | 'whatsapp' | 'sms' | 'discord' | 'native' | 'clipboard'
 
-    // Per-channel UTM source so analytics can distinguish a WhatsApp paste
-    // from a Twitter intent from a raw clipboard copy. Medium + campaign
-    // stay constant so all share-card traffic rolls up under one filter.
     const buildShareUrl = (channel: ShareChannel, date: string): string => {
         const params = new URLSearchParams({
             date,
@@ -67,13 +62,6 @@ export function ShareCard({
         return `https://the-box.battistella.ovh/share/daily?${params.toString()}`
     }
 
-    // Generate share text.
-    //
-    // This is the single most-seen brand surface: most impressions of The Box
-    // happen in someone else's feed, not on the site. It used to be hardcoded
-    // English on a French-default product ("The Box Daily Challenge", "correct",
-    // "points"), so it is now localised and carries the box sentence from
-    // docs/brand.md §5 — date, score, verb, no emoji in the base line.
     const generateShareText = (channel: ShareChannel): string => {
         const date = shareDate
         const emojiGrid = generateEmojiGrid()
@@ -96,15 +84,11 @@ export function ShareCard({
             text += `${t('share.rankPosition', { rank, total: totalPlayers })}\n`
         }
 
-        // Point the share URL at /share/daily — the backend serves that
-        // route with per-day OG meta + dynamic image so Twitter/Discord/etc.
-        // render a unique preview for each shared challenge.
         text += `\n🔗 ${buildShareUrl(channel, date)}`
 
         return text
     }
 
-    // Copy to clipboard
     const handleCopyToClipboard = async () => {
         const text = generateShareText('clipboard')
         try {
@@ -118,17 +102,14 @@ export function ShareCard({
         }
     }
 
-    // Share to Twitter
     const handleShareTwitter = () => {
         const text = generateShareText('twitter')
         const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
         window.open(url, '_blank', 'noopener,noreferrer,width=550,height=420')
     }
 
-    // Share to Discord
     const handleShareDiscord = () => {
         const text = generateShareText('discord')
-        // Discord doesn't have a direct web intent, so we copy and suggest pasting
         navigator.clipboard.writeText(text).then(() => {
             toast.success(t('share.discordCopied'))
         }).catch(err => {
@@ -136,15 +117,9 @@ export function ShareCard({
         })
     }
 
-    // Native share sheet (iOS/Android + desktop Safari/Edge) — opens the
-    // platform share UI so users can hit WhatsApp, Messages, Mail, etc.
-    // without us maintaining one-off buttons per app.
     const canUseNativeShare =
         typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
-    // The card is fetched ahead of the tap: iOS Safari drops the user
-    // activation if `navigator.share` waits on a network request, so the
-    // file must already be in memory when the button is pressed.
     const cardFileRef = useRef<File | null>(null)
     const cardLang = i18n.language
     useEffect(() => {
@@ -158,7 +133,6 @@ export function ShareCard({
                 cardFileRef.current = new File([blob], dailyCardFileName(shareDate), { type: blob.type })
             })
             .catch(() => {
-                // No card: the share falls back to text only.
             })
         return () => controller.abort()
     }, [shareDate, cardLang])
@@ -167,12 +141,9 @@ export function ShareCard({
         const text = generateShareText('native')
         const outcome = await shareWithOptionalImage(navigator, text, cardFileRef.current)
         if (outcome === 'failed') console.error('Native share failed')
-        // A cancel counts as handled: the player closed the sheet on purpose.
         return outcome !== 'failed'
     }
 
-    // On phones the OS share sheet already lists every app the player uses,
-    // so the share button opens it in one tap and the menu is only a fallback.
     const handleTriggerClick = (e: React.MouseEvent) => {
         if (open || !canUseNativeShare) return
         if (!window.matchMedia?.('(pointer: coarse)').matches) return
@@ -190,9 +161,6 @@ export function ShareCard({
 
     const handleShareSms = () => {
         const text = generateShareText('sms')
-        // `sms:` has patchy body-parameter support across platforms; `?&body=`
-        // is the iOS form, `?body=` works on Android. Use `?&body=` which
-        // works on both modern iOS and Android.
         const url = `sms:?&body=${encodeURIComponent(text)}`
         window.location.href = url
     }

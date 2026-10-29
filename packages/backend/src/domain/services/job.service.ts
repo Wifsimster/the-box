@@ -19,7 +19,6 @@ async function mapBullJobToJob(
     delayed: 'delayed',
   }
 
-  // For repeatable jobs, get next run time from the map if available
   let nextRunAt: string | undefined
   if (bullJob.id?.startsWith('repeat:') && nextRunMap) {
     const nextRunTime = nextRunMap.get(bullJob.name)
@@ -73,16 +72,9 @@ export interface JobService {
 export interface JobServiceDeps {
   logger: DomainLogger
   importQueue: ImportQueuePort
-  // Optional secondary queue whose repeatable jobs should also surface in
-  // the admin job list. Currently nothing operator-facing flows through it,
-  // so the surfacing list is empty — the queue is kept around so future
-  // geo cron-style jobs can opt in.
   geoQueue?: ReadOnlyQueuePort
 }
 
-/**
- * Create a JobService with injected dependencies.
- */
 export function createJobService(deps: JobServiceDeps): JobService {
   const { importQueue, geoQueue } = deps
   const log = deps.logger.child({ service: 'job' })
@@ -112,10 +104,8 @@ export function createJobService(deps: JobServiceDeps): JobService {
         limit
       )
 
-      // Sort by creation time (newest first)
       jobs.sort((a, b) => b.timestamp - a.timestamp)
 
-      // Build a map of job name -> next run time for repeatable jobs
       const repeatableJobs = await importQueue.getRepeatableJobs()
       const nextRunMap = new Map<string, number>()
       for (const repeatJob of repeatableJobs) {
@@ -139,7 +129,6 @@ export function createJobService(deps: JobServiceDeps): JobService {
       log.info({ id, state }, 'attempting to cancel/remove job')
 
       if (state === 'active') {
-        // Cannot directly cancel active job, mark as failed
         await job.moveToFailed(new Error('Cancelled by user'), 'admin')
         return true
       }
@@ -150,7 +139,6 @@ export function createJobService(deps: JobServiceDeps): JobService {
       }
 
       if (state === 'completed' || state === 'failed') {
-        // Allow removal of completed/failed jobs
         await job.remove()
         return true
       }
@@ -176,7 +164,6 @@ export function createJobService(deps: JobServiceDeps): JobService {
           removed++
           log.debug({ jobId: job.id, name: job.name }, 'removed job')
         } catch (err) {
-          // Job might already be removed or in a state that can't be removed
           log.debug(
             { jobId: job.id, name: job.name, error: err },
             'failed to remove job, skipping'
@@ -214,8 +201,6 @@ export function createJobService(deps: JobServiceDeps): JobService {
           geoQueue.getRepeatableJobs(),
           geoQueue.getJobs(['active']),
         ])
-        // No operator-facing geo cron jobs are surfaced today; `resolve-metadata`
-        // and `ingest-tick` stay hidden as background plumbing.
         const geoSurfaced = new Set<string>()
         allRepeats.push(...geoRepeats.filter(j => geoSurfaced.has(j.name)))
         allActive.push(...geoActive.filter(j => geoSurfaced.has(j.name)))

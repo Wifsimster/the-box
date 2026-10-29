@@ -22,29 +22,12 @@ import { GridBackground } from "./components/GridBackground";
 import { Reveal } from "./components/Reveal";
 import { fontStack, monoStack, theme } from "./theme";
 
-/**
- * "A quick word from the founder" clip (principle #15 — people buy from
- * people). Renders standalone today as a captioned founder message over the
- * gaming theme; when a real talking-head recording exists, drop it at
- * `public/founder.mp4` and render with `--props='{"withFounderVideo":true}'`
- * — the captions then double as burned-in subtitles.
- *
- * Optional soundtrack: `public/founder-vo.mp3` (voice-over) mixes in when
- * `withAudio` is set.
- */
-
 export type FounderClipProps = {
-  /** Display name on the nameplate. Empty → generic "The Box · Founder". */
   founderName?: string;
-  /** Use a real recording from public/founder.mp4 instead of the cam placeholder. */
   withFounderVideo?: boolean;
-  /** Mix public/founder-vo.mp3 if present. */
   withAudio?: boolean;
 };
 
-// ---- Script -------------------------------------------------------------
-// Frames are relative to the message scene start (30fps). Lines are shown
-// one at a time; keep them short enough to read at a glance.
 type Line = { text: string; from: number; to: number };
 
 const SCRIPT: readonly Line[] = [
@@ -68,11 +51,8 @@ const SCRIPT: readonly Line[] = [
 
 const MESSAGE_DURATION = 450;
 
-// ---- Founder cam --------------------------------------------------------
-
 const RecDot: React.FC = () => {
   const frame = useCurrentFrame();
-  // Blink roughly once per second.
   const on = Math.sin(frame / 9) > -0.2;
   return (
     <div
@@ -107,7 +87,6 @@ const FounderCam: React.FC<FounderClipProps> = ({
   withFounderVideo,
 }) => {
   const frame = useCurrentFrame();
-  // Gentle breathing scale on the placeholder ring so the tile feels alive.
   const pulse = interpolate(Math.sin(frame / 18), [-1, 1], [0.98, 1.04]);
   const name = founderName && founderName.trim().length > 0 ? founderName : "The Box";
 
@@ -134,8 +113,6 @@ const FounderCam: React.FC<FounderClipProps> = ({
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       ) : (
-        // Intentional "founder cam" placeholder — reads as a webcam tile, not
-        // a missing asset. Swap in real footage via withFounderVideo.
         <>
           <div
             style={{
@@ -166,12 +143,10 @@ const FounderCam: React.FC<FounderClipProps> = ({
         </>
       )}
 
-      {/* REC indicator — top-left */}
       <div style={{ position: "absolute", top: 24, left: 24 }}>
         <RecDot />
       </div>
 
-      {/* Nameplate — bottom strip */}
       <div
         style={{
           position: "absolute",
@@ -205,8 +180,6 @@ const FounderCam: React.FC<FounderClipProps> = ({
   );
 };
 
-// ---- Caption ------------------------------------------------------------
-
 const Captions: React.FC = () => {
   const frame = useCurrentFrame();
   const active = SCRIPT.find((l) => frame >= l.from && frame < l.to);
@@ -234,12 +207,10 @@ const Captions: React.FC = () => {
         A quick word from the founder
       </div>
 
-      {/* Caption swaps per line; key forces a fresh fade on each change. */}
       {active ? (
         <CaptionLine key={active.from} text={active.text} from={active.from} />
       ) : null}
 
-      {/* Progress ticks — one per line, fills as the message plays. */}
       <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
         {SCRIPT.map((l) => {
           const done = frame >= l.to;
@@ -298,8 +269,6 @@ const CaptionLine: React.FC<{ text: string; from: number }> = ({
     </div>
   );
 };
-
-// ---- Scenes -------------------------------------------------------------
 
 const IntroCard: React.FC = () => (
   <AbsoluteFill>
@@ -426,7 +395,6 @@ export const FounderClip: React.FC<FounderClipProps> = (props) => {
       {audioSrc ? <Audio src={audioSrc} volume={0.7} /> : null}
 
       <TransitionSeries>
-        {/* Intro nameplate */}
         <TransitionSeries.Sequence durationInFrames={60}>
           <IntroCard />
         </TransitionSeries.Sequence>
@@ -435,7 +403,6 @@ export const FounderClip: React.FC<FounderClipProps> = (props) => {
           presentation={fade()}
         />
 
-        {/* Founder message */}
         <TransitionSeries.Sequence durationInFrames={MESSAGE_DURATION}>
           <MessageScene {...props} />
         </TransitionSeries.Sequence>
@@ -444,7 +411,6 @@ export const FounderClip: React.FC<FounderClipProps> = (props) => {
           presentation={slide({ direction: "from-right" })}
         />
 
-        {/* CTA */}
         <TransitionSeries.Sequence durationInFrames={120}>
           <OutroCard />
         </TransitionSeries.Sequence>

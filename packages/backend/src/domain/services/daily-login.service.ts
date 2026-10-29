@@ -5,31 +5,16 @@ import type {
   InventoryRepository,
 } from '../ports/index.js'
 
-/**
- * Today as YYYY-MM-DD (UTC). All daily-login date math runs in UTC so the
- * outcome is independent of process TZ (Docker UTC vs. dev local) and of
- * PostgreSQL session TZ.
- */
 function getToday(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-/**
- * Yesterday as YYYY-MM-DD (UTC).
- */
 function getYesterday(): string {
   const yesterday = new Date()
   yesterday.setUTCDate(yesterday.getUTCDate() - 1)
   return yesterday.toISOString().slice(0, 10)
 }
 
-/**
- * Whole-day gap between two YYYY-MM-DD dates (UTC). Returns Infinity when
- * `from` is null. Used to decide whether a streak freeze can cover the
- * gap: exactly one missed day (`gap === 2`, e.g. Mon→Wed) is forgivable;
- * two-or-more missed days resets unconditionally per the streak-freeze
- * PRD ("one freeze = one day, period").
- */
 function daysBetween(from: string | null, to: string): number {
   if (!from) return Infinity
   const start = new Date(`${from}T00:00:00Z`).getTime()
@@ -40,10 +25,6 @@ function daysBetween(from: string | null, to: string): number {
 const STREAK_FREEZE_ITEM_TYPE = 'powerup'
 const STREAK_FREEZE_ITEM_KEY = 'streak_freeze'
 
-/**
- * Calculate streak based on last login date
- * Returns: { newStreak, newDayInCycle, isNewLogin }
- */
 function calculateStreak(
   lastLoginDate: string | null,
   currentStreak: number,
@@ -58,7 +39,6 @@ function calculateStreak(
   const today = getToday()
   const yesterday = getYesterday()
 
-  // Case 1: Already logged in today
   if (lastLoginDate === today) {
     return {
       newStreak: currentStreak,
@@ -68,11 +48,9 @@ function calculateStreak(
     }
   }
 
-  // Case 2: Logged in yesterday - continue streak
   if (lastLoginDate === yesterday) {
     const newStreak = currentStreak + 1
     const newLongestStreak = Math.max(longestStreak, newStreak)
-    // Cycle through days 1-7
     const newDayInCycle = (currentDayInCycle % 7) + 1
     return {
       newStreak,
@@ -82,28 +60,14 @@ function calculateStreak(
     }
   }
 
-  // Case 3: No login or login was more than a day ago - reset streak
   return {
     newStreak: 1,
     newLongestStreak: Math.max(longestStreak, 1),
-    newDayInCycle: 1, // Reset to day 1
+    newDayInCycle: 1,
     isNewLogin: true,
   }
 }
 
-/**
- * Normalize `last_login_date` from the database to a YYYY-MM-DD string.
- *
- * The `pg` driver parses DATE columns into JS `Date` objects built at
- * LOCAL midnight (`new Date(year, month, day)`) — a calendar date with no
- * meaningful time-of-day or zone. Rendering such a Date with
- * `toISOString()` reinterprets that local-midnight instant in UTC, which
- * rolls the calendar date back a day on any server east of UTC (e.g.
- * Europe/Paris): yesterday then looks like two days ago and the login
- * streak resets every single day. Read the date back with the LOCAL
- * getters, mirroring how `pg` built the object, so the stored calendar
- * date survives intact regardless of the process timezone.
- */
 function normalizeDate(date: string | Date | null): string | null {
   if (!date) return null
   if (date instanceof Date) {
@@ -126,30 +90,11 @@ export class DailyLoginError extends Error {
 }
 
 export interface DailyLoginService {
-  /**
-   * Get daily login status for a user
-   * This also updates the streak if it's a new day
-   */
   getStatus(userId: string): Promise<DailyLoginStatus>
-  /**
-   * Claim today's reward
-   */
   claimReward(userId: string): Promise<ClaimRewardResponse>
-  /**
-   * Get all reward definitions
-   */
   getAllRewards(): Promise<DailyReward[]>
-  /**
-   * Get user's inventory
-   */
   getUserInventory(userId: string): Promise<UserInventory>
-  /**
-   * Use a powerup from inventory. Returns true if successful.
-   */
   usePowerup(userId: string, powerupKey: string): Promise<boolean>
-  /**
-   * Check if user has a specific powerup available
-   */
   hasPowerup(userId: string, powerupKey: string): Promise<boolean>
 }
 
@@ -159,9 +104,6 @@ export interface DailyLoginServiceDeps {
   inventoryRepository: InventoryRepository
 }
 
-/**
- * Create a DailyLoginService with injected dependencies.
- */
 export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLoginService {
   const { dailyLoginRepository, inventoryRepository } = deps
   const log = deps.logger.child({ service: 'daily-login' })
@@ -170,16 +112,13 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
     async getStatus(userId: string): Promise<DailyLoginStatus> {
       log.debug({ userId }, 'getStatus')
 
-      // Get or create streak record
       const streakRecord = await dailyLoginRepository.getOrCreateUserStreak(userId)
 
-      // Normalize date from database (PostgreSQL returns a Date object)
       const lastLoginDate = normalizeDate(
         streakRecord.last_login_date as string | Date | null
       )
       const today = getToday()
 
-      // Calculate new streak values
       let { newStreak, newLongestStreak, newDayInCycle, isNewLogin } = calculateStreak(
         lastLoginDate,
         streakRecord.current_login_streak,
@@ -189,15 +128,6 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
 
       log.info({ userId, isNewLogin, newStreak, newDayInCycle }, 'calculateStreak result')
 
-      // Streak-freeze auto-consume: when the streak would reset because the
-      // user missed EXACTLY one day AND has at least one freeze in
-      // inventory, consume the freeze and behave as if they had logged in
-      // yesterday. Multi-day gaps are NOT covered (one freeze = one day,
-      // per the streak-freeze PRD). Invariant: freezes are never
-      // purchasable; this is the SOLE consumption path. The atomic
-      // consumeFreezeAndUpdateStreak path below closes the race that
-      // used to exist here (two concurrent /status calls could both
-      // decrement the same freeze).
       const previousStreak = streakRecord.current_login_streak
       const wouldReset =
         isNewLogin && newStreak === 1 && previousStreak > 0
@@ -206,9 +136,6 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
       let streakAlreadyPersisted = false
 
       if (wouldReset && missedExactlyOneDay) {
-        // Recompute the "continued" streak values that we'd save IF the
-        // freeze is available, then hand both to the repo so the
-        // decrement + streak update commit together.
         const continued = calculateStreak(
           getYesterday(),
           previousStreak,
@@ -242,10 +169,6 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
         }
       }
 
-      // Update streak if this is a new login day AND the freeze path
-      // above didn't already persist a transactional update.
-      // updateUserStreak guards on `last_login_date IS DISTINCT FROM
-      // today`, so concurrent /status calls collapse to a single write.
       if (isNewLogin && !streakAlreadyPersisted) {
         await dailyLoginRepository.updateUserStreak(userId, {
           currentLoginStreak: newStreak,
@@ -259,15 +182,13 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
         )
       }
 
-      // Check if already claimed today
       const hasClaimedToday = await dailyLoginRepository.hasClaimedToday(userId)
 
-      // Get all rewards and today's reward
       const allRewards = await dailyLoginRepository.getAllRewards()
       const todayReward = allRewards.find(r => r.dayNumber === newDayInCycle) || null
 
       return {
-        isLoggedInToday: true, // They're logged in since they're calling this
+        isLoggedInToday: true,
         canClaim: !hasClaimedToday,
         hasClaimedToday,
         currentStreak: newStreak,
@@ -282,10 +203,8 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
     async claimReward(userId: string): Promise<ClaimRewardResponse> {
       log.info({ userId }, 'claimReward')
 
-      // Get current status (this also updates streak)
       const status = await service.getStatus(userId)
 
-      // Check if can claim
       if (!status.canClaim) {
         throw new DailyLoginError('ALREADY_CLAIMED', 'You have already claimed your reward today')
       }
@@ -296,16 +215,12 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
 
       const reward = status.todayReward
 
-      // Process reward items
       const itemsToAdd = reward.rewardValue.items.map(item => ({
         itemType: 'powerup',
         itemKey: item.key,
         quantity: item.quantity,
       }))
 
-      // Atomic: insert claim, update streak, upsert inventory, bump score.
-      // The DB unique index on (user_id, UTC claim date) is what actually
-      // protects against double-claim from concurrent requests.
       const result = await dailyLoginRepository.claimDailyReward({
         userId,
         rewardId: reward.id,
@@ -319,7 +234,6 @@ export function createDailyLoginService(deps: DailyLoginServiceDeps): DailyLogin
         throw new DailyLoginError('ALREADY_CLAIMED', 'You have already claimed your reward today')
       }
 
-      // Get updated inventory (post-commit)
       const inventory = await inventoryRepository.getUserInventory(userId)
 
       log.info(

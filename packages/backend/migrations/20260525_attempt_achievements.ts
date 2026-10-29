@@ -1,14 +1,5 @@
 import type { Knex } from 'knex'
 
-// Attempt-based achievements. Now that every guess is persisted per
-// screenshot, we can reward the *journey* of cracking a single capture —
-// both stubborn persistence and first-try precision.
-//
-// Four new criteria types are evaluated per-game from GameCompletionData
-// (attempts_in_game, comeback_in_game, first_try_in_game, flawless_game);
-// total_wrong_guesses is a cumulative all-time aggregate. The matching
-// checker functions live in achievement.service.ts.
-
 export async function up(knex: Knex): Promise<void> {
   const achievements = [
     {
@@ -90,8 +81,6 @@ export async function up(knex: Knex): Promise<void> {
     },
   ]
 
-  // Idempotent: skip keys that already exist so the migration is safe to
-  // re-run in seeded test environments (mirrors 20260512_mastery_milestones).
   const existing = await knex<{ key: string }>('achievements')
     .whereIn(
       'key',

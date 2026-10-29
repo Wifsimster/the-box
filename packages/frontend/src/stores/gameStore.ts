@@ -14,44 +14,31 @@ import { gameApi } from '@/lib/api/game'
 import { pickRestorePosition } from '@/lib/restorePosition'
 
 interface GameState {
-  // Hydration tracking
   _hasHydrated: boolean
 
-  // Session data
   sessionId: string | null
   tierSessionId: string | null
   challengeId: number | null
   challengeDate: string | null
 
-  // Current round state
   currentPosition: number
   totalScreenshots: number
   currentScreenshot: TierScreenshot | null
   currentScreenshotData: ScreenshotResponse | null
 
-  // Position tracking for navigation
   positionStates: Record<number, PositionState>
 
-  // Second-chance modal state. When non-null, the SecondChanceModal
-  // renders for the given position. Set by useGameGuess after a wrong
-  // guess if the player has the inventory and has not yet activated for
-  // this position; cleared on accept/dismiss.
   secondChancePrompt: { position: number } | null
 
   screenshotsFound: number
 
-  // Round timing (for per-screenshot time tracking)
   roundStartedAt: number | null
 
-  // Score tracking
   totalScore: number
   correctAnswers: number
   guessResults: GuessResult[]
-  // All attempts the user made for each position, in chronological order.
-  // Includes wrong guesses (which never reach `guessResults`).
   positionAttempts: Record<number, GuessAttempt[]>
 
-  // Personal bests tracking
   personalBests: {
     highestScore: number
     bestPercentile: number
@@ -60,20 +47,13 @@ interface GameState {
     lastPlayedDate: string | null
   }
 
-  // UI state
   gamePhase: GamePhase
   isLoading: boolean
   lastResult: GuessResult | null
-  isSessionCompleted: boolean // Tracks if backend has marked session as complete
-  showCompletionChoice: boolean // Controls visibility of the completion choice modal
-  // When true, a completion-choice prompt is queued but intentionally NOT shown
-  // yet: the per-screenshot ResultCard is displayed first so the player can see
-  // whether their last guess was correct. The choice modal only opens once they
-  // dismiss/advance from that result (see ResultCard.handleNext). This prevents
-  // the modal (a z-50 portal) from covering the result card (z-40).
+  isSessionCompleted: boolean
+  showCompletionChoice: boolean
   pendingCompletionChoice: boolean
 
-  // Actions
   setSessionId: (id: string, tierSessionId: string) => void
   setChallengeId: (id: number, date: string) => void
   setScreenshot: (screenshot: TierScreenshot, position: number, total: number) => void
@@ -93,36 +73,22 @@ interface GameState {
   updateScore: (totalScore: number) => void
   incrementCorrectAnswers: () => void
 
-  // Personal bests actions
   updatePersonalBests: (score: number, percentile?: number) => void
 
-  // Position navigation actions
   initializePositionStates: (total: number) => void
   updatePositionState: (position: number, updates: Partial<PositionState>) => void
   skipToNextPosition: () => number | null
-  /**
-   * Time-out the current screenshot: lock it as a permanent miss
-   * (`timed_out`) and advance to the next *playable* position. Returns the
-   * next position, or `null` when nothing playable remains (caller should
-   * end the game to reveal results).
-   */
   timeOutCurrentPosition: () => number | null
   navigateToPosition: (position: number) => void
   findNextUnfinished: (fromPosition: number) => number | null
   canNavigateTo: (position: number) => boolean
 
-  // Hint actions
   markIncorrectGuess: (position: number) => void
-  /**
-   * Persist the latest masked-title state for a position (after a
-   * successful POST /reveal-letter, or seeded from ScreenshotResponse).
-   */
   setLetterRevealState: (position: number, state: LetterRevealState) => void
   showSecondChancePrompt: (position: number) => void
   dismissSecondChancePrompt: () => void
   markSecondChanceActivated: (position: number) => void
 
-  // Session restore action
   restoreSessionState: (data: {
     challengeId: number
     correctPositions: number[]
@@ -137,7 +103,6 @@ interface GameState {
   resetGameSession: () => void
   setHasHydrated: (hydrated: boolean) => void
 
-  // End game actions
   hasVisitedAllPositions: () => boolean
   hasSkippedPositions: () => boolean
   findFirstSkipped: () => number | null
@@ -154,18 +119,14 @@ const initialState = {
   totalScreenshots: 10,
   currentScreenshot: null,
   currentScreenshotData: null,
-  // Position tracking for navigation
   positionStates: {} as Record<number, PositionState>,
   secondChancePrompt: null,
   screenshotsFound: 0,
-  // Round timing
   roundStartedAt: null,
-  // Score tracking
   totalScore: 0,
   correctAnswers: 0,
   guessResults: [],
   positionAttempts: {} as Record<number, GuessAttempt[]>,
-  // Personal bests
   personalBests: {
     highestScore: 0,
     bestPercentile: 100,
@@ -205,11 +166,6 @@ export const useGameStore = create<GameState>()(
           const prevPos = state.currentScreenshotData?.position
           let positionStates = state.positionStates
 
-          // Flush the segment we're leaving into the outgoing position's
-          // accumulator so the countdown RESUMES (never resets) when the player
-          // comes back. Only for a real segment on a DIFFERENT position — a
-          // same-position re-fetch must not double-count, and the timer simply
-          // continues from the live `roundStartedAt` re-stamp.
           if (prevPos != null && prevPos !== data.position && state.roundStartedAt != null) {
             const segment = Math.max(0, now - state.roundStartedAt)
             const prevState = positionStates[prevPos]
@@ -224,9 +180,6 @@ export const useGameStore = create<GameState>()(
             }
           }
 
-          // Seed the masked-title state from the server on every fetch —
-          // it already includes any letters paid for in this session, so a
-          // refresh or navigation restores the exact same mask.
           if (data.letterReveal) {
             positionStates = {
               ...positionStates,
@@ -279,7 +232,6 @@ export const useGameStore = create<GameState>()(
           const today = new Date().toISOString().split('T')[0]
           const lastPlayed = state.personalBests.lastPlayedDate
 
-          // Update streak
           let newStreak = state.personalBests.currentStreak
           if (lastPlayed) {
             const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
@@ -305,42 +257,29 @@ export const useGameStore = create<GameState>()(
           }))
         },
 
-        // Session restore action - restores full game state from backend data
-        // Merges persisted local state with authoritative backend data
         restoreSessionState: (data) => {
           const { challengeId, correctPositions, currentPosition: backendPosition, totalScreenshots, screenshotsFound, totalScore } = data
 
-          // Get existing persisted state (from localStorage hydration)
           const existingStates = get().positionStates
           const persistedPosition = get().currentPosition
           const persistedChallengeId = get().challengeId
 
-          // Check if localStorage data is from the same challenge
           const isSameChallenge = persistedChallengeId === challengeId
 
-          // Build position states by merging backend + persisted data.
-          // Build the correct-position lookup once so the loop does an O(1)
-          // Set.has() instead of an O(n) Array.includes() scan per iteration.
           const correctPositionSet = new Set(correctPositions)
           const states: Record<number, PositionState> = {}
           for (let i = 1; i <= totalScreenshots; i++) {
             const isCorrect = correctPositionSet.has(i)
             const existingState = existingStates[i]
 
-            // Determine status with priority:
-            // 1. Backend says correct → always correct (authoritative)
-            // 2. Persisted state exists, same challenge, and not stale → use it (preserves skipped)
-            // 3. Calculate from backend currentPosition
             let status: PositionStatus
             if (isCorrect) {
               status = 'correct'
             } else if (isSameChallenge && existingState && existingState.status !== 'correct') {
-              // Keep persisted status (skipped, in_progress, not_visited) only if same challenge
               status = existingState.status
             } else if (i === backendPosition) {
               status = 'in_progress'
             } else if (i < backendPosition) {
-              // Positions before current that aren't correct were skipped
               status = 'skipped'
             } else {
               status = 'not_visited'
@@ -356,13 +295,12 @@ export const useGameStore = create<GameState>()(
             totalScreenshots,
           })
 
-          // Ensure restored position is marked as in_progress
           if (states[restoredPosition] && states[restoredPosition].status !== 'correct') {
             states[restoredPosition] = { ...states[restoredPosition], status: 'in_progress' }
           }
 
           set({
-            challengeId, // Update challenge ID to current
+            challengeId,
             positionStates: states,
             currentPosition: restoredPosition,
             totalScreenshots,
@@ -372,7 +310,6 @@ export const useGameStore = create<GameState>()(
           })
         },
 
-        // Position navigation actions
         initializePositionStates: (total) => {
           const states: Record<number, PositionState> = {}
           for (let i = 1; i <= total; i++) {
@@ -399,17 +336,13 @@ export const useGameStore = create<GameState>()(
 
         findNextUnfinished: (fromPosition) => {
           const { positionStates, totalScreenshots } = get()
-          // First check forward positions (new, skipped, or correct) - return immediately next position
           for (let i = fromPosition + 1; i <= totalScreenshots; i++) {
             const state = positionStates[i]
             if (!state || state.status === 'not_visited' || state.status === 'skipped' || state.status === 'correct' || state.status === 'in_progress') {
               return i
             }
           }
-          // Only wrap around to skipped/correct positions if we're NOT on the last position
-          // This prevents auto-navigation when on the final screenshot
           if (fromPosition < totalScreenshots) {
-            // Then check skipped or correct positions from beginning (wrap around)
             for (let i = 1; i < fromPosition; i++) {
               const state = positionStates[i]
               if (state?.status === 'skipped' || state?.status === 'correct') {
@@ -424,7 +357,6 @@ export const useGameStore = create<GameState>()(
           const { positionStates, currentPosition } = get()
           const state = positionStates[position]
           if (!state) return false
-          // Allow navigation to any position except the current one
           if (position === currentPosition) return false
           return state.status === 'skipped' ||
             state.status === 'in_progress' ||
@@ -436,9 +368,6 @@ export const useGameStore = create<GameState>()(
           const { currentPosition, positionStates } = get()
           const currentState = positionStates[currentPosition]
 
-          // Mark current as skipped (only if not already correct). Also clear
-          // the transient "warmer" hint so it doesn't linger when the player
-          // returns to this position later without an active guess.
           if (currentState && currentState.status === 'in_progress') {
             set((state) => ({
               positionStates: {
@@ -452,16 +381,13 @@ export const useGameStore = create<GameState>()(
             }))
           }
 
-          // Find next position (including correct ones)
           const nextPos = get().findNextUnfinished(currentPosition)
           if (nextPos) {
-            // Navigate to next position
             const nextState = get().positionStates[nextPos]
             set({
               currentPosition: nextPos,
               lastResult: null,
             })
-            // Mark as in_progress if was not_visited
             if (!nextState || nextState.status === 'not_visited') {
               set((state) => ({
                 positionStates: {
@@ -475,7 +401,6 @@ export const useGameStore = create<GameState>()(
                 },
               }))
             } else if (nextState.status === 'skipped') {
-              // Resuming a skipped position, mark as in_progress
               set((state) => ({
                 positionStates: {
                   ...state.positionStates,
@@ -486,11 +411,9 @@ export const useGameStore = create<GameState>()(
                 },
               }))
             }
-            // If status is 'correct', keep it as 'correct' (don't modify)
             return nextPos
           }
 
-          // No more positions - challenge complete
           set({ gamePhase: 'challenge_complete' })
           return null
         },
@@ -499,13 +422,10 @@ export const useGameStore = create<GameState>()(
           const { currentPosition, positionStates, totalScreenshots } = get()
           const currentState = positionStates[currentPosition]
 
-          // Only a position the player is actively guessing can time out.
           if (!currentState || currentState.status !== 'in_progress') {
             return currentPosition
           }
 
-          // Lock it as a permanent miss — unlike 'skipped' this is terminal and
-          // not revisitable; it surfaces as an unfound game at the end.
           set((state) => ({
             positionStates: {
               ...state.positionStates,
@@ -515,14 +435,9 @@ export const useGameStore = create<GameState>()(
               },
             },
             lastResult: null,
-            // Dismiss any pending second-chance prompt for this position — it's
-            // moot once the clock has run out.
             secondChancePrompt: null,
           }))
 
-          // Next *playable* position = one the player can still act on
-          // (not_visited or skipped). Correct/timed_out positions are finalized
-          // and skipped over. Scan forward then wrap to the start.
           const findNextPlayable = (): number | null => {
             const states = get().positionStates
             for (let i = currentPosition + 1; i <= totalScreenshots; i++) {
@@ -553,7 +468,6 @@ export const useGameStore = create<GameState>()(
             return nextPos
           }
 
-          // Nothing playable left — caller ends the game to reveal results.
           return null
         },
 
@@ -562,12 +476,8 @@ export const useGameStore = create<GameState>()(
           const state = positionStates[position]
 
           if (!state) return
-          // Timed-out positions are terminal — never navigable back into.
           if (state.status === 'timed_out') return
 
-          // Update current position. Clear the transient "warmer" hint on the
-          // position we're leaving so it doesn't reappear on return without an
-          // active guess.
           set((prev) => ({
             currentPosition: position,
             lastResult: null,
@@ -583,8 +493,6 @@ export const useGameStore = create<GameState>()(
                 : prev.positionStates,
           }))
 
-          // Mark as in_progress only if not already correct
-          // Keep correct positions as correct (don't change to in_progress)
           if (state.status === 'not_visited' || state.status === 'skipped') {
             set((prev) => ({
               positionStates: {
@@ -596,7 +504,6 @@ export const useGameStore = create<GameState>()(
               },
             }))
           }
-          // If status is 'correct', keep it as 'correct' (don't modify)
         },
 
         nextRound: () => {
@@ -607,15 +514,12 @@ export const useGameStore = create<GameState>()(
               lastResult: null,
             })
           } else {
-            // Challenge complete
             set({ gamePhase: 'challenge_complete' })
           }
         },
 
         resetGame: () => set({ ...initialState, _hasHydrated: true }),
 
-        // Reset session state without clearing personal bests
-        // Used when switching between challenges (e.g. today → catch-up)
         resetGameSession: () => {
           const { personalBests } = get()
           set({
@@ -627,7 +531,6 @@ export const useGameStore = create<GameState>()(
 
         setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
 
-        // End game actions
         hasVisitedAllPositions: () => {
           const { positionStates, totalScreenshots } = get()
           for (let i = 1; i <= totalScreenshots; i++) {
@@ -661,7 +564,6 @@ export const useGameStore = create<GameState>()(
           return null
         },
 
-        // Hint actions
         markIncorrectGuess: (position) => {
           set((state) => ({
             positionStates: {
@@ -719,9 +621,8 @@ export const useGameStore = create<GameState>()(
             const result = await gameApi.endGame(sessionId)
             updateScore(result.totalScore)
             setScreenshotsFound(result.screenshotsFound)
-            setIsSessionCompleted(true) // Mark session as completed
+            setIsSessionCompleted(true)
 
-            // Add unfound games to guessResults as unguessed entries
             if (result.unfoundGames && result.unfoundGames.length > 0) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Backend response shape varies
               const unfoundResults: GuessResult[] = result.unfoundGames.map((unfound: any) => {
@@ -733,13 +634,12 @@ export const useGameStore = create<GameState>()(
                   correctGame: unfound.game,
                   userGuess: lastWrong,
                   timeTakenMs: 0,
-                  scoreEarned: 0, // Unfound games score 0 — backend applies no penalty
+                  scoreEarned: 0,
                   screenshot: unfound.screenshot,
                   attempts,
                 }
               })
 
-              // Merge with existing results and sort by position
               const allResults = [...guessResults, ...unfoundResults].sort((a, b) => a.position - b.position)
               set({ guessResults: allResults })
             }
@@ -759,11 +659,6 @@ export const useGameStore = create<GameState>()(
           challengeId: state.challengeId,
           challengeDate: state.challengeDate,
           totalScore: state.totalScore,
-          // Persist position states for navigation on refresh, but strip the
-          // ephemeral "warmer" proximity hint: it's transient feedback for an
-          // active guess, not durable state. Persisting it made the banner
-          // reappear on PWA reopen / refresh with no active guess to justify
-          // it, growing the input dock and shoving the screenshot up.
           positionStates: Object.fromEntries(
             Object.entries(state.positionStates).map(([key, value]) => [
               key,
@@ -772,12 +667,8 @@ export const useGameStore = create<GameState>()(
           ),
           currentPosition: state.currentPosition,
           screenshotsFound: state.screenshotsFound,
-          // Persist guess results for results page display
           guessResults: state.guessResults,
-          // Persist per-position attempts so refresh on the results page
-          // still has the full list of tries.
           positionAttempts: state.positionAttempts,
-          // Persist personal bests
           personalBests: state.personalBests,
         }),
         onRehydrateStorage: () => (state) => {
@@ -789,10 +680,6 @@ export const useGameStore = create<GameState>()(
   )
 )
 
-// Dev-only test seam: expose the store on `window` so E2E specs can set up
-// deterministic game states (e.g. the "visited all + skipped" completion-choice
-// scenario) without a live backend. Guarded by `import.meta.env.DEV`, so it is
-// stripped from production builds and never widens the app's runtime surface.
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   ;(window as unknown as { __gameStore?: typeof useGameStore }).__gameStore =
     useGameStore

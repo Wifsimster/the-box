@@ -15,11 +15,6 @@ interface AuthLayoutProps {
   children?: ReactNode
 }
 
-/**
- * Shared shell for every sign-in style screen (login, register, password
- * reset, 2FA). On phones the card sits near the top so the on-screen keyboard
- * never covers the submit button; from `sm` up it is vertically centered.
- */
 export function AuthLayout({ title, subtitle, icon: Icon, iconClassName, footer, children }: AuthLayoutProps) {
   return (
     <>
@@ -57,7 +52,6 @@ export function AuthLayout({ title, subtitle, icon: Icon, iconClassName, footer,
   )
 }
 
-/** Inline form-level error, announced to screen readers as soon as it appears. */
 export function AuthFormError({ children, className, id }: { children?: ReactNode; className?: string; id?: string }) {
   if (!children) return null
   return (

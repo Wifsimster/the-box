@@ -34,7 +34,6 @@ import {
   type ChangelogSection,
 } from '@/data/changelog'
 
-/** Localized i18n shape for a single release block. */
 interface ReleaseContent {
   summary?: string
   features?: string[]
@@ -54,17 +53,6 @@ const SECTION_ACCENT: Record<ChangelogSection, string> = {
   fixes: 'text-muted-foreground',
 }
 
-/**
- * "What's New" dialog. Auto-opens the newest announced release's notes once
- * per release, and opens on demand from the footer version chip.
- *
- * Releases are laid out on a *horizontal timeline* (newest first, left to
- * right): each version is a tappable stop, and the body shows one release at a
- * time. Players page between versions with the timeline itself, the footer
- * chevrons, or the keyboard (arrow keys on the timeline). All copy is
- * localized; bullet content comes from the active i18n bundle keyed by
- * version, so the notes follow the player's language.
- */
 export function ChangelogDialog(): ReactElement | null {
   const { t, i18n } = useTranslation()
   const open = useChangelogStore((s) => s.open)
@@ -72,12 +60,8 @@ export function ChangelogDialog(): ReactElement | null {
   const openChangelog = useChangelogStore((s) => s.openChangelog)
   const markSeen = useChangelogStore((s) => s.markSeen)
   const reducedMotion = useReducedMotion()
-  // Queue behind the welcome and daily-reward dialogs instead of stacking.
   const welcomeActive = useWelcomeActive()
   const rewardModalOpen = useDailyLoginStore((s) => s.isModalOpen)
-  // Daily-first: an *automatic* opening never lands on today's box or a game
-  // in progress. It waits for the next other route (results, profile…). A
-  // manual opening from the footer chip shows right away.
   const { pathname } = useLocation()
   const [autoOpened, setAutoOpened] = useState(false)
   const onTheBox = isTodayPath(pathname) || IN_GAME_PATH.test(pathname)
@@ -85,8 +69,6 @@ export function ChangelogDialog(): ReactElement | null {
 
   const release = getLatestRelease()
 
-  // Which release is on screen (0 = newest) and which way the last page turn
-  // went (1 = towards older, -1 = towards newer) so the panel slides that way.
   const [activeIndex, setActiveIndex] = useState(0)
   const [direction, setDirection] = useState(0)
 
@@ -100,7 +82,6 @@ export function ChangelogDialog(): ReactElement | null {
     [activeIndex],
   )
 
-  // Always land on the newest release when the dialog (re)opens.
   useEffect(() => {
     if (open) {
       setActiveIndex(0)
@@ -108,9 +89,6 @@ export function ChangelogDialog(): ReactElement | null {
     }
   }, [open])
 
-  // Edge-fade affordance: the release panel is the only vertical scroller, so
-  // we surface token-only top/bottom fades when its content overflows to signal
-  // there's more to read above/below the fold.
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showTopFade, setShowTopFade] = useState(false)
   const [showBottomFade, setShowBottomFade] = useState(false)
@@ -132,13 +110,6 @@ export function ChangelogDialog(): ReactElement | null {
     return () => window.removeEventListener('resize', updateFades)
   }, [visible, activeIndex, updateFades, i18n.language])
 
-  // Auto-open the newest announced release's notes once, the first time a
-  // player loads the app after that release lands in the changelog registry.
-  // The seen-marker tracks the registry — NOT the build version, which bumps
-  // on every deploy and would re-open the dialog with the same stale notes
-  // after each one. Brand-new visitors (no recorded marker) are marked seen
-  // silently so they aren't greeted by notes for a release they never
-  // "upgraded" from. Runs once on mount.
   useEffect(() => {
     const decision = resolveChangelogAutoOpen(release?.version, lastSeenVersion)
     if (decision === 'open') {
@@ -149,15 +120,12 @@ export function ChangelogDialog(): ReactElement | null {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // The full localized `changelog.releases` map, resolved once for the active
-  // language. Individual release blocks are looked up by version below.
   const releaseContent = useMemo<Record<string, ReleaseContent>>(() => {
     const releases = t('changelog.releases', { returnObjects: true }) as
       | Record<string, ReleaseContent>
       | string
     if (!releases || typeof releases !== 'object') return {}
     return releases
-    // i18n.language is a dependency so blocks re-resolve on language switch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t, i18n.language])
 
@@ -190,8 +158,6 @@ export function ChangelogDialog(): ReactElement | null {
     })
   }
 
-  // Slide the panel towards older releases (right) or newer ones (left);
-  // reduced-motion players get a plain cross-fade.
   const slide = reducedMotion ? 0 : 24
   const panelVariants = {
     enter: (dir: number) => ({ opacity: 0, x: dir * slide }),
@@ -328,11 +294,6 @@ interface VersionTimelineProps {
   t: (key: string, options?: Record<string, unknown>) => string
 }
 
-/**
- * Horizontal timeline strip — one stop per announced release, newest on the
- * left. Implements the ARIA tabs pattern: the strip is a `tablist`, stops are
- * `tab`s with a roving tabindex, and Left/Right/Home/End move + activate.
- */
 function VersionTimeline({
   activeIndex,
   onSelect,
@@ -341,7 +302,6 @@ function VersionTimeline({
 }: VersionTimelineProps): ReactElement {
   const listRef = useRef<HTMLDivElement>(null)
 
-  // Keep the active stop visible as the player pages through releases.
   useEffect(() => {
     const list = listRef.current
     if (!list) return
@@ -387,7 +347,6 @@ function VersionTimeline({
               onClick={() => onSelect(index)}
               className="group flex min-h-11 min-w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-lg px-2 pb-1.5 pt-1 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {/* Stop marker sitting on the connecting rail. */}
               <span className="relative flex h-4 w-full items-center justify-center">
                 {index > 0 && (
                   <span
@@ -443,7 +402,6 @@ interface ReleaseEntryProps {
   t: (key: string, options?: Record<string, unknown>) => string
 }
 
-/** One release's notes — the tab panel body for the selected timeline stop. */
 function ReleaseEntry({
   entry,
   content,

@@ -27,17 +27,6 @@ export interface GeoConsensusJobResult {
   skipReason?: string
 }
 
-/**
- * Per-candidate consensus routine. Enqueued each time a pin is submitted;
- * cheap to no-op when the candidate is below a threshold.
- *
- * `pinCountAtEnqueue` is the post-increment value captured by the producer
- * (see `geo.routes.ts /contribute/pin`). It is the gate's source of truth:
- * without it, two near-simultaneous pins (A then B) can both step PAST the
- * same threshold (e.g. 9 → 10 → 11) and the worker re-reads pin_count = 11
- * for both, never evaluating at the threshold. Using the per-pin captured
- * value guarantees exactly one pin sees each threshold.
- */
 export async function evaluateConsensusForCandidate(
   geoScreenshotCandidateId: number,
   options: { pinCountAtEnqueue?: number } = {},
@@ -71,10 +60,6 @@ export async function evaluateConsensusForCandidate(
     }
   }
 
-  // Threshold gate. Use the captured at-enqueue value when available so two
-  // pins arriving in quick succession can't both skip the same threshold.
-  // Fall back to the (possibly racy) re-read for back-compat with jobs
-  // queued before this field shipped.
   const thresholds = GEO_CONSENSUS_THRESHOLDS as readonly number[]
   const gateCount = options.pinCountAtEnqueue ?? candidate.pinCount
   if (!thresholds.includes(gateCount)) {
@@ -119,9 +104,6 @@ export async function evaluateConsensusForCandidate(
     }
   }
 
-  // Agent pins have no user_id — skip them here so they earn no rewards and
-  // can't be shadow-banned. They still feed the consensus math below (as
-  // downweighted voters) but never the promote count (see consensus v3).
   const pinOwners = new Map<number, string>()
   for (const p of pending) if (p.userId) pinOwners.set(p.id, p.userId)
 
@@ -137,7 +119,6 @@ export async function evaluateConsensusForCandidate(
     pinOwners,
   })
 
-  // Real-time: notify each rewarded user, then check if they just tier'd up.
   for (const s of summaries) {
     if (s.grants.length > 0) {
       emitGeoRewarded({

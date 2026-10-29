@@ -21,7 +21,6 @@ import { limitQuery, gameIdParams } from './shared.js'
 
 const router = Router()
 
-// have ground truth); rejected ones are already excluded by the repo.
 router.get(
   '/games/:gameId/candidates',
   requireScope('geo-agent:read'),
@@ -35,9 +34,6 @@ router.get(
         geoMapRepository.listEnabledByGameId(gameId),
         geoScreenshotRepository.listCandidatesForReview({ gameId, limit: limit ?? 50 }),
       ])
-      // Only captures still awaiting a canonical pin are actionable for the
-      // agent. `listCandidatesForReview` already drops rejected (is_active=false)
-      // rows; filter out promoted here.
       const actionable = candidates.filter((c) => c.status !== 'promoted')
       res.json({ success: true, data: { maps, candidates: actionable } })
     } catch (err) {
@@ -46,13 +42,6 @@ router.get(
   },
 )
 
-// POST /games/:gameId/captures — top up an enrolled game's candidates
-// (issue #331, phase 5). Reuses the existing RAWG importer (the same
-// function the ingest tick calls) rather than duplicating its dedup/tombstone
-// logic; also accepts an explicit `imageUrls` list for manual/gameplay
-// captures (problem #4 in the issue — RAWG's promo shots are often not
-// geolocatable). Requires the game to already have an enabled map to attach
-// captures to. Bounded by a per-key daily budget.
 const importCapturesBodySchema = z
   .object({
     targetCount: z.coerce.number().int().positive().max(CAPTURE_TARGET_CANDIDATES).optional(),
@@ -101,9 +90,6 @@ router.post(
 
       let result: { fetched: number; inserted: number; skipped: number }
       if (imageUrls && imageUrls.length > 0) {
-        // createCandidate's (source, external_id) unique constraint already
-        // dedupes at the DB level; check first so the response can report an
-        // honest inserted/skipped split instead of always reporting insert.
         let inserted = 0
         let skipped = 0
         for (const imageUrl of imageUrls) {

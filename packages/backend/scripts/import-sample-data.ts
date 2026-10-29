@@ -1,6 +1,3 @@
-/**
- * Import sample games and screenshots from JSON files
- */
 import { readFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -20,21 +17,18 @@ async function importData() {
 
     console.log(`Found ${gamesData.length} games and ${screenshotsData.length} screenshots`)
 
-    // Import games
     console.log('Importing games...')
     for (const game of gamesData) {
         await db('games').insert(game).onConflict('id').ignore()
     }
     console.log(`✓ Imported ${gamesData.length} games`)
 
-    // Create a map of slug to game ID
     const slugToIdMap = new Map()
     const games = await db('games').select('id', 'slug')
     for (const game of games) {
         slugToIdMap.set(game.slug, game.id)
     }
 
-    // Import screenshots
     console.log('Importing screenshots...')
     let imported = 0
     for (const screenshot of screenshotsData) {

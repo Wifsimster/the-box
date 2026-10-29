@@ -37,7 +37,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     return json.data
 }
 
-// Wire shape of POST /api/screenshot-reports — exactly one target must be set.
 export type SubmitReportInput =
     | {
           screenshotId: number

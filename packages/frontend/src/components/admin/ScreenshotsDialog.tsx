@@ -47,8 +47,6 @@ export function ScreenshotsDialog({ game, open, onOpenChange }: ScreenshotsDialo
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
 
-        {/* Keying on the game id remounts the viewer per game, giving it fresh
-            state (carousel index + loading) without any reset-on-prop effect. */}
         {open && game && <ScreenshotsViewer key={game.id} gameId={game.id} gameName={game.name} />}
       </ResponsiveDialogContent>
     </ResponsiveDialog>
@@ -62,9 +60,6 @@ interface ScreenshotsState {
 
 function ScreenshotsViewer({ gameId, gameName }: { gameId: number; gameName: string }) {
   const { t } = useTranslation()
-  // `screenshots` and `loading` settle together (one fetch resolves both), so
-  // they live in a single state object updated in one set call rather than a
-  // cascade of setScreenshots/setLoading writes inside the effect.
   const [{ screenshots, loading }, setState] = useState<ScreenshotsState>({
     screenshots: [],
     loading: true,
@@ -95,7 +90,6 @@ function ScreenshotsViewer({ gameId, gameName }: { gameId: number; gameName: str
     setCurrentIndex((prev) => (prev < screenshots.length - 1 ? prev + 1 : 0))
   }, [screenshots.length])
 
-  // Keyboard navigation
   useEffect(() => {
     if (screenshots.length <= 1) return
 
@@ -127,7 +121,6 @@ function ScreenshotsViewer({ gameId, gameName }: { gameId: number; gameName: str
           </div>
         ) : (
           <div className="relative">
-            {/* Main image */}
             <div
               className="relative aspect-video rounded-lg overflow-hidden bg-background touch-pan-y"
               onTouchStart={(e) => {
@@ -150,7 +143,6 @@ function ScreenshotsViewer({ gameId, gameName }: { gameId: number; gameName: str
                 className="size-full object-contain"
               />
 
-              {/* Navigation arrows */}
               {screenshots.length > 1 && (
                 <>
                   <Button
@@ -174,7 +166,6 @@ function ScreenshotsViewer({ gameId, gameName }: { gameId: number; gameName: str
                 </>
               )}
 
-              {/* Info overlay */}
               <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-3 sm:p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                   {currentScreenshot && (
@@ -191,7 +182,6 @@ function ScreenshotsViewer({ gameId, gameName }: { gameId: number; gameName: str
               </div>
             </div>
 
-            {/* Counter and dots */}
             <div className="flex items-center justify-center gap-4 mt-4">
               <span className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
                 {currentIndex + 1} / {screenshots.length}

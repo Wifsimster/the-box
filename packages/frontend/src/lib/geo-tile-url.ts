@@ -1,9 +1,5 @@
 import type { GeoMapTilesConfig } from '@the-box/types'
 
-// Format a tile URL by substituting {z}/{x}/{y} according to the scheme.
-// Mirrors `packages/backend/src/domain/services/geo-tile-url.service.ts` —
-// keep the two in sync. Duplicated rather than shipped via @the-box/types so
-// the types package can stay declarations-only.
 export function formatTileUrl(
   config: GeoMapTilesConfig,
   z: number,

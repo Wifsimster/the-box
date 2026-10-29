@@ -8,16 +8,12 @@ import {
 import type { PushJobData } from '../queues.js'
 import type { SendResult } from '../../push/push-sender.js'
 
-// ---- Fakes -----------------------------------------------------------------
-
 type SendBehavior = SendResult | (() => SendResult | Promise<SendResult>)
 
 interface FakeState {
   configured: boolean
   subs: FanOutSubscription[]
-  // Map of endpoint → SendResult (or a thunk for async / dynamic results).
   sendBehavior: Map<string, SendBehavior>
-  // Optional per-endpoint markFailure error injection.
   markFailureShouldThrow: Set<string>
   successes: string[]
   failures: Array<{ endpoint: string; userId: string; status: number; deactivate: boolean }>
@@ -74,8 +70,6 @@ function freshState(overrides: Partial<FakeState> = {}): FakeState {
     ...overrides,
   }
 }
-
-// ---- Tests -----------------------------------------------------------------
 
 describe('createFanOut', () => {
   it('short-circuits when push is not configured', async () => {
@@ -215,7 +209,6 @@ describe('createFanOut', () => {
     assert.equal(result.succeeded, 1)
     assert.equal(result.retryable, 1)
     assert.equal(result.pruned, 1)
-    // permanent is not surfaced in the result counters but markFailure was still called for it
     assert.equal(state.failures.length, 3)
   })
 })

@@ -57,10 +57,6 @@ export const geoContributorRepository = {
     return row ? mapStats(row) : null
   },
 
-  /**
-   * Atomically bump submitted/accepted/rejected counters. The `accuracy`
-   * column is recomputed server-side to stay consistent with the counts.
-   */
   async bumpCounters(args: {
     userId: string
     submittedDelta: number

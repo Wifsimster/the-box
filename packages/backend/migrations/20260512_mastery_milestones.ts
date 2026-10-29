@@ -1,23 +1,6 @@
 import type { Knex } from 'knex'
 
-// Mastery-tier milestones — long-tail markers that fire over months/years
-// of play. They reuse the existing achievement evaluator (no new
-// criteria_type required) and only fill GAPS in the existing threshold
-// curve. Pre-existing thresholds already cover:
-//   challenges_completed: 1, 5, 10, 25, 50, 100
-//   total_correct_guesses: 1, 10, 50, 100
-//   total_guesses:        1, 100, 500
-// The five milestones below extend the curve at 200+ defi, 250/500
-// correct, and 1000 total guesses — purely additive value.
-//
-// Three Sphinx-class milestones (perfect_score_count, account_age_days)
-// require new criteria types and a daily worker; they are deliberately
-// deferred to a follow-up step so this migration stays seed-only and
-// ships zero code changes to the achievement evaluator.
-
 export async function up(knex: Knex): Promise<void> {
-  // Idempotent: skip rows whose key already exists. Lets us re-run the
-  // migration in seeded test envs without ON CONFLICT noise.
   const milestones = [
     {
       key: 'mille_fois',
@@ -76,9 +59,6 @@ export async function up(knex: Knex): Promise<void> {
     },
   ]
 
-  // Filter out keys already seeded — keeps the migration safe to re-run
-  // and avoids unique-key collisions in environments where some of these
-  // names happen to pre-exist via seed scripts.
   const existing = await knex<{ key: string }>('achievements')
     .whereIn(
       'key',

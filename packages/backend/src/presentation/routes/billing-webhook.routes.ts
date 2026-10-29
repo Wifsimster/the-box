@@ -12,11 +12,6 @@ import { billingService as billingServiceProd } from '../../composition/billing.
 import { logger as loggerProd } from '../../infrastructure/logger/logger.js'
 import type { DomainLogger } from '../../domain/ports/logger.js'
 
-// Mounted at the very top of index.ts BEFORE express.json(), because Stripe
-// signature verification requires the raw request bytes. Using a path-scoped
-// raw parser keeps every other route on the existing JSON pipeline.
-
-// ---- Dependency-injection ports ----------------------------------------
 
 export interface BillingWebhookEventLogRepo {
   claimEvent(eventId: string, type: string): Promise<{ alreadyProcessed: boolean }>
@@ -48,13 +43,6 @@ export interface BillingWebhookDeps {
   logger: DomainLogger
 }
 
-// ---- Pure helpers (exported for tests) ---------------------------------
-
-// STRIPE_WEBHOOK_SECRET supports comma-separated values so a rolling
-// rotation (Stripe lets you keep both an old and a new signing secret on
-// the same endpoint for a short window) doesn't drop events while ops
-// updates the env. We try each secret in turn and accept the first that
-// verifies; if none verify, we 400 like before.
 export function parseWebhookSecrets(raw: string): string[] {
   return raw
     .split(',')
@@ -74,16 +62,12 @@ function verifyEvent(stripe: Stripe, body: Buffer, signature: string, secrets: s
   throw lastErr ?? new Error('no webhook secret provided')
 }
 
-// ---- Factory -----------------------------------------------------------
-
 export function createBillingWebhookRouter(deps: BillingWebhookDeps): Router {
   const log = deps.logger.child({ route: 'billing-webhook' })
   const router = Router()
 
   router.post(
     '/',
-    // 1 MB is well above Stripe's typical event payloads (~50 KB) but caps
-    // the buffer Node allocates before signature verification runs.
     express.raw({ type: 'application/json', limit: '1mb' }),
     async (req, res) => {
       const signature = req.headers['stripe-signature']
@@ -108,12 +92,6 @@ export function createBillingWebhookRouter(deps: BillingWebhookDeps): Router {
         return
       }
 
-      // Two-phase idempotency. Claim the event first so concurrent retries
-      // see processed_at IS NULL and don't both run side effects naïvely (the
-      // writes themselves are idempotent, but skipping needless work is
-      // cheaper). Only after dispatch returns successfully do we stamp
-      // processed_at — a 5xx mid-dispatch keeps processed_at NULL so the
-      // next retry re-runs the handler instead of being silently skipped.
       try {
         const { alreadyProcessed } = await deps.stripeEventLogRepository.claimEvent(event.id, event.type)
         if (alreadyProcessed) {
@@ -129,8 +107,6 @@ export function createBillingWebhookRouter(deps: BillingWebhookDeps): Router {
           { err: String(err), eventId: event.id, type: event.type },
           'webhook handler failed',
         )
-        // 5xx signals Stripe to retry; processed_at stays NULL so the retry
-        // will re-dispatch instead of seeing a stale "applied" claim.
         res.status(500).send(`webhook handler error (event ${event.id})`)
       }
     },
@@ -141,8 +117,6 @@ export function createBillingWebhookRouter(deps: BillingWebhookDeps): Router {
 
 async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stripe.Event): Promise<void> {
   switch (event.type) {
-    // Delayed payment methods (e.g. SEPA debit) complete the Checkout
-    // Session as `unpaid` and settle later via async_payment_succeeded.
     case 'checkout.session.async_payment_succeeded':
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
@@ -156,19 +130,12 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
         'checkout completed',
       )
 
-      // One-time supporter purchases never create a Subscription, so the
-      // sibling customer.subscription.created handler doesn't fire. Persist
-      // the grant directly here when the Checkout Session was created for
-      // the supporter SKU; recurring-tier sessions fall through.
       if (session.mode !== 'payment') return
       if (session.metadata?.['tier'] !== 'supporter_lifetime') {
         log.debug({ sessionId: session.id }, 'one-time checkout ignored — not the supporter SKU')
         return
       }
 
-      // Never grant before the money has cleared: an `unpaid` completion
-      // is a pending async payment that may still fail. The grant then
-      // arrives with checkout.session.async_payment_succeeded.
       if (session.payment_status === 'unpaid') {
         log.info({ sessionId: session.id }, 'supporter checkout completed but unpaid — awaiting async payment')
         return
@@ -215,21 +182,10 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
 
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
-      // Don't revoke here. The paired customer.subscription.updated carries the
-      // new status (past_due), and the entitlement layer treats past_due as a
-      // grace window (see GRACE_STATUSES / isSubscriptionEntitled) — the user
-      // keeps premium until current_period_end while Stripe retries. Access is
-      // only dropped when Stripe finally transitions the sub to unpaid/canceled
-      // (or the paid period expires).
-      // TODO(notification): a Resend "payment failed, we'll retry" email
-      // belongs here once the lifecycle email worker covers billing.
       log.warn(
         {
           invoiceId: invoice.id,
           customerId: invoice.customer,
-          // Stripe's typing exposes `subscription` only on the subscription
-          // shape; cast through unknown to read it without depending on the
-          // SDK's discriminated union.
           subscriptionId: (invoice as unknown as { subscription?: string }).subscription,
         },
         'invoice payment failed — entering grace window until current_period_end',
@@ -238,10 +194,6 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
     }
 
     case 'invoice.paid': {
-      // Successful (re)payment. The paired customer.subscription.updated flips
-      // the status back to active, which the subscription-sync path above
-      // applies — so entitlement recovery from a prior past_due grace window is
-      // automatic. Logged here purely for a clean recovery trail.
       const invoice = event.data.object as Stripe.Invoice
       log.info(
         {
@@ -255,10 +207,6 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
     }
 
     case 'customer.deleted': {
-      // Stripe deleted the Customer (manual ops or after a long inactivity).
-      // Null out our pointer so the user can re-checkout cleanly without
-      // tripping over a stale customer ID; subscriptions row is left for
-      // history (FK to user, status will already be canceled by Stripe).
       const customer = event.data.object as Stripe.Customer
       const userId = await deps.billingService.resolveUserIdFromCustomer(customer.id)
       if (!userId) {
@@ -272,15 +220,6 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
 
     case 'charge.refunded':
     case 'charge.dispute.created': {
-      // Revenue-safety: a refund or dispute on the one-time supporter
-      // charge must revoke entitlement, otherwise the user keeps premium
-      // access for free. Subscription-tier refunds also flow through
-      // charge.* events but are paired with an invoice; we let the
-      // subscription.updated path handle those instead of double-acting.
-      //
-      // Disputes carry only a charge ref, not the full Charge — fetch
-      // when needed so we have access to invoice/customer/amount in one
-      // place regardless of which event variant fired.
       let charge: Stripe.Charge
       if (event.type === 'charge.refunded') {
         charge = event.data.object as Stripe.Charge
@@ -297,22 +236,13 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
               { err: String(err), disputeId: dispute.id, chargeRef },
               'failed to retrieve charge for dispute',
             )
-            // Rethrow so the router answers 5xx and leaves processed_at
-            // NULL: Stripe retries, instead of the revocation being lost.
             throw err
           }
         }
       }
 
-      // The SDK's Charge type doesn't surface `invoice` in our pinned
-      // version even though the API field has always been there; cast
-      // through unknown to read it without depending on the SDK shape.
       const invoiceRef = (charge as unknown as { invoice?: string | { id: string } | null }).invoice
       if (invoiceRef) {
-        // Subscription-tier charge. Stripe will (or already did) emit a
-        // customer.subscription.updated for this; let that path do the
-        // entitlement bookkeeping so we don't have to coordinate two
-        // sources of truth.
         log.debug(
           {
             chargeId: charge.id,
@@ -351,13 +281,9 @@ async function dispatch(deps: BillingWebhookDeps, log: DomainLogger, event: Stri
     }
 
     default:
-      // Stripe sends a lot of event types we don't care about; logging at
-      // debug keeps prod logs clean while preserving traceability.
       log.debug({ eventType: event.type }, 'webhook event ignored')
   }
 }
-
-// ---- Default production-wired router -----------------------------------
 
 const router = createBillingWebhookRouter({
   stripeEventLogRepository: stripeEventLogRepoProd,

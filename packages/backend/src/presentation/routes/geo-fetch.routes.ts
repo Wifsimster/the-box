@@ -15,19 +15,11 @@ import {
   emitGeoFetchMapSelected,
 } from '../../infrastructure/socket/socket.js'
 
-// Admin-only routes for the multi-source map fetch pipeline. Mounted at
-// /api/admin/geo-fetch — separate from admin.routes.ts to keep the new code
-// scoped, and so the cutover commit can delete it without bleeding into the
-// existing admin module.
-
 const log = routeLogger.child({ route: 'geo-fetch' })
 const router = Router()
 
 router.use(adminMiddleware)
 
-// === Status ===========================================================
-
-// Aggregate counts by stage. Cheap; powers the sticky header on the panel.
 router.get('/status', async (_req, res, next) => {
   try {
     const stageCounts = await geoPipelineStateRepository.countByStage()
@@ -49,7 +41,6 @@ router.get('/status', async (_req, res, next) => {
   }
 })
 
-// Paginated per-game state list with filtering + game name join.
 const listQuerySchema = z.object({
   stage: z.string().optional(),
   search: z.string().optional(),
@@ -81,17 +72,10 @@ router.get('/games', async (req, res, next) => {
   }
 })
 
-// === Start / cancel ===================================================
-
-// Hard cap on `start({ all: true })`. BullMQ stalls and the pipeline
-// state table thrashes if we drop tens of thousands of jobs in one click;
-// 1000 is enough to sweep our entire curated catalog today and gives a
-// human-scale upper bound for the future.
 const GEO_FETCH_MAX_START_GAMES = 1000
 
 const startSchema = z.object({
   gameIds: z.array(z.number().int().positive()).max(GEO_FETCH_MAX_START_GAMES).optional(),
-  // When true, enqueue every curated game that's not already ready.
   all: z.boolean().optional(),
 })
 
@@ -102,9 +86,6 @@ router.post('/start', async (req, res, next) => {
     let truncated = false
     if (body.all) {
       gameIds = await gameRepository.findGeoIngestEligibleIds()
-      // Truncate rather than reject: an admin clicking "Lancer tout" wants
-      // the run to start, not a 400. Surface the truncation in the response
-      // so the UI can show the clamp.
       if (gameIds.length > GEO_FETCH_MAX_START_GAMES) {
         gameIds = gameIds.slice(0, GEO_FETCH_MAX_START_GAMES)
         truncated = true
@@ -115,7 +96,6 @@ router.post('/start', async (req, res, next) => {
       return
     }
 
-    // Initialize pipeline state for each game and enqueue an orchestrator job.
     for (const gameId of gameIds) {
       await geoPipelineStateRepository.upsert({
         gameId,
@@ -148,18 +128,11 @@ router.post('/start', async (req, res, next) => {
   }
 })
 
-// Drain only the maps:* jobs from the geo queue. Without the kind filter,
-// `clean()` would also blow away unrelated jobs (consensus evaluation,
-// contributor tier promotion) that happen to be waiting/delayed at the same
-// moment — those are user-initiated and must not be silently dropped.
 router.post('/cancel', async (req, res, next) => {
   try {
     const isMapsJob = (job: { name?: string }) =>
       typeof job.name === 'string' && job.name.startsWith('maps:')
 
-    // Get a snapshot of waiting + delayed map jobs and remove them
-    // individually. clean() with the 'wait'/'delayed' status would drop
-    // every job in those buckets; iterating gives us per-job filter.
     const [waiting, delayed] = await Promise.all([
       geoQueue.getWaiting(0, 10_000),
       geoQueue.getDelayed(0, 10_000),
@@ -171,7 +144,6 @@ router.post('/cancel', async (req, res, next) => {
         await job.remove()
         removed++
       } catch {
-        // Job could've started in between snapshot and removal — skip.
       }
     }
     log.warn(
@@ -189,8 +161,6 @@ router.post('/cancel', async (req, res, next) => {
   }
 })
 
-// === Per-game ========================================================
-
 const gameIdParam = z.object({ gameId: z.coerce.number().int().positive() })
 
 router.get('/:gameId', async (req, res, next) => {
@@ -207,7 +177,6 @@ router.get('/:gameId', async (req, res, next) => {
 router.post('/:gameId/retry', async (req, res, next) => {
   try {
     const { gameId } = gameIdParam.parse(req.params)
-    // Clear any cooldown gate.
     await geoPipelineStateRepository.upsert({
       gameId,
       currentStage: 'queued',
@@ -250,13 +219,10 @@ router.post('/:gameId/:source/retry', async (req, res, next) => {
   }
 })
 
-// === Curation ========================================================
-
 router.get('/:gameId/maps', async (req, res, next) => {
   try {
     const { gameId } = gameIdParam.parse(req.params)
     const maps = await geoMapRepository.listCandidatesByGameId(gameId)
-    // Group by zone for the drawer UI; null zone_slug becomes a single bucket.
     const groups = new Map<
       string,
       {
@@ -290,7 +256,6 @@ router.post('/:gameId/maps/:mapId/select', async (req, res, next) => {
     const { gameId, mapId } = selectParams.parse(req.params)
     const userId = (req as { user?: { id?: string } }).user?.id ?? null
 
-    // Make sure the map is enabled before selecting it (selectMap requires it).
     const target = await geoMapRepository.findById(mapId)
     if (!target || target.gameId !== gameId) {
       res.status(404).json({ success: false, error: { code: 'MAP_NOT_FOUND', message: 'map not found for game' } })
@@ -300,7 +265,6 @@ router.post('/:gameId/maps/:mapId/select', async (req, res, next) => {
       res.json({ success: true, data: { map: target } })
       return
     }
-    // Auto-enable if needed so admins don't need a separate click.
     await geoMapRepository.enableForGame(gameId, mapId)
     const updated = await geoMapRepository.selectMap(gameId, mapId, userId)
     if (!updated) {
@@ -329,13 +293,9 @@ router.post('/:gameId/maps/:mapId/select', async (req, res, next) => {
   }
 })
 
-// Clear any cooldown / circuit-breaker block for a game so it can be retried.
 router.delete('/:gameId/cooldown', async (req, res, next) => {
   try {
     const { gameId } = gameIdParam.parse(req.params)
-    // The new ingest-attempt log doesn't store tombstone rows we delete, but
-    // the orchestrator's cooldown is based on recent failures. Reset all
-    // circuit breakers and bump the pipeline to queued so it'll retry now.
     const sources = await geoSourceConfigRepository.list()
     for (const s of sources) {
       await resetCircuitBreaker(s.source)

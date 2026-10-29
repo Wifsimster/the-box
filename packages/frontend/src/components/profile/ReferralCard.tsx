@@ -36,7 +36,6 @@ export function ReferralCard({ userId, language }: ReferralCardProps) {
         if (!cancelled) setStats(data)
       })
       .catch(() => {
-        // Stats are a soft read — degrade silently
       })
     return () => { cancelled = true }
   }, [])

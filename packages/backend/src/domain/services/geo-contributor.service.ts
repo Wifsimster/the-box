@@ -13,20 +13,11 @@ export interface GeoTierEvaluation {
 }
 
 export interface GeoContributorService {
-  /**
-   * Given current stats, pick the highest tier whose cutoffs are met.
-   * Tiers in the threshold table are ordered by `display_order` ascending,
-   * so we iterate and keep the last match.
-   */
   pickTier(
     stats: Pick<GeoContributorStats, 'totalAccepted' | 'accuracy'>,
     thresholds: GeoContributorTierThreshold[],
   ): GeoContributorTier
 
-  /**
-   * Load current stats + thresholds, evaluate, and persist a tier change
-   * if one is warranted. Never downgrades a user who has crossed upward.
-   */
   evaluateAndMaybePromote(userId: string): Promise<GeoTierEvaluation | null>
 }
 
@@ -70,7 +61,6 @@ export function createGeoContributorService(
         thresholds,
       )
 
-      // Never downgrade; only promote when computed rank exceeds current.
       if (tierRank(computed) <= tierRank(previousTier)) {
         return { previousTier, newTier: previousTier, promoted: false }
       }

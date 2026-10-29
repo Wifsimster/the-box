@@ -1,15 +1,3 @@
-/**
- * Admin API composition root.
- *
- * This module owns exactly one responsibility: applying the admin guard and
- * mounting the focused sub-routers that each own a single admin concern.
- * Every handler lives in `./admin/<concern>.routes.ts`; nothing is defined
- * here. Adding an admin surface means adding a module and one `use()` line —
- * this file never grows a handler.
- *
- * Mount order is irrelevant to URLs (each sub-router declares full paths),
- * but it is kept alphabetical-by-concern-group for readability.
- */
 import { Router } from 'express'
 import { adminMiddleware } from '../middleware/auth.middleware.js'
 
@@ -36,19 +24,15 @@ import { appSettingsService } from '../../composition/app-settings.js'
 
 const router = Router()
 
-// All admin routes require authentication + the admin role.
 router.use(adminMiddleware)
 
-// Catalog
 router.use(gamesRoutes)
 router.use(screenshotsRoutes)
 router.use(challengesRoutes)
 
-// Job queue
 router.use(jobsRoutes)
 router.use(batchJobsRoutes)
 
-// Operations
 router.use(emailRoutes)
 router.use(analyticsRoutes)
 router.use(moderationRoutes)
@@ -56,10 +40,8 @@ router.use(billingRoutes)
 router.use(scrapingRoutes)
 router.use(describeGuessRoutes)
 
-// App settings (Admin → Paramètres). Same router as the settings MCP tools.
 router.use('/settings', createSettingsRouter({ settings: appSettingsService, audit: recordAdminGeoAudit, channel: 'admin-ui' }))
 
-// Geo mode
 router.use(geoReviewRoutes)
 router.use(geoDiagnosticsRoutes)
 router.use(geoMapsRoutes)

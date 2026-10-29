@@ -24,12 +24,6 @@ function makeService(opts: {
   scoreCounts?: StandingCounts
   sessionCounts?: SessionStandingCounts | null
 }) {
-  // No cast: `DailyChallengeLookup` is the two-method slice the service
-  // actually uses, so an honest fake satisfies it.
-  // No cast: `DailyChallengeLookup` is the two-method slice the service
-  // actually uses, so an honest fake satisfies it — and the compiler now
-  // checks the fixture is a real ChallengeRecord instead of taking the
-  // `as unknown as` cast's word for it.
   const challengeRepository: DailyChallengeLookup = {
     findByDate: async () =>
       opts.challengeForDate
@@ -166,10 +160,6 @@ describe('leaderboard.service — getMonthlyCountryLeaderboard', () => {
 
 describe('leaderboardService.getTodayPercentile', () => {
   it('never ranks a bare score past the total (stale score from another device)', async () => {
-    // The player's own finished session (1925 pts) is the only ranked row.
-    // Device A asks for its stale local score (200): one session is above
-    // it and the board holds one session. The old pass-through answered
-    // "Rank #2 of 1 players, top 200%".
     const { service } = makeService({
       challengeForDate: { id: 7 },
       scoreCounts: { rankedPlayers: 1, playersAbove: 1 },

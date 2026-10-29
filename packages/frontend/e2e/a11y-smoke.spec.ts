@@ -1,17 +1,3 @@
-/**
- * Accessibility Smoke Tests (Sprint 0 of shadcn migration)
- *
- * Runs axe-core against the 5 user-facing surfaces that matter most for the
- * shadcn migration. Failures here signal that either:
- *   (a) we shipped a regression during a primitive migration, or
- *   (b) a custom component is missing a11y affordances that a shadcn primitive
- *       would have given us for free.
- *
- * Tolerated violations: we intentionally start the harness with impact
- * "serious" and "critical" only, so Sprint 0 lands green. Sprint 1 will tighten
- * to include "moderate". This avoids flooding CI with noise from legacy
- * components we already plan to replace.
- */
 import { test as authTest } from './fixtures/auth.fixture'
 import { test as base, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -20,10 +6,7 @@ const SERIOUS_OR_CRITICAL = ['serious', 'critical'] as const
 
 async function runAxe(page: import('@playwright/test').Page, label: string) {
   const results = await new AxeBuilder({ page })
-    // Rule-level tuning. Safe to remove entries once the app satisfies them.
     .disableRules([
-      // Dark-theme + gaming gradients trip color-contrast in some places;
-      // tracked separately in the migration plan and enforced via design review.
       'color-contrast',
     ])
     .analyze()

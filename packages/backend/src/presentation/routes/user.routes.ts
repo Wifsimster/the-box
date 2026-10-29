@@ -25,9 +25,6 @@ import { PREMIUM_THEME_KEYS, DEFAULT_THEME_KEY, isValidThemeKey } from '../../co
 
 const router = Router()
 
-// Public profile — no auth. Exposes a deliberately minimal subset of user
-// data plus recent completed sessions so players can link-share their profile
-// (and their friends can visit it without logging in).
 router.get('/public/:username', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
   try {
@@ -55,7 +52,6 @@ router.get('/public/:username', async (req, res, next) => {
   }
 })
 
-// Get current user's profile with stats
 router.get('/me', authMiddleware, async (req, res, next) => {
   try {
     const user = await userRepository.findById(req.userId!)
@@ -76,13 +72,9 @@ router.get('/me', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Get user's daily game history
 router.get('/history', authMiddleware, async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
   try {
-    // Premium users get the extended catch-up window in their missed
-    // challenges list, so the UI surfaces playable archive entries
-    // without the user having to know a deep-link challenge ID.
     const isPremium = await billingService.isPremium(req.userId!)
     const data = await userService.getGameHistory(req.userId!, isPremium)
 
@@ -95,7 +87,6 @@ router.get('/history', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Get detailed game session information
 router.get('/history/:sessionId', authMiddleware, async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
   try {
@@ -117,8 +108,6 @@ router.get('/history/:sessionId', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Upload avatar. The raw upload is re-encoded to a 512x512 WebP (EXIF
-// orientation applied, metadata stripped) before it is stored.
 router.post(
   '/avatar',
   authMiddleware,
@@ -134,8 +123,6 @@ router.post(
   })
 )
 
-// Update email marketing consent. Opt-in only — the checkbox on
-// signup/settings posts here to record the user's explicit choice.
 router.put('/email-consent', authMiddleware, async (req, res, next) => {
   try {
     const { consent } = req.body ?? {}
@@ -162,17 +149,13 @@ router.put('/email-consent', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Delete avatar
 router.delete('/avatar', authMiddleware, async (req, res, next) => {
   try {
-    // Get current user to check for existing avatar
     const currentUser = await userRepository.findById(req.userId!)
     const oldAvatarUrl = currentUser?.avatarUrl
 
-    // Remove avatar URL from user
     const updatedUser = await userRepository.updateAvatarUrl(req.userId!, null)
 
-    // Delete old avatar file if it exists
     if (oldAvatarUrl) {
       await deleteAvatarFile(oldAvatarUrl)
     }
@@ -188,13 +171,6 @@ router.delete('/avatar', authMiddleware, async (req, res, next) => {
   }
 })
 
-// ===== Premium-only: advanced profile stats =====
-//
-// Aggregates over the caller's completed daily sessions only; catch-up
-// sessions are excluded so the numbers line up with the leaderboard view
-// rather than counting practice runs as ranked play. Single endpoint
-// returning everything the AdvancedStatsPanel renders so the panel does
-// one round-trip on mount instead of a fan-out per stat.
 router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, next) => {
   try {
     res.json({ success: true, data: await playerStatsService.getAdvancedStats(req.userId!) })
@@ -203,13 +179,6 @@ router.get('/advanced-stats', authMiddleware, requirePremium, async (req, res, n
   }
 })
 
-// ===== Premium-only: UI theme switch =====
-//
-// Free users can only set `default`. Anything else needs an active
-// entitlement; we 402 to let the frontend route to the upsell modal,
-// matching how `requirePremium` behaves on other gated endpoints.
-// Validation against the catalog happens here rather than relying on
-// a Postgres enum so adding a theme stays a code-only change.
 router.put('/theme', authMiddleware, async (req, res, next) => {
   try {
     const { theme } = (req.body ?? {}) as { theme?: unknown }
@@ -232,9 +201,6 @@ router.put('/theme', authMiddleware, async (req, res, next) => {
         })
         return
       }
-      // Belt-and-braces: theme must be in the premium catalog. Catches a
-      // future bug where someone adds a key to VALID_KEYS without putting
-      // it in either default or PREMIUM_THEME_KEYS.
       if (!(PREMIUM_THEME_KEYS as readonly string[]).includes(theme)) {
         res.status(400).json({
           success: false,
@@ -258,13 +224,6 @@ router.put('/theme', authMiddleware, async (req, res, next) => {
   }
 })
 
-// ===== RGPD Art. 16: right to rectification =====
-//
-// Lets the caller correct their own display name and/or username, and set or
-// clear their country (optional, self-declared). At least one field must be
-// present. Validation mirrors registration: display names
-// pass the safety gate, usernames are alnum/underscore 3–20 and globally
-// unique. `display_username` is kept in sync by the repository.
 router.put('/profile', authMiddleware, async (req, res, next) => {
   try {
     const body = (req.body ?? {}) as { displayName?: unknown; username?: unknown; country?: unknown }
@@ -294,7 +253,6 @@ router.put('/profile', authMiddleware, async (req, res, next) => {
           error: { code: 'INVALID_USERNAME', message: 'Username is invalid' },
         })
       }
-      // Uniqueness: a row with this username belonging to someone else blocks it.
       const existing = await userRepository.findByUsername(body.username)
       if (existing && existing.id !== req.userId) {
         return res.status(409).json({
@@ -338,16 +296,10 @@ router.put('/profile', authMiddleware, async (req, res, next) => {
   }
 })
 
-// ===== RGPD Art. 15 & 20: data access / portability =====
-//
-// Streams the full export object as a downloadable JSON attachment. The
-// repository excludes all secret material (push keys, api-key/webhook
-// hashes, auth credentials). Deliberately NOT wrapped in the usual
-// {success,data} envelope — it's a file, not an API payload.
 router.get('/export', authMiddleware, async (req, res, next) => {
   try {
     const data = await gdprRepository.exportUserData(req.userId!)
-    const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    const date = new Date().toISOString().slice(0, 10)
     res.setHeader('Content-Type', 'application/json')
     res.setHeader(
       'Content-Disposition',
@@ -361,11 +313,6 @@ router.get('/export', authMiddleware, async (req, res, next) => {
   }
 })
 
-// ===== RGPD Art. 17: right to erasure (self-service) =====
-//
-// Hard-deletes the caller's account after a typed-username confirmation.
-// CASCADE foreign keys remove sessions, accounts, and all game/geo data —
-// the same mechanism the admin delete path relies on.
 router.delete('/account', authMiddleware, async (req, res, next) => {
   try {
     const { confirmUsername } = (req.body ?? {}) as { confirmUsername?: unknown }
@@ -388,12 +335,6 @@ router.delete('/account', authMiddleware, async (req, res, next) => {
       })
     }
 
-    // Block deletion while a live recurring subscription is still billing, so
-    // we never orphan an active subscription in Stripe (the user row — and its
-    // stripe_customer_id — is about to be hard-deleted). Supporter-lifetime
-    // (source 'supporter') is one-time and doesn't block; a subscription
-    // already set to cancel at period end doesn't either, since the cleanup
-    // below cancels the remainder.
     const entitlement = await billingService.getEntitlement(req.userId!)
     if (
       entitlement.source === 'subscription' &&
@@ -410,21 +351,12 @@ router.delete('/account', authMiddleware, async (req, res, next) => {
       })
     }
 
-    // Capture the Stripe customer id before the row (and the id with it) is
-    // deleted so the cleanup below can remove the customer.
     const stripeCustomerId = await userRepository.getStripeCustomerId(req.userId!)
 
-    // CASCADE removes sessions / accounts / game data, mirroring the admin
-    // delete path. The cascaded `session` rows are enough to log the user out.
     await userRepository.deleteAccount(req.userId!)
 
     logger.info({ userId: req.userId }, 'user self-deleted account')
 
-    // Best-effort Stripe customer cleanup. Done after the DB delete so a Stripe
-    // outage can't block account deletion; deleting the customer also cancels
-    // any lingering (cancel-at-period-end) subscription. Log-and-continue on
-    // failure — the account is already gone and a stale Stripe customer is
-    // harmless (and re-reconciled via the customer.deleted webhook otherwise).
     if (stripeCustomerId && isStripeConfigured()) {
       try {
         await getStripe().customers.del(stripeCustomerId)

@@ -65,12 +65,6 @@ function totpReducer(state: TotpState, action: TotpAction): TotpState {
   }
 }
 
-/**
- * SecurityPanel — two-factor (TOTP) + passkey management, rendered inside the
- * profile hub's "Security" tab. Extracted from the former standalone
- * SecuritySettingsPage so account settings live in one place; the
- * `/settings/security` route now redirects here.
- */
 export function SecurityPanel() {
   const { t } = useTranslation()
   const { session } = useAuth()
@@ -147,7 +141,6 @@ export function SecurityPanel() {
     <>
       <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">{t('security.subtitle')}</p>
 
-      {/* --------- TOTP --------- */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center justify-between gap-2">
@@ -181,10 +174,8 @@ export function SecurityPanel() {
         </CardContent>
       </Card>
 
-      {/* --------- Passkeys --------- */}
       <PasskeyManager isAnonymous={isAnonymous} />
 
-      {/* ---------- TOTP enrollment dialog ---------- */}
       <TotpEnrollmentDialog
         step={totpStep}
         password={totpPassword}

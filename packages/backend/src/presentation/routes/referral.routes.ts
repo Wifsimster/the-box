@@ -9,12 +9,6 @@ import { authMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()
 
-/**
- * POST /api/referral/claim
- * Body: { code: string }
- * Grants referral power-up rewards to both the referee (caller) and
- * the referrer identified by `code`. One-shot per account.
- */
 router.post('/claim', authMiddleware, async (req, res, next) => {
   try {
     const { code } = req.body ?? {}
@@ -31,9 +25,6 @@ router.post('/claim', authMiddleware, async (req, res, next) => {
     res.json({ success: true, data: result })
   } catch (error) {
     if (error instanceof ReferralError) {
-      // A missing referee (USER_NOT_FOUND) or a referrer code that resolves to
-      // no account (REFERRER_NOT_FOUND) are both "not found" — 404. Everything
-      // else (self-referral, already-claimed, guest, ineligible) is a 400.
       const notFound = error.code === 'USER_NOT_FOUND' || error.code === 'REFERRER_NOT_FOUND'
       const status = notFound ? 404 : 400
       return res.status(status).json({
@@ -45,10 +36,6 @@ router.post('/claim', authMiddleware, async (req, res, next) => {
   }
 })
 
-/**
- * GET /api/referral/stats
- * Returns claim status and number of successful referrals made.
- */
 router.get('/stats', authMiddleware, async (req, res, next) => {
   try {
     const stats = await referralService.getStats(req.userId!)

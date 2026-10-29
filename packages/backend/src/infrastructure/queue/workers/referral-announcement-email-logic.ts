@@ -8,8 +8,6 @@ const log = queueLogger.child({ worker: 'referral-announcement-email' })
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// Safety cap. The job is one-shot per user but a misconfigured DB would
-// otherwise mail the entire base in a single boot.
 const MAX_CANDIDATES_PER_RUN = 10000
 
 export interface ReferralAnnouncementResult {
@@ -28,17 +26,6 @@ interface AnnouncementCandidate {
   name: string
 }
 
-/**
- * Returns existing users who:
- *   - have opted in to marketing emails,
- *   - own a non-guest account,
- *   - have not already received the referral announcement.
- *
- * The `referral_announcement_email_sent_at IS NULL` clause is the dedupe
- * key — once stamped, a user is permanently excluded from this batch so
- * the job is safe to retry after partial failures or re-runs on later
- * deploys.
- */
 async function findCandidates(): Promise<AnnouncementCandidate[]> {
   const rows = await db('user')
     .select<AnnouncementCandidate[]>('id', 'email', 'display_name', 'name')
@@ -96,8 +83,6 @@ async function sendOne(user: AnnouncementCandidate): Promise<'sent' | 'skipped' 
 
   if (!resend) {
     log.info({ userId: user.id }, '[DEV] referral-announcement email skipped — no Resend key configured')
-    // Stamp the user even in dev so a later run with Resend configured
-    // does not double-mail accounts created before the announcement.
     await db('user').where('id', user.id).update({ referral_announcement_email_sent_at: new Date() })
     return 'skipped'
   }

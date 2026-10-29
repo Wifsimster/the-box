@@ -1,7 +1,6 @@
 import type { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
-    // 1. Create daily_login_rewards table (reward definitions)
     await knex.schema.createTable('daily_login_rewards', (table) => {
         table.increments('id').primary()
         table.integer('day_number').notNullable().unique().comment('Day in the 7-day cycle (1-7)')
@@ -13,7 +12,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
-    // 2. Create user_login_streaks table (per-user tracking)
     await knex.schema.createTable('user_login_streaks', (table) => {
         table.increments('id').primary()
         table.text('user_id').notNullable().references('id').inTable('user').onDelete('CASCADE')
@@ -29,7 +27,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index('last_login_date')
     })
 
-    // 3. Create user_inventory table (persistent power-up storage)
     await knex.schema.createTable('user_inventory', (table) => {
         table.increments('id').primary()
         table.text('user_id').notNullable().references('id').inTable('user').onDelete('CASCADE')
@@ -43,7 +40,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index('user_id')
     })
 
-    // 4. Create login_reward_claims table (claim history)
     await knex.schema.createTable('login_reward_claims', (table) => {
         table.increments('id').primary()
         table.text('user_id').notNullable().references('id').inTable('user').onDelete('CASCADE')
@@ -56,7 +52,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index('claimed_at')
     })
 
-    // Seed the 7-day reward cycle
     const rewards = [
         {
             day_number: 1,

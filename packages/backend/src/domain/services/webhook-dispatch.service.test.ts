@@ -30,7 +30,6 @@ interface EnqueuedDelivery {
 
 function makeService(opts: {
   subs?: WebhookSubscriptionRecord[]
-  // ids that should be treated as duplicates (enqueue returns null)
   duplicateWebhookIds?: number[]
 }) {
   const enqueued: EnqueuedDelivery[] = []
@@ -93,10 +92,8 @@ describe('webhook-dispatch.service', () => {
       enqueued.map((e) => e.webhookId),
       [11, 22],
     )
-    // eventId reuses the session id so a re-run can't double-deliver.
     assert.ok(enqueued.every((e) => e.eventId === 'session.started:s1'))
     assert.ok(enqueued.every((e) => e.eventType === 'session.started'))
-    // every persisted delivery row id is handed to the delivery queue.
     assert.deepEqual(dispatchedDeliveryIds, [1, 2])
   })
 
@@ -112,7 +109,6 @@ describe('webhook-dispatch.service', () => {
       challengeDate: '2026-06-13',
       rank: 1,
     })
-    // sub 11 was a duplicate → no row, not queued; sub 22 proceeds.
     assert.deepEqual(
       enqueued.map((e) => e.webhookId),
       [22],

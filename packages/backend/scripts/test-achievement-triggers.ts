@@ -1,10 +1,3 @@
-/**
- * Test Achievement Triggers
- * 
- * This script tests that all achievements can be properly triggered
- * by simulating game completion scenarios.
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 import { achievementService } from '../src/domain/services/achievement.service.js'
 import { achievementRepository } from '../src/infrastructure/repositories/achievement.repository.js'
@@ -27,7 +20,6 @@ async function testAchievement(
     testData: GameCompletionData
 ): Promise<void> {
     try {
-        // Get the achievement
         const achievements = await achievementRepository.findAll()
         const achievement = achievements.find(a => a.key === key)
 
@@ -36,7 +28,6 @@ async function testAchievement(
             return
         }
 
-        // Check if achievement triggers
         const earned = await achievementService.checkAchievementsAfterGame(testData)
         const triggered = earned.some(e => e.key === key)
 
@@ -60,7 +51,6 @@ async function testAchievement(
 async function runTests(): Promise<void> {
     console.log('Starting achievement trigger tests...\n')
 
-    // Get a test user (first user from database)
     const testUser = await db('user').select('id').first()
     if (!testUser) {
         console.error('No users found in database')
@@ -69,7 +59,6 @@ async function runTests(): Promise<void> {
 
     const userId = testUser.id
 
-    // Get a test challenge
     const testChallenge = await db('daily_challenges').select('id').first()
     if (!testChallenge) {
         console.error('No challenges found in database')
@@ -81,10 +70,8 @@ async function runTests(): Promise<void> {
     console.log(`Using test user: ${userId}`)
     console.log(`Using test challenge: ${challengeId}\n`)
 
-    // === SPEED CATEGORY ===
     console.log('Testing SPEED category...')
 
-    // Quick Draw - Single guess under 2s
     await testAchievement('speed', 'quick_draw', 'Quick Draw', {
         userId,
         sessionId: 'test-session-1',
@@ -98,7 +85,6 @@ async function runTests(): Promise<void> {
         longestStreak: 1,
     })
 
-    // Speed Demon - 3 consecutive guesses under 3s
     await testAchievement('speed', 'speed_demon', 'Speed Demon', {
         userId,
         sessionId: 'test-session-2',
@@ -114,10 +100,8 @@ async function runTests(): Promise<void> {
         longestStreak: 1,
     })
 
-    // === ACCURACY CATEGORY ===
     console.log('Testing ACCURACY category...')
 
-    // No Hints Needed - Complete challenge without hints
     await testAchievement('accuracy', 'no_hints_needed', 'No Hints Needed', {
         userId,
         sessionId: 'test-session-3',
@@ -127,7 +111,7 @@ async function runTests(): Promise<void> {
             position: i + 1,
             isCorrect: true,
             roundTimeTakenMs: 5000,
-            powerUpUsed: null, // No power-ups used
+            powerUpUsed: null,
             screenshotId: i + 1,
         })),
         gameGenres: ['Action'],
@@ -135,7 +119,6 @@ async function runTests(): Promise<void> {
         longestStreak: 1,
     })
 
-    // Sharp Eye - 10 consecutive correct guesses
     await testAchievement('accuracy', 'sharp_eye', 'Sharp Eye', {
         userId,
         sessionId: 'test-session-4',
@@ -153,10 +136,8 @@ async function runTests(): Promise<void> {
         longestStreak: 1,
     })
 
-    // === SCORE CATEGORY ===
     console.log('Testing SCORE category...')
 
-    // Perfect Run - Score exactly 2000 points
     await testAchievement('score', 'perfect_run', 'Perfect Run', {
         userId,
         sessionId: 'test-session-5',
@@ -165,7 +146,7 @@ async function runTests(): Promise<void> {
         guesses: Array.from({ length: 10 }, (_, i) => ({
             position: i + 1,
             isCorrect: true,
-            roundTimeTakenMs: 2000, // Fast enough for 2x multiplier (2000 total)
+            roundTimeTakenMs: 2000,
             powerUpUsed: null,
             screenshotId: i + 1,
         })),
@@ -174,7 +155,6 @@ async function runTests(): Promise<void> {
         longestStreak: 1,
     })
 
-    // High Roller - Score over 1800 points
     await testAchievement('score', 'high_roller', 'High Roller', {
         userId,
         sessionId: 'test-session-6',
@@ -192,10 +172,8 @@ async function runTests(): Promise<void> {
         longestStreak: 1,
     })
 
-    // === STREAK CATEGORY ===
     console.log('Testing STREAK category...')
 
-    // Dedicated Player - 3-day streak
     await testAchievement('streak', 'dedicated_player', 'Dedicated Player', {
         userId,
         sessionId: 'test-session-7',
@@ -207,7 +185,6 @@ async function runTests(): Promise<void> {
         longestStreak: 3,
     })
 
-    // Weekly Warrior - 7-day streak
     await testAchievement('streak', 'weekly_warrior', 'Weekly Warrior', {
         userId,
         sessionId: 'test-session-8',
@@ -219,7 +196,6 @@ async function runTests(): Promise<void> {
         longestStreak: 7,
     })
 
-    // Month Master - 30-day streak
     await testAchievement('streak', 'month_master', 'Month Master', {
         userId,
         sessionId: 'test-session-9',
@@ -231,10 +207,8 @@ async function runTests(): Promise<void> {
         longestStreak: 30,
     })
 
-    // === COMPLETION CATEGORY ===
     console.log('Testing COMPLETION category...')
 
-    // First Win - Complete first daily challenge
     await testAchievement('completion', 'first_win', 'First Win', {
         userId,
         sessionId: 'test-session-10',
@@ -246,11 +220,9 @@ async function runTests(): Promise<void> {
         longestStreak: 1,
     })
 
-    // === COMPETITIVE CATEGORY ===
     console.log('Testing COMPETITIVE category...')
     console.log('(Competitive achievements require actual leaderboard data)\n')
 
-    // Print results
     console.log('\n=== TEST RESULTS ===\n')
 
     const categories = ['speed', 'accuracy', 'score', 'streak', 'completion', 'competitive']
@@ -273,7 +245,6 @@ async function runTests(): Promise<void> {
         console.log()
     }
 
-    // Summary
     const totalPassed = results.filter(r => r.passed).length
     const totalTests = results.length
     const percentage = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : '0'
@@ -287,7 +258,6 @@ async function runTests(): Promise<void> {
     }
 }
 
-// Run tests
 runTests()
     .then(() => {
         console.log('\nDone!')

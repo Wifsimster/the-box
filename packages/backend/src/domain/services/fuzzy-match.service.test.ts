@@ -42,7 +42,6 @@ function expectPrecision(
   )
 }
 
-/** [guess, title, precision, aliases?] */
 type Case = [string, string, MatchPrecision, string[]?]
 
 function expectCases(cases: Case[]): void {
@@ -58,8 +57,6 @@ function expectCases(cases: Case[]): void {
 
 describe('fuzzy-match.service', () => {
   describe('screenshot cases — guesses that must NOT match', () => {
-    // The user surfaced "garage band" → "Xenoblade Chronicles 3D" with an
-    // arrow. Two unrelated words the title cannot explain → none.
     it('rejects "garage band" for "Xenoblade Chronicles 3D"', () => {
       expectNoMatch('garage band', 'Xenoblade Chronicles 3D')
     })
@@ -93,14 +90,11 @@ describe('fuzzy-match.service', () => {
     })
 
     it('grades the base franchise of an expansion-shaped title as partial', () => {
-      // Naming only "Command & Conquer" for Red Alert 2 - Yuri's Revenge is
-      // the franchise, not the entry: partial, like "call of duty".
       expectPrecision('command and conquers', "Command & Conquer: Red Alert 2 - Yuri's Revenge", 'partial')
       expectPrecision('red alert 2', "Command & Conquer: Red Alert 2 - Yuri's Revenge", 'exact')
       expectPrecision('yuris revenge', "Command & Conquer: Red Alert 2 - Yuri's Revenge", 'exact')
     })
 
-    // Word order is free: the guess is a set of words, not a string.
     it('accepts word-reordered franchise + subtitle ("total war rome" ↔ "ROME: Total War")', () => {
       expectMatch('total war rome', 'ROME: Total War')
       expectMatch('rome total war', 'Total War: ROME')
@@ -126,7 +120,6 @@ describe('fuzzy-match.service', () => {
     })
 
     it('a franchise word plus a sibling\'s word is a different game, however close the strings', () => {
-      // These were all full credit under whole-string Jaro-Winkler.
       expectCases([
         ['pokemon red', 'Pokémon Blue', 'none'],
         ['pokemon sword', 'Pokémon Shield', 'none'],
@@ -215,7 +208,6 @@ describe('fuzzy-match.service', () => {
         ['half life 1', 'Half-Life', 'exact'],
         ['dark souls 1', 'Dark Souls', 'exact'],
         ['battlefield 1', 'Battlefield 1942', 'none'],
-        // A subtitled title cannot tell "the first one" from a later entry.
         ['halo 1', 'Halo: Combat Evolved', 'partial'],
         ['halo 1', 'Halo: Reach', 'partial'],
         ['cuphead 1', 'Cuphead: The Delicious Last Course', 'none'],
@@ -234,8 +226,6 @@ describe('fuzzy-match.service', () => {
     it('accepts matching base + number ("Witcher 3" → "The Witcher 3: Wild Hunt")', () => {
       expectMatch('witcher 3', 'The Witcher 3: Wild Hunt')
       expectMatch('the witcher 3', 'The Witcher 3: Wild Hunt')
-      // An "Episode N" subtitle numbers an episode of the base game, so the
-      // base game with its own number is the franchise, not the entry.
       expectPrecision('half-life 2', 'Half-Life 2: Episode Two', 'partial')
       expectPrecision('half life 2 episode 2', 'Half-Life 2: Episode Two', 'exact')
       expectPrecision('half life 2 episode 2', 'Half-Life 2: Episode One', 'none')
@@ -579,9 +569,6 @@ describe('fuzzy-match.service', () => {
     })
   })
 
-  // Live session against "Grand Theft Auto: Vice City" surfaced two bugs:
-  // (A) "grand thief auto 3" was accepted (+125, wrong — that's GTA III);
-  // (B) "gta vice city" was rejected. These tests pin both.
   describe('GTA series — acronym + numbered ambiguity', () => {
     describe('target: "Grand Theft Auto: Vice City"', () => {
       const target = 'Grand Theft Auto: Vice City'
@@ -679,7 +666,6 @@ describe('fuzzy-match.service', () => {
 
       it('forgives one badly misspelled franchise word when the entry is named', () => {
         expectMatch('grand thieves auto san andreas', target)
-        // ...but never another franchise's word.
         expectPrecision('zelda san andreas', target, 'none')
         expectPrecision('zelda skyrim', 'The Elder Scrolls V: Skyrim', 'none')
       })
@@ -706,8 +692,6 @@ describe('fuzzy-match.service', () => {
         expectPrecision('portal 2', 'Portal 2', 'exact')
       })
       it('franchise + number needs every word of the franchise', () => {
-        // "sonic 2" would otherwise be Sonic Adventure 2 as much as Sonic the
-        // Hedgehog 2: naming part of the franchise with the number is partial.
         expectCases([
           ['sonic 2', 'Sonic the Hedgehog 2', 'partial'],
           ['sonic 2', 'Sonic Adventure 2', 'partial'],
@@ -717,7 +701,6 @@ describe('fuzzy-match.service', () => {
           ['mario 2', 'Mario Party 2', 'partial'],
           ['dark 3', 'Dark Souls III', 'none'],
           ['battlefront 2', 'Star Wars Battlefront II', 'partial'],
-          // A number the guess puts on the franchise belongs to the subtitle.
           ['call of duty 2', 'Call of Duty: Modern Warfare 2', 'none'],
           ['divinity 2', 'Divinity: Original Sin 2', 'none'],
         ])
@@ -977,8 +960,6 @@ describe('fuzzy-match.service', () => {
     })
   })
 
-  // Every case the redesign was checked against, as one table. Each row is
-  // [guess, title, precision, aliases?]. Keep it sorted by theme when adding.
   describe('regression corpus', () => {
     it('grades every corpus case as expected', () => {
       expectCases(CORPUS)

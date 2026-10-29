@@ -6,11 +6,6 @@ import { Button } from '@/components/ui/button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import type { GuessResult } from '@/types'
 
-/**
- * End-of-challenge summary screen (final score, hint-penalty note, world
- * total and navigation). Extracted from GamePage to keep that component
- * focused on the active game loop.
- */
 export function ChallengeCompleteScreen({
   totalScore,
   guessResults,
@@ -45,7 +40,6 @@ export function ChallengeCompleteScreen({
         <h1 className="gradient-gaming-title text-3xl sm:text-4xl font-bold mb-4">{t('game.challengeComplete')}</h1>
         <p className="text-3xl sm:text-4xl text-primary font-bold tabular-nums mb-2">{totalScore} pts</p>
 
-        {/* Hint Penalties Summary */}
         {totalHintPenalties > 0 && (
           <m.div
             initial={{ opacity: 0, y: 10 }}
@@ -57,7 +51,6 @@ export function ChallengeCompleteScreen({
           </m.div>
         )}
 
-        {/* World Total Score */}
         {worldScore !== null && (
           <m.div
             initial={{ opacity: 0, y: 20 }}

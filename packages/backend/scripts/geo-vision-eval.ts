@@ -1,24 +1,3 @@
-/**
- * Geo vision-localization accuracy study (issue #331, phase 5).
- *
- * Before agent_vision pins are allowed to vote (even downweighted), we have to
- * know whether the model can actually localize a screenshot on a game map. This
- * offline harness samples promoted metas (known ground truth), asks a vision
- * model to place each screenshot on its map, and scores the predictions against
- * the enable bar (`domain/services/geo-vision-eval.service.ts`).
- *
- * It does NOT flip any flag — it prints the numbers a human signs off on before
- * setting GEO_AGENT_VISION_ENABLED=true. Exits non-zero if the bar isn't met so
- * a pipeline can gate on it.
- *
- * Usage (from packages/backend):
- *   ANTHROPIC_API_KEY=... npm run eval:geo-vision            # 50 samples
- *   ANTHROPIC_API_KEY=... npm run eval:geo-vision -- 30      # N samples
- *   GEO_VISION_EVAL_MODEL=<model-id> ... npm run eval:geo-vision
- *
- * Requires DB access (samples ground truth) and an Anthropic API key. The model
- * is configurable via GEO_VISION_EVAL_MODEL; it must be vision-capable.
- */
 import Anthropic from '@anthropic-ai/sdk'
 import type { GeoPoint } from '@the-box/types'
 import { db } from '../src/infrastructure/database/connection.js'
@@ -30,8 +9,6 @@ import {
   type VisionEvalSample,
 } from '../src/domain/services/geo-vision-eval.service.js'
 
-// Configurable so an operator can point the study at whichever vision-capable
-// model they intend to run in production. Kept out of source as a literal.
 const MODEL = process.env['GEO_VISION_EVAL_MODEL'] || 'claude-sonnet-5'
 
 const PROMPT =
@@ -172,10 +149,6 @@ async function main(): Promise<void> {
   const attempts = samples.length + failures
   const usableRate = attempts > 0 ? samples.length / attempts : 0
 
-  // The gate is conservative: the geometric bar must pass on the usable
-  // predictions AND the model must actually produce a usable answer most of
-  // the time (a model that fails to localize half the screenshots is not
-  // trustworthy even if its hits are good).
   const verdict = summary.pass && usableRate >= 0.8
 
   console.log('\n──────── vision localization study ────────')

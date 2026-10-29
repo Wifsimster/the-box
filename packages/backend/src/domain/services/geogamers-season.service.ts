@@ -1,9 +1,6 @@
 import type { DomainLogger } from '../ports/logger.js'
 import type { GeoGamersSeasonStanding, GeoGamersSeasonMe } from '@the-box/types'
 
-// Reusable ranking port. Each mode owns a season ranking that plugs into the
-// shared payout loop (leaderboard-payout worker) instead of copy-pasting the
-// aggregation. Future modes implement this same shape.
 export interface SeasonRanking {
   findBySeason(month: string, limit?: number, offset?: number): Promise<GeoGamersSeasonStanding[]>
   findUserSeason(month: string, userId: string): Promise<GeoGamersSeasonMe | null>

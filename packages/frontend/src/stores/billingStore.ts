@@ -53,7 +53,6 @@ export const useBillingStore = create<BillingState>((set) => ({
         credentials: 'include',
       })
       if (response.status === 401) {
-        // Anonymous visitors are simply free; not an error worth surfacing.
         set({ entitlement: FREE_ENTITLEMENT, isLoadingEntitlement: false })
         return
       }

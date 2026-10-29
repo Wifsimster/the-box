@@ -25,11 +25,6 @@ export interface TierScreenshotRow {
 
 export const challengeRepository = {
   async findById(id: number): Promise<ChallengeRow | null> {
-    // Cast `challenge_date::text` so the column comes back as a 'YYYY-MM-DD'
-    // string instead of the JS Date that node-pg's default DATE parser
-    // produces. Callers compare it with strict equality against ISO date
-    // strings (anti-cheat gate in user.service.ts), and a Date !== string
-    // mismatch silently disables those checks.
     const row = await db('daily_challenges')
       .where('id', id)
       .select('id', db.raw('challenge_date::text as challenge_date'), 'created_at')
@@ -253,9 +248,6 @@ export const challengeRepository = {
     tierId: number,
     excludePositions: number[]
   ): Promise<TierScreenshotWithGame[]> {
-    // Use a sentinel value when the exclusion list is empty so the
-    // generated SQL is still valid (`NOT IN (0)` simply excludes
-    // nothing, since positions are 1-indexed).
     const exclusions = excludePositions.length > 0 ? excludePositions : [0]
     const rows = await db('tier_screenshots')
       .join('screenshots', 'tier_screenshots.screenshot_id', 'screenshots.id')
@@ -324,7 +316,6 @@ export const challengeRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ChallengeRepository as ChallengeRepositoryPort } from '../../domain/ports/repositories.js'
 export const _challengeRepositoryTypeCheck: ChallengeRepositoryPort = challengeRepository

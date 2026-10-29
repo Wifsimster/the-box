@@ -44,9 +44,9 @@ export interface EmailLogQuery {
   status?: EmailStatus
   type?: EmailType
   userId?: string
-  search?: string // recipient substring match
-  dateFrom?: string // ISO timestamp
-  dateTo?: string // ISO timestamp
+  search?: string
+  dateFrom?: string
+  dateTo?: string
 }
 
 export interface EmailLogPage {
@@ -64,10 +64,6 @@ function truncate(value: string, max: number): string {
 }
 
 export const emailLogRepository = {
-  /**
-   * Fire-and-forget log write. The audit log must never block or fail
-   * the actual email send, so any DB error is swallowed and only logged.
-   */
   async record(entry: EmailLogInput): Promise<void> {
     try {
       await db('email_log').insert({

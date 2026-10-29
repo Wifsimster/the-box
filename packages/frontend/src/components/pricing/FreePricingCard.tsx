@@ -15,9 +15,6 @@ interface FreePricingCardProps {
 
 export function FreePricingCard({ isCurrentPlan, isLoggedIn, onSignUp }: FreePricingCardProps) {
   const { t } = useTranslation()
-  // The Free card never goes through Stripe — for guests it nudges toward
-  // signup, for free-tier players it's a "you're here" pin, and premium
-  // players have nothing to do here so the CTA is dropped.
   const showCta = isCurrentPlan || !isLoggedIn
 
   return (

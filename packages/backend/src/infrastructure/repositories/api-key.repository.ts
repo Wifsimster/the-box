@@ -2,18 +2,9 @@ import crypto from 'node:crypto'
 import { db } from '../database/connection.js'
 import { AGENT_KEY_SCOPES, type ApiKeyMode, type ApiKeyScope, type ApiKeySummary } from '@the-box/types'
 
-// Postgres text[] literal of the geo-agent scopes, e.g. `{geo-agent:read,…}`.
-// Used with the array-overlap operator (`&&`) to find/act on agent keys
-// regardless of which admin minted them.
-// Every admin-minted agent scope (geo-agent:* and admin:*). The governance
-// list and revoke cover all agent keys, never a streamer's personal key.
 const GEO_AGENT_SCOPES_PG_ARRAY = `{${AGENT_KEY_SCOPES.join(',')}}`
 
-// Single source of truth for the plaintext format. Keys look like
-//   tb_pk_live_<43-char-base64url>
-// The prefix `tb_pk_` is a hard-coded secret-detection pattern partners can
-// grep their repos with; never reuse it elsewhere.
-const PLAINTEXT_BYTES = 32 // 32 bytes → 43 base64url chars after stripping `=`.
+const PLAINTEXT_BYTES = 32
 const KEY_PREFIX_LIVE = 'tb_pk_live_'
 const KEY_PREFIX_TEST = 'tb_pk_test_'
 
@@ -63,11 +54,6 @@ const DEFAULT_SCOPES: ApiKeyScope[] = [
 ]
 
 export const apiKeyRepository = {
-  /**
-   * Mints a new key. Returns both the database row and the one-shot
-   * plaintext value — the caller MUST surface the plaintext exactly
-   * once (key creation response). After that only the hash is stored.
-   */
   async create(params: {
     userId: string
     label: string
@@ -76,8 +62,6 @@ export const apiKeyRepository = {
   }): Promise<{ row: ApiKeyRow; plaintext: string }> {
     const plaintext = generatePlaintext(params.mode)
     const keyHash = hashApiKey(plaintext)
-    // 16-char preview is enough to disambiguate in the UI without leaking
-    // entropy — that's prefix + 5 randomized characters.
     const keyPrefix = plaintext.slice(0, 16)
 
     const [row] = await db('api_keys')
@@ -116,11 +100,6 @@ export const apiKeyRepository = {
     return row ?? null
   },
 
-  /**
-   * All keys carrying any geo-agent:* scope, regardless of the minting admin —
-   * the governance view for the admin agent-key panel. One query via the
-   * Postgres array-overlap operator covers all three scopes.
-   */
   async listGeoAgentKeys(): Promise<ApiKeyRow[]> {
     return await db('api_keys')
       .whereRaw('scopes && ?::text[]', [GEO_AGENT_SCOPES_PG_ARRAY])
@@ -128,11 +107,6 @@ export const apiKeyRepository = {
       .select<ApiKeyRow[]>('*')
   },
 
-  /**
-   * Revoke an agent key by id alone (no owner scoping), so any admin can
-   * revoke any agent key. Guarded to keys that actually carry a geo-agent
-   * scope so this admin path can never soft-delete a streamer's personal key.
-   */
   async revokeGeoAgentKey(id: number): Promise<boolean> {
     const updated = await db('api_keys')
       .where('id', id)
@@ -142,10 +116,6 @@ export const apiKeyRepository = {
     return updated > 0
   },
 
-  /**
-   * Soft revoke. We never delete keys — kept rows give the owner a
-   * "this key was used from IP X on date Y" audit trail even after revoke.
-   */
   async revoke(id: number, userId: string): Promise<boolean> {
     const updated = await db('api_keys')
       .where('id', id)
@@ -155,11 +125,6 @@ export const apiKeyRepository = {
     return updated > 0
   },
 
-  /**
-   * Fire-and-forget update — failure to write a usage timestamp must not
-   * block the request. Caller awaits but a thrown error is logged and swallowed
-   * one layer up.
-   */
   async recordUsage(id: number, ip: string | null): Promise<void> {
     await db('api_keys')
       .where('id', id)

@@ -12,10 +12,6 @@ declare global {
   }
 }
 
-// Pull a bearer token from `Authorization` or, for SSE, `?key=` query param.
-// SSE is the only path where the query-param fallback is accepted; everything
-// else expects the header. Keys are redacted from request logs by the
-// request-logging middleware (it strips `?key=*` before emitting).
 function extractKey(req: Request, opts: { allowQueryParam: boolean }): string | null {
   const auth = req.headers.authorization
   if (auth && auth.startsWith('Bearer ')) {
@@ -29,16 +25,9 @@ function extractKey(req: Request, opts: { allowQueryParam: boolean }): string | 
 }
 
 function isWellFormed(key: string): boolean {
-  // tb_pk_live_ or tb_pk_test_ followed by 43 url-safe base64 chars.
   return /^tb_pk_(live|test)_[A-Za-z0-9_-]{43}$/.test(key)
 }
 
-/**
- * Required-key middleware. Attaches `req.apiKey` and `req.userId` on success.
- * Replies 401 with a consistent error envelope on any failure path — we
- * deliberately do NOT distinguish "no header" from "bad key" from "revoked"
- * in the public response (timing-safe by uniform reply path).
- */
 export function requireApiKey(opts: { allowQueryParam?: boolean } = {}) {
   const allowQueryParam = opts.allowQueryParam ?? false
 
@@ -62,9 +51,6 @@ export function requireApiKey(opts: { allowQueryParam?: boolean } = {}) {
       }
       req.apiKey = row
       req.userId = row.user_id
-      // Fire-and-forget usage write. Swallow errors so a DB hiccup never
-      // takes the whole request down — usage metadata is observability,
-      // not security-critical.
       apiKeyRepository
         .recordUsage(row.id, req.ip ?? null)
         .catch((err) => log.warn({ err: String(err), keyId: row.id }, 'recordUsage failed'))
@@ -79,12 +65,6 @@ export function requireApiKey(opts: { allowQueryParam?: boolean } = {}) {
   }
 }
 
-/**
- * Optional-key middleware. Attaches the key if present and valid; otherwise
- * passes through anonymously. Used by endpoints whose data is identical for
- * anon and keyed callers (leaderboard, challenge metadata) — keying still
- * matters for the higher rate-limit ceiling.
- */
 export function optionalApiKey() {
   return async function (req: Request, _res: Response, next: NextFunction): Promise<void> {
     const plaintext = extractKey(req, { allowQueryParam: false })
@@ -108,15 +88,6 @@ export function optionalApiKey() {
   }
 }
 
-// ────────────────────────────────────────────────────────────
-// Rate limit (in-memory, fixed-window).
-//
-// Two tiers — anonymous IP keys at 60/min, authenticated keys at 600/min.
-// Backed by Redis is the M2 follow-up if/when we run multi-instance; the
-// existing rate-limit-middleware shape is in-memory only and we mirror it
-// here so the public API has its own bucket map distinct from auth limits.
-// ────────────────────────────────────────────────────────────
-
 interface Bucket {
   count: number
   resetAt: number
@@ -130,7 +101,6 @@ const KEYED_MAX = 600
 const anonBuckets = new Map<string, Bucket>()
 const keyedBuckets = new Map<number, Bucket>()
 
-// Periodic sweep so dead buckets don't leak memory.
 const sweep = setInterval(() => {
   const now = Date.now()
   for (const [k, b] of anonBuckets) if (b.resetAt <= now) anonBuckets.delete(k)
@@ -181,9 +151,6 @@ export function publicApiRateLimit(req: Request, res: Response, next: NextFuncti
     }
   }
 
-  // IETF draft-ietf-httpapi-ratelimit-headers naming. Seconds-until-reset
-  // is the documented contract; expose `Limit` and `Remaining` so callers
-  // can self-throttle.
   res.setHeader('RateLimit-Limit', String(max))
   res.setHeader('RateLimit-Remaining', String(Math.max(0, result.remaining)))
   res.setHeader('RateLimit-Reset', String(Math.max(0, Math.ceil((result.reset - now) / 1000))))
@@ -199,10 +166,6 @@ export function publicApiRateLimit(req: Request, res: Response, next: NextFuncti
   next()
 }
 
-// CORS for the public surface: wide-open reads, no credentials. The private
-// router stays origin-locked to CORS_ORIGIN. We set headers manually instead
-// of relying on the global `cors` package config so the two surfaces can't
-// drift into sharing credentials.
 export function publicApiCors(req: Request, res: Response, next: NextFunction): void {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Vary', 'Origin')

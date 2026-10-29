@@ -24,7 +24,6 @@ describe('pickRestorePosition', () => {
   })
 
   it('does not resume on a solved position while its result card was pending', () => {
-    // Correct guess on 3: the server moved to 4, the store still says 3.
     assert.equal(
       pickRestorePosition({ ...base, persistedPosition: 3, backendPosition: 4, correctPositions: new Set([1, 2, 3]) }),
       4
@@ -32,7 +31,6 @@ describe('pickRestorePosition', () => {
   })
 
   it('finds the next open position when both candidates are solved', () => {
-    // Player solved 10 last; the server keeps 10 since there is no position 11.
     assert.equal(
       pickRestorePosition({
         ...base,

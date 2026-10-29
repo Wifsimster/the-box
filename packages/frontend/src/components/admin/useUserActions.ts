@@ -10,15 +10,9 @@ interface UseUserActionsArgs {
   deletingUser: User | null
   grantingUser: User | null
   revokingUser: User | null
-  /** Close the pending-action dialog once a mutation settles. */
   onSettled: () => void
 }
 
-/**
- * Encapsulates the role/ban/unban/delete/grant/revoke mutations plus the shared
- * `isSubmitting` flag and toast handling, so the UserList component stays focused
- * on layout. Each handler returns after closing the dialog on success.
- */
 export function useUserActions({
   banningUser,
   unbanningUser,
@@ -33,7 +27,7 @@ export function useUserActions({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleRoleChange = async (user: User, newRole: string) => {
-    if (user.isAdmin === (newRole === 'admin')) return // No change needed
+    if (user.isAdmin === (newRole === 'admin')) return
 
     setIsSubmitting(true)
     try {

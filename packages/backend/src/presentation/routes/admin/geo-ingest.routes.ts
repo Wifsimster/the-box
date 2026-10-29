@@ -30,9 +30,6 @@ router.post('/geo/curated', async (req, res, next) => {
       return
     }
 
-    // Flipping curated→true also resets metadata_status so the resolver
-    // picks the game up on its next tick, even if a previous attempt left
-    // it as 'unresolved'.
     const update: Record<string, unknown> = { geo_curated: parse.data.curated }
     if (parse.data.curated) {
       update.geo_metadata_status = 'pending'
@@ -58,13 +55,6 @@ const reimportBodySchema = z.object({
   gameId: z.number().int().positive(),
 })
 
-// Bulk variant of /geo/curated for the unified Games tab. Accepts a mixed
-// batch of curate-on / curate-off operations so an operator can onboard or
-// retire dozens of games in one network round-trip. Each item is applied
-// individually inside a transaction; partial-failure behavior matches the
-// single-item route (flipping `geo_curated = true` resets metadata_status
-// and clears the metadata tombstone so the resolver picks the game up on
-// its next tick).
 const curatedBulkBodySchema = z.object({
   items: z
     .array(
@@ -107,16 +97,8 @@ router.post('/geo/reimport', async (req, res, next) => {
       return
     }
     const gameId = parse.data.gameId
-    // Aggressive variant of /geo/run/:gameId — wipes every per-tier failure
-    // tombstone AND the resolved metadata so the resolver+tick re-run from
-    // scratch. Wrapped in a transaction so a crash mid-flight can't leave
-    // half the tombstones cleared and the metadata still resolved.
-    // Single round trip per source (whereIn-grouped) instead of 7 deletes.
     await geoAdminRepository.resetGameForReimport(gameId)
 
-    // Enqueue jobs AFTER the transaction commits so the orchestrator can
-    // observe the cleared state and a transaction rollback can't leak a
-    // job that races against a stale view.
     const resolveJob = await geoQueue.add(
       'resolve-metadata',
       { kind: 'resolve-metadata', batchSize: 1, gameId },
@@ -141,10 +123,6 @@ router.post('/geo/reimport', async (req, res, next) => {
   }
 })
 
-// Per-tier tombstone clear. Targeted alternative to /geo/reimport (which
-// wipes all 5 source tombstones for a game) and /scraping/reset (which
-// nukes everything). Lets an operator say "Fandom is back up, retry just
-// that tier for this game" without re-paying the registry/wikidata cost.
 const TOMBSTONE_SOURCES = [
   'fandom',
   'steam',
@@ -175,9 +153,6 @@ router.delete('/geo/tombstone/:gameId/:source', async (req, res, next) => {
       return
     }
     await geoIngestFailureRepository.clear(gameId, source)
-    // Best-effort: kick the per-game pipeline so the cleared tier gets
-    // retried right away. Idempotent jobIds keep this safe to call even
-    // if the operator just hit "Run for this game".
     await geoQueue.add(
       'ingest-tick',
       { kind: 'ingest-tick', batchSize: 1, gameId },
@@ -189,15 +164,8 @@ router.delete('/geo/tombstone/:gameId/:source', async (req, res, next) => {
   }
 })
 
-// Manual run-now triggers for the whole geo ingestion pipeline. The recurring
-// resolver + tick workers already run on a schedule; these endpoints just
-// short-circuit the wait so an operator can kick off a fresh pass immediately
-// after curating games or after a reset. Both jobs are idempotent — clicking
-// twice is harmless because the per-tier importers short-circuit on existing
-// rows.
 router.post('/geo/run', async (_req, res, next) => {
   try {
-    // Large batch sizes so a single click sweeps the whole curated set.
     const resolveJob = await geoQueue.add('resolve-metadata', {
       kind: 'resolve-metadata',
       batchSize: 500,
@@ -222,11 +190,6 @@ router.post('/geo/run/:gameId', async (req, res, next) => {
       res.status(400).json({ success: false, error: { code: 'INVALID_ID' } })
       return
     }
-    // Stable jobIds so a double-click while one is still in flight collapses
-    // to a single run. BullMQ silently no-ops on duplicate ids. Hyphens (not
-    // colons) — BullMQ's `Job.validateOptions` throws on jobIds containing
-    // `:` unless they have exactly 3 colon-separated parts (a legacy
-    // repeatable-job carve-out).
     const resolveJob = await geoQueue.add(
       'resolve-metadata',
       { kind: 'resolve-metadata', batchSize: 1, gameId },
@@ -246,9 +209,6 @@ router.post('/geo/run/:gameId', async (req, res, next) => {
   }
 })
 
-// Run a single tier for one game — surfaced by the "Run now" button on an
-// eligible TierRow. Avoids the all-tiers cascade so an operator can iterate
-// on one source without re-running the others.
 const RUNNABLE_TIERS: readonly RunnableTier[] = [
   'registry',
   'fandom',
@@ -286,9 +246,6 @@ router.post('/geo/run/:gameId/:source', async (req, res, next) => {
   }
 })
 
-// Live-progress feed for the manual run UI. Returns active/waiting/delayed
-// geo jobs grouped by gameId so the maps tab can highlight which rows are
-// in flight at which tier. Polled at ~2s while a run is active.
 router.get('/geo/run/state', async (_req, res, next) => {
   try {
     const [active, waiting, delayed, counts] = await Promise.all([
@@ -308,8 +265,6 @@ router.get('/geo/run/state', async (_req, res, next) => {
       number,
       Array<{ kind: GeoJobData['kind']; state: 'active' | 'waiting' | 'delayed' }>
     > = {}
-    // Global (no-gameId) jobs surfaced separately so the UI can show "batch
-    // resolver running" alongside per-game progress.
     const globals: Array<{
       kind: GeoJobData['kind']
       state: 'active' | 'waiting' | 'delayed'
@@ -321,7 +276,6 @@ router.get('/geo/run/state', async (_req, res, next) => {
     ) => {
       for (const job of jobs) {
         const data = job.data as GeoJobData
-        // Skip noise jobs unrelated to the ingest pipeline.
         if (
           data.kind === 'evaluate-consensus' ||
           data.kind === 'promote-contributor-tier'
@@ -341,8 +295,6 @@ router.get('/geo/run/state', async (_req, res, next) => {
     sweep(waiting, 'waiting')
     sweep(delayed, 'delayed')
 
-    // BullMQ types each `JobCountsKeyType` as optional even though
-    // `getJobCounts` always returns the keys you asked for.
     const safeCounts = {
       active: counts.active ?? 0,
       waiting: counts.waiting ?? 0,
@@ -366,10 +318,6 @@ router.get('/geo/run/state', async (_req, res, next) => {
 })
 
 
-// Demote a canonical meta back to an unlabeled candidate so an admin can
-// re-promote with corrected coordinates. FK RESTRICT on geo_challenge means
-// this 409s when any challenge references the meta — admins must unlink the
-// challenge(s) first rather than silently breaking an active day.
 router.delete('/geo/meta/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id)
@@ -391,10 +339,6 @@ router.delete('/geo/meta/:id', async (req, res, next) => {
       })
       res.json({ success: true, data: result })
     } catch (dbErr) {
-      // Match Postgres' foreign_key_violation SQLSTATE rather than parsing
-      // the message — driver locale / pg version changes won't break the
-      // 409 path. Knex surfaces the code as `error.code` with the original
-      // pg error preserved.
       const code = (dbErr as { code?: string } | null)?.code
       if (code === '23503') {
         res.status(409).json({

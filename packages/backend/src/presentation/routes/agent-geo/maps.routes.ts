@@ -24,9 +24,6 @@ import { gameIdParams } from './shared.js'
 
 const router = Router()
 
-// GET /games/:gameId/maps — every candidate map fetched for a game, active or
-// not (issue #331, phase 5), so an agent can pick the canonical one and
-// reject wrong-game/prop maps. Mirrors the admin geo-fetch curation panel.
 router.get(
   '/games/:gameId/maps',
   requireScope('geo-agent:read'),
@@ -42,16 +39,6 @@ router.get(
   },
 )
 
-// POST /games/:gameId/maps — manual map upload (issue #331, phase 5). The
-// last-resort content path when the ingestion tiers didn't produce a usable
-// map: the agent supplies a map image URL it has verified and hosts itself,
-// declares its pixel dimensions and license/attribution, and we record a
-// `source = 'manual'` geo_map row. Mirrors the admin "Tier 3 manual map upload"
-// (`POST /api/admin/geo/maps/manual`) exactly — no server-side image
-// processing, the agent is responsible for hosting the asset somewhere stable
-// and for the license claim. Lands DISABLED by default (an admin or the agent
-// enables/selects it via the existing select endpoint); pass `enable: true` to
-// enable it immediately. Bounded by its own per-key daily budget.
 const uploadMapBodySchema = z.object({
   imageUrl: z.string().url().max(1000),
   widthPx: z.coerce.number().int().positive().max(32_768),
@@ -61,8 +48,6 @@ const uploadMapBodySchema = z.object({
   sourceUrl: z.string().url().max(1000).optional(),
   consensusRadius: z.coerce.number().min(0.001).max(1).optional(),
   region: z.string().trim().min(1).max(100).optional(),
-  // Enable (and select, via enableForGame) the map immediately instead of
-  // leaving it disabled for later curation. Defaults to false.
   enable: z.boolean().optional(),
 })
 
@@ -114,8 +99,6 @@ router.post(
           isActive: !!body.enable,
         })
       } catch (err) {
-        // (game_id, image_url) is unique — a repeat upload of the same URL is a
-        // clean 409, not a 500. Any other DB error propagates.
         if (err && typeof err === 'object' && (err as { code?: string }).code === '23505') {
           res.status(409).json({
             success: false,
@@ -129,19 +112,11 @@ router.post(
       let repointed = 0
       if (body.enable) {
         const enabled = await geoMapRepository.enableForGame(gameId, map.id)
-        // enableForGame promotes the row to selected only when no other map
-        // holds the zone — i.e. this upload just became the capture-default. In
-        // that case move the game's still-open candidates onto it so a later
-        // promote doesn't strand them on an old map (issue #345, feature 2).
         if (enabled?.isSelected && enabled.zoneSlug == null) {
           repointed = await geoScreenshotRepository.repointPendingCandidates(gameId, map.id)
         }
       }
 
-      // A usable map now exists — clear the map-tier ingest tombstones so a
-      // future ingest tick isn't short-circuited by a stale circuit-breaker.
-      // Mirrors the admin manual-upload path (clears the fetch tiers, not the
-      // metadata tombstone).
       await geoIngestFailureRepository.clearSources(gameId, RUNNABLE_TIERS)
 
       await adminAuditRepository.record({
@@ -201,11 +176,6 @@ async function consumeMapActionOrReject(
   return { ok: true, budget: { used: budget.used, limit: budget.limit, remaining: budget.remaining } }
 }
 
-// POST /games/:gameId/maps/:mapId/select — promote a candidate map to
-// canonical (issue #331, phase 5). This is the operator fix for wrong-game
-// maps today: an agent can inspect `geo_list_maps` and pick the correct one.
-// Mirrors the admin geo-fetch `/maps/:mapId/select` handler exactly (enable
-// then select), attributing `selectedBy` to the agent key.
 router.post(
   '/games/:gameId/maps/:mapId/select',
   requireScope('geo-agent:curate'),
@@ -231,11 +201,6 @@ router.post(
         return
       }
 
-      // Selecting a new single-zone map makes it the game's capture-default, so
-      // move the game's still-open candidates onto it — otherwise they stay
-      // stranded on the old (now-disabled) map and promoting one would build a
-      // broken challenge (issue #345, feature 2). Zoned selections don't change
-      // the capture-default, so they don't re-point.
       const repointed =
         updated.zoneSlug == null
           ? await geoScreenshotRepository.repointPendingCandidates(gameId, mapId)
@@ -260,10 +225,6 @@ router.post(
   },
 )
 
-// POST /games/:gameId/maps/:mapId/reject — disable a wrong-game/prop map
-// (issue #331, phase 5). Reuses `disableForGame`, which refuses to leave a
-// game with zero enabled maps — an agent must select a replacement canonical
-// map (or a good map already exists) before rejecting the last bad one.
 router.post(
   '/games/:gameId/maps/:mapId/reject',
   requireScope('geo-agent:curate'),
@@ -298,14 +259,6 @@ router.post(
   },
 )
 
-// POST /games/:gameId/maps/:mapId/repoint-captures — move the game's still-open
-// (active, un-promoted) capture candidates onto `mapId` (issue #345, feature
-// 2). The auto-repoint baked into `select`/`upload` only fixes swaps made
-// THROUGH the agent surface from now on; this is the explicit fix for captures
-// that were already stranded on a rejected map (e.g. GTA:SA #38, GTA:VC #69,
-// Ocarina #200 still pointing at maps 30 / 29 / 18). `mapId` must be an ENABLED
-// map for the game — re-pointing captures onto a disabled map would just strand
-// them again. Promoted metas are left untouched. Reuses the map-action budget.
 router.post(
   '/games/:gameId/maps/:mapId/repoint-captures',
   requireScope('geo-agent:curate'),

@@ -6,9 +6,6 @@ import {
 
 const router = Router()
 
-// === Screenshots ===
-
-// List all screenshots
 router.get('/screenshots', async (_req, res, next) => {
   try {
     const screenshots = await adminService.getAllScreenshots()
@@ -22,7 +19,6 @@ router.get('/screenshots', async (_req, res, next) => {
   }
 })
 
-// Add a screenshot
 const createScreenshotSchema = z.object({
   gameId: z.number(),
   imageUrl: z.string().url(),

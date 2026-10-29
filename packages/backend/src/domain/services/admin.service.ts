@@ -11,7 +11,6 @@ import type {
   TierRecord,
 } from '../ports/index.js'
 
-// RAWG API Types
 interface RAWGGenre {
   id: number
   name: string
@@ -51,14 +50,12 @@ interface RAWGGame {
   metacritic?: number
 }
 
-// Simple RAWG API client for single game fetch
 async function fetchGameFromRawg(slug: string): Promise<RAWGGame | null> {
   const apiKey = env.RAWG_API_KEY
   if (!apiKey) {
     throw new Error('RAWG_API_KEY environment variable is required')
   }
 
-  // Fetch game directly by slug using the RAWG slug endpoint
   const detailUrl = new URL(`https://api.rawg.io/api/games/${encodeURIComponent(slug)}`)
   detailUrl.searchParams.set('key', apiKey)
 
@@ -74,7 +71,6 @@ async function fetchGameFromRawg(slug: string): Promise<RAWGGame | null> {
 }
 
 export interface AdminService {
-  // Games
   getAllGames(): Promise<Game[]>
   getGamesPaginated(options: {
     page?: number
@@ -87,7 +83,6 @@ export interface AdminService {
   updateGame(id: number, data: Partial<Game>): Promise<Game | null>
   deleteGame(id: number): Promise<void>
   syncGameFromRawg(id: number): Promise<Game | null>
-  // Screenshots
   getAllScreenshots(): Promise<ScreenshotWithGameRecord[]>
   getScreenshotsByGameId(gameId: number): Promise<Screenshot[]>
   createScreenshot(data: {
@@ -99,7 +94,6 @@ export interface AdminService {
     vaov: number
     locationHint?: string
   }): Promise<Screenshot>
-  // Challenges
   getAllChallenges(): Promise<
     Array<{ id: number; challenge_date: string; created_at: Date; tiers: TierRecord[] }>
   >
@@ -119,17 +113,9 @@ export interface AdminService {
 
 export interface AdminServiceDeps {
   logger: DomainLogger
-  /**
-   * The admin catalog surface: browse, search, and write. The only service
-   * that may mutate a game.
-   */
   gameRepository: GameBrowse & GameCatalogWriter
   screenshotRepository: ScreenshotRepository
   challengeRepository: ChallengeRepository
-  /**
-   * Only resets a player's attempt at a challenge (1 method), so it
-   * depends on the eraser port rather than the full 25-method repository.
-   */
   sessionRepository: GameSessionEraser
 }
 
@@ -138,7 +124,6 @@ export function createAdminService(deps: AdminServiceDeps): AdminService {
   void deps.logger.child({ service: 'admin' })
 
   return {
-    // Games
     async getAllGames(): Promise<Game[]> {
       return gameRepository.findAll()
     },
@@ -185,7 +170,6 @@ export function createAdminService(deps: AdminServiceDeps): AdminService {
       return updatedGame
     },
 
-    // Screenshots
     async getAllScreenshots() {
       return screenshotRepository.findAll()
     },
@@ -198,7 +182,6 @@ export function createAdminService(deps: AdminServiceDeps): AdminService {
       return screenshotRepository.create(data)
     },
 
-    // Challenges
     async getAllChallenges() {
       const challenges = await challengeRepository.findAll()
 
@@ -218,7 +201,6 @@ export function createAdminService(deps: AdminServiceDeps): AdminService {
     async createChallenge(data) {
       const challenge = await challengeRepository.create(data.challengeDate)
 
-      // Create single "Daily Challenge" tier
       const tier = await challengeRepository.createTier({
         dailyChallengeId: challenge.id,
         tierNumber: 1,

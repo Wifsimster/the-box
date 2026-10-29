@@ -1,14 +1,5 @@
 import type { Knex } from 'knex'
 
-/**
- * Funnel telemetry: lightweight event log for measuring first-session
- * drop-off and core-loop engagement.
- *
- * `event_name` is free-form (e.g., session_started, guess_submitted,
- * session_completed, session_abandoned). `payload` is a JSONB bag for
- * event-specific context (position, is_correct, time_taken_ms, etc.).
- * `user_id` is nullable so anonymous/logged-out events still land.
- */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('funnel_events', (table) => {
     table.bigIncrements('id').primary()

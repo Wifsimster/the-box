@@ -7,23 +7,6 @@ import { tombstoneRetryAfter } from '../../../domain/services/geo-metadata.servi
 
 const log = queueLogger.child({ worker: 'geo-strategywiki-import' })
 
-// StrategyWiki (https://strategywiki.org) is a CC-BY-SA-3.0 wiki of game
-// guides built on MediaWiki, with predictable Maps subpages
-// (e.g. `Diablo/Maps`, `Half-Life/Maps`). Two experts in the discovery-tier
-// brainstorm independently picked it as the highest signal-to-noise public
-// source for AAA games — the licensing is unambiguous and the API surface
-// matches the one we already use for Fandom Interactive Maps.
-//
-// Strategy (no pre-resolution required):
-//   1. opensearch the game name → top page title.
-//   2. List images on `<title>` and `<title>/Maps` via prop=images.
-//   3. Resolve each File: via prop=imageinfo, score by name + size.
-//   4. Pick the highest-scoring image, validate dimensions, write geo_map.
-
-// Mozilla-style UA — bare `the-box-geo-importer/1.0` strings get a 403 from
-// the CDN that fronts strategywiki.org, presumably matching a generic
-// anti-bot rule. The "compatible" prefix + browser-shaped tail is the
-// MediaWiki-recommended form for crawlers and gets through cleanly.
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (compatible; the-box-geo-importer/1.0; +https://github.com/Wifsimster/the-box)'
 const STRATEGYWIKI_API = 'https://strategywiki.org/w/api.php'
@@ -31,9 +14,6 @@ const STRATEGYWIKI_LICENSE = 'CC-BY-SA-3.0'
 const MIN_IMAGE_DIMENSION = 600
 const MIN_IMAGE_AREA = 600_000
 
-// Headers shared by every StrategyWiki request. Keeping them in one place so
-// the 403-mitigation lives next to the UA — Accept-Language and a permissive
-// Accept also matter for the same anti-bot rule.
 function strategyWikiHeaders(ua: string): Record<string, string> {
   return {
     'User-Agent': ua,
@@ -56,7 +36,6 @@ export interface ImportStrategyWikiMapResult {
 }
 
 interface OpenSearchResponse {
-  // [query, [titles], [descriptions], [urls]]
   0?: string
   1?: string[]
   2?: string[]
@@ -181,9 +160,6 @@ async function resolveStrategyWikiTitle(
   gameName: string,
   ua: string,
 ): Promise<string | null> {
-  // opensearch is forgiving — it returns the canonical wiki title for a
-  // game even if the user-facing name differs (e.g. "Half-Life" vs
-  // "Half Life", "GTA IV" vs "Grand Theft Auto IV").
   const url =
     `${STRATEGYWIKI_API}?action=opensearch&format=json&namespace=0` +
     `&limit=5&search=${encodeURIComponent(gameName)}`
@@ -201,9 +177,6 @@ async function resolveStrategyWikiTitle(
 }
 
 async function listCandidateFiles(pageTitle: string, ua: string): Promise<string[]> {
-  // Look at both the main page and the conventional `<Title>/Maps` subpage
-  // — many older guides put the world map directly on the root page, while
-  // comprehensive guides use the subpage. Either or both may exist.
   const titles = `${pageTitle}|${pageTitle}/Maps`
   const url =
     `${STRATEGYWIKI_API}?action=query&format=json&prop=images&imlimit=200` +
@@ -225,11 +198,8 @@ const MAP_FILENAME_RE = /(map|maps|world|overworld|atlas|continent)/i
 const NEGATIVE_FILENAME_RE = /(icon|logo|button|hud|portrait|cover|box|wiki)/i
 
 function looksLikeMapFile(title: string): boolean {
-  // `title` is e.g. "File:Diablo_Sanctuary_world_map.png".
   if (NEGATIVE_FILENAME_RE.test(title)) return false
   if (!MAP_FILENAME_RE.test(title)) return false
-  // Reject obvious non-image extensions (StrategyWiki sometimes lists svg
-  // skin assets — we want raster maps Leaflet can serve directly).
   return /\.(png|jpe?g|webp)$/i.test(title)
 }
 
@@ -239,9 +209,6 @@ async function pickBestImage(
   slug: string,
   ua: string,
 ): Promise<ResolvedFile | null> {
-  // Batch up to 50 titles per imageinfo call — MediaWiki caps at 50 per
-  // request anyway and our `looksLikeMapFile` filter usually shrinks the
-  // list well below that.
   const titles = files.slice(0, 50).join('|')
   const url =
     `${STRATEGYWIKI_API}?action=query&format=json&prop=imageinfo` +
@@ -280,10 +247,6 @@ function scoreFile(
   gameName: string,
   slug: string,
 ): number {
-  // Higher = better. Bonuses tuned against the failing-list games where we
-  // expect filenames like "Diablo_Sanctuary_world_map.png" or
-  // "BG3_World_Map.jpg". Aspect ratio penalty discourages tall vertical
-  // banners that are sometimes mis-tagged as `world map`.
   let score = 0
   const lower = fileTitle.toLowerCase()
   const nameToken = normalize(gameName).split(' ').filter((t) => t.length >= 3)
@@ -296,12 +259,10 @@ function scoreFile(
   if (/atlas/.test(lower)) score += 15
   if (/_map\b/.test(lower) || /_maps\b/.test(lower)) score += 5
 
-  // Prefer panoramic/square aspect; punish 3:1+ verticals.
   const ar = width / height
   if (ar >= 0.6 && ar <= 2.4) score += 10
   else score -= 15
 
-  // Light bias toward larger images (cap so a megapixel bomb doesn't dominate).
   score += Math.min(20, Math.log10(width * height) * 2)
   return score
 }

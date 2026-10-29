@@ -1,22 +1,6 @@
 import type { Knex } from 'knex'
 
-// Additive "GeoGamers" mode: a daily run that fuses classic (guess the game
-// from a screenshot) with geo (pin the spot on its map). All tables are
-// prefixed `geogamers_` and reference existing tables (geo_screenshot_meta,
-// user) read-only. No existing schema is modified.
-//
-// Design decisions baked into this schema (see the tracking issue):
-//  - Ranked runs are hint-free -> geogamers_run carries NO hint columns.
-//  - Season ranking is fully separate from the classic/geo leaderboards.
-//  - Guests play unranked; a run can be claimed into an account on signup ->
-//    user_id is nullable, plus anonymous_session_id + claim columns.
-//  - The joker is once per season, no premium second -> geogamers_joker's
-//    (user_id, season_month) primary key enforces it at the DB level.
-
 export async function up(knex: Knex): Promise<void> {
-  // One challenge per UTC day (no tier concept — GeoGamers runs a single
-  // daily). A partial unique index enforces "at most one current" without
-  // NULL-juggling, mirroring geo_challenge's is_current model.
   await knex.schema.createTable('geogamers_challenge', (table) => {
     table.increments('id').primary()
     table.date('challenge_date').notNullable().unique()
@@ -38,10 +22,6 @@ export async function up(knex: Knex): Promise<void> {
     WHERE is_current = true
   `)
 
-  // One run per (user | guest) per challenge. NO hint columns by design —
-  // the ranked run is hint-free. Guest rows carry a null user_id and ride the
-  // existing 24h anonymous-session cleanup; the TTL doubles as the claim
-  // window. Coordinates are normalized [0..1], same as geo_guess.
   await knex.schema.createTable('geogamers_run', (table) => {
     table.increments('id').primary()
     table
@@ -50,12 +30,8 @@ export async function up(knex: Knex): Promise<void> {
       .references('id')
       .inTable('geogamers_challenge')
       .onDelete('CASCADE')
-    // Nullable: guests play unranked. Ranked runs set user_id.
     table.text('user_id').nullable().references('id').inTable('user').onDelete('CASCADE')
     table.text('anonymous_session_id').nullable().comment('Set for guest runs; null once claimed into an account')
-    // Overrides the challenge's screenshot when the joker re-rolled THIS run.
-    // Null = play the shared daily meta; set = this player's re-rolled meta.
-    // The joker is per-player, so it cannot live on the shared challenge row.
     table
       .integer('geo_screenshot_meta_id')
       .nullable()
@@ -83,32 +59,24 @@ export async function up(knex: Knex): Promise<void> {
     table.index('anonymous_session_id')
   })
 
-  // At most one ranked run per user per challenge. Guests (user_id null) are
-  // excluded from the constraint — their one-per-device cap is soft (client
-  // localStorage + run token), per the anonymous-play decision.
   await knex.raw(`
     CREATE UNIQUE INDEX geogamers_run_user_challenge
     ON geogamers_run (user_id, geogamers_challenge_id)
     WHERE user_id IS NOT NULL
   `)
 
-  // Drives the season aggregation query (drop-3-worst over the month).
   await knex.raw(`
     CREATE INDEX geogamers_run_season
     ON geogamers_run (user_id, completed_at)
     WHERE user_id IS NOT NULL AND completed_at IS NOT NULL
   `)
 
-  // A guest run may be claimed by at most one account, once per challenge.
   await knex.raw(`
     CREATE UNIQUE INDEX geogamers_run_claim_once
     ON geogamers_run (claimed_by_user_id, geogamers_challenge_id)
     WHERE claimed_by_user_id IS NOT NULL
   `)
 
-  // The joker: exactly one re-roll per user per season. The composite primary
-  // key is the enforcement — a second INSERT trips a unique violation, which
-  // the service maps to JOKER_ALREADY_USED. No premium second joker.
   await knex.schema.createTable('geogamers_joker', (table) => {
     table.text('user_id').notNullable().references('id').inTable('user').onDelete('CASCADE')
     table.string('season_month', 7).notNullable().comment('YYYY-MM (UTC)')
@@ -129,9 +97,6 @@ export async function up(knex: Knex): Promise<void> {
     table.primary(['user_id', 'season_month'])
   })
 
-  // Finalization record. Written when the payout worker closes a month;
-  // final_standings freezes a snapshot for history / OG pages so it survives
-  // later run mutations.
   await knex.schema.createTable('geogamers_season', (table) => {
     table.string('month', 7).primary().comment('YYYY-MM')
     table.integer('dropped_worst_count').notNullable().defaultTo(3)
@@ -144,7 +109,6 @@ export async function up(knex: Knex): Promise<void> {
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('geogamers_season')
   await knex.schema.dropTableIfExists('geogamers_joker')
-  // Raw partial indexes drop with their table, but be explicit for clarity.
   await knex.raw('DROP INDEX IF EXISTS geogamers_run_claim_once')
   await knex.raw('DROP INDEX IF EXISTS geogamers_run_season')
   await knex.raw('DROP INDEX IF EXISTS geogamers_run_user_challenge')

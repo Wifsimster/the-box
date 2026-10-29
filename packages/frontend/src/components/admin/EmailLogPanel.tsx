@@ -31,10 +31,6 @@ const PAGE_SIZE = 25
 const SELECT_CLASS =
   'h-(--control-h) w-full sm:w-auto rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-// The query controls (pagination + the three filters + its debounced mirror)
-// are one cohesive slice: every filter change must atomically reset the page
-// back to 1, so they live in a single reducer that returns the next snapshot
-// in one step rather than chaining setState calls.
 interface QueryState {
   page: number
   status: EmailLogStatus | ''
@@ -80,10 +76,7 @@ export function EmailLogPanel() {
   const [total, setTotal] = useState(0)
   const [query, dispatch] = useReducer(queryReducer, INITIAL_QUERY)
   const { page, status, type, search, debouncedSearch } = query
-  // Bumped by the refresh button to re-run the fetch effect for the same query.
   const [reloadNonce, setReloadNonce] = useState(0)
-  // `loading` is derived: the list is loading until the request for the
-  // current query (and refresh nonce) has settled.
   const requestKey = JSON.stringify([page, status, type, debouncedSearch, reloadNonce])
   const [settledKey, setSettledKey] = useState<string | null>(null)
   const loading = settledKey !== requestKey
@@ -207,7 +200,6 @@ export function EmailLogPanel() {
           </div>
         ) : entries && entries.length > 0 ? (
           <>
-            {/* Mobile cards */}
             <div className="space-y-2 md:hidden">
               {entries.map((row) => (
                 <div
@@ -238,7 +230,6 @@ export function EmailLogPanel() {
               ))}
             </div>
 
-            {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

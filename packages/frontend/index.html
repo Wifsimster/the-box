@@ -12,10 +12,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="The Box" />
   <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
-  <!-- Pre-JS fallback shell. Strings mirror SITE_CATEGORY / SITE_TAGLINE in
-       @the-box/types — kept as literals because vite.config.ts and this file
-       are read before the types package is built. brand.test.ts asserts they
-       still match the constants. See docs/brand.md. -->
   <title>The Box — le jeu quotidien du screenshot</title>
   <meta name="description" content="Une capture. Un jeu à deviner. Une nouvelle boîte chaque jour à minuit, la même pour tout le monde. Joue en invité, sans compte." />
   <meta name="author" content="BATTISTELLA" />
@@ -45,12 +41,8 @@
   <meta name="twitter:image" content="https://the-box.battistella.ovh/api/og/daily.png?lang=fr" />
   <meta name="twitter:image:alt" content="The Box — une capture, un jeu à deviner" />
 
-  <!-- Umami — analytics self-hosted, sans cookie ni donnée personnelle -->
   <script defer src="https://umami.battistella.ovh/stats.js" data-website-id="b621662e-113a-4342-bd48-c2d16f849a5c"></script>
 
-  <!-- Heatmaps. Script distinct du tracker : `stats.js` ne l'embarque pas.
-       `replayEnabled` est OFF côté serveur, donc la charge utile ne contient
-       que des coordonnées de clic et de scroll — aucun DOM, aucun texte. -->
   <script defer src="https://umami.battistella.ovh/recorder.js"
     data-website-id="b621662e-113a-4342-bd48-c2d16f849a5c"></script>
 </head>

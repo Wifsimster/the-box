@@ -1,13 +1,3 @@
-/**
- * Cleanup Anonymous Users Logic
- *
- * This module handles the recurring job that:
- * - Deletes all anonymous users from the database
- * - Runs daily at 1 AM UTC
- * - Related records (sessions, accounts, game_sessions, etc.) are automatically
- *   deleted via CASCADE foreign key constraints
- */
-
 import { queueLogger } from '../../logger/logger.js'
 import { db } from '../../database/connection.js'
 
@@ -20,11 +10,6 @@ export interface CleanupAnonymousUsersResult {
   message: string
 }
 
-/**
- * Main function to cleanup all anonymous users.
- * Deletes all users where (isAnonymous = true OR email ends with @guest.thebox.local)
- * AND created more than 24 hours ago.
- */
 export async function cleanupAnonymousUsers(
   onProgress?: ProgressCallback
 ): Promise<CleanupAnonymousUsersResult> {
@@ -32,8 +17,6 @@ export async function cleanupAnonymousUsers(
 
   onProgress?.(0, 4, 'Counting anonymous users...')
 
-  // Step 1: Count anonymous users older than 24 hours
-  // Use dual-condition: isAnonymous field OR email pattern matching
   const countResult = await db('user')
     .where(function () {
       this.whereRaw('"isAnonymous" = ?', [true])
@@ -59,7 +42,6 @@ export async function cleanupAnonymousUsers(
 
   onProgress?.(1, 4, `Found ${totalUsers} anonymous user(s) to delete...`)
 
-  // Step 1.5: Log sample of users to be deleted for debugging
   const sampleUsers = await db('user')
     .select('id', 'email', 'isAnonymous', 'createdAt')
     .where(function () {
@@ -74,8 +56,6 @@ export async function cleanupAnonymousUsers(
 
   onProgress?.(2, 4, `Deleting ${totalUsers} anonymous user(s)...`)
 
-  // Step 2: Delete all matching anonymous users
-  // CASCADE will automatically delete related records (sessions, accounts, game_sessions, etc.)
   const deletedCount = await db('user')
     .where(function () {
       this.whereRaw('"isAnonymous" = ?', [true])

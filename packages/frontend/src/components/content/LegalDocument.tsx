@@ -28,7 +28,6 @@ interface LegalDocumentProps {
   title: string
   intro: string
   lastUpdatedLabel: string
-  /** Prefix for the section anchors, e.g. `privacy` → `#privacy-3`. */
   idPrefix: string
   sections: LegalSection[]
 }

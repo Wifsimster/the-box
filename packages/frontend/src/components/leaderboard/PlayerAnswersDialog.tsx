@@ -14,14 +14,6 @@ import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import type { GameSessionDetailsResponse } from '@the-box/types'
 import type { LeaderboardEntry } from './LeaderboardPanels'
 
-/**
- * Modal showing a player's daily answers, opened from a leaderboard row.
- *
- * It renders the same shared {@link SessionDetails} body as the post-game
- * results and game-history pages — so it shows the full breakdown (score,
- * ranking, per-screenshot results) instead of a stripped-down list. The
- * ShareCard is only enabled when the row is the signed-in user's own score.
- */
 export function PlayerAnswersDialog({
   selectedPlayer,
   playerSession,
@@ -44,8 +36,6 @@ export function PlayerAnswersDialog({
 
   const isOwn = Boolean(currentUserId) && selectedPlayer?.userId === currentUserId
   const rank = selectedPlayer?.rank ?? null
-  // Derive "top X%" from the row's rank — the daily board has no separate
-  // percentile endpoint, but rank / total is the same information.
   const percentile =
     rank !== null && totalPlayers > 0
       ? Math.max(1, Math.ceil((rank / totalPlayers) * 100))

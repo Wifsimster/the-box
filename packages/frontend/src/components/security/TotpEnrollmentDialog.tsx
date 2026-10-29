@@ -19,9 +19,6 @@ export type TotpEnrollment = { totpURI: string; backupCodes: string[] }
 export type TotpStep = 'idle' | 'password' | 'verify' | 'backup'
 
 function buildQrUrl(totpUri: string): string {
-  // Google Charts is gone; use a small inline-friendly QR API. We avoid
-  // shipping a QR lib just for the enrollment screen — the URI is also
-  // shown as text so users with strict CSP / offline auth apps still work.
   const encoded = encodeURIComponent(totpUri)
   return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encoded}`
 }
@@ -34,11 +31,6 @@ function extractSecret(totpUri: string): string | null {
   }
 }
 
-/**
- * Multi-step TOTP enrollment modal (password → QR verify → backup codes).
- * Extracted from SecuritySettingsPage so that page stays focused on the
- * security overview and 2FA/passkey orchestration.
- */
 export function TotpEnrollmentDialog({
   step,
   password,
@@ -89,8 +81,6 @@ export function TotpEnrollmentDialog({
     <ResponsiveDialog open={step !== 'idle'} onOpenChange={(open) => !open && onClose()}>
       <ResponsiveDialogContent
         className="sm:max-w-md"
-        // Backup codes are shown only once: a stray tap on the backdrop must
-        // not throw them away. The explicit "I saved them" button closes.
         onInteractOutside={(e) => {
           if (step === 'backup') e.preventDefault()
         }}

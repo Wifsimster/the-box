@@ -6,10 +6,6 @@ import {
   validateWebhookUrl,
 } from './webhook-signer.service.js'
 
-// Pure-logic tests only. The DNS-resolving `resolveWebhookUrlSafely` is
-// covered by integration tests that can stub /etc/hosts or the resolver;
-// here we lock down the synchronous gates that everything else depends on.
-
 describe('isPrivateOrReservedIp', () => {
   it('flags IPv4 private + reserved ranges', () => {
     for (const ip of [
@@ -19,8 +15,8 @@ describe('isPrivateOrReservedIp', () => {
       '172.31.255.255',
       '192.168.0.1',
       '127.0.0.1',
-      '169.254.169.254', // AWS metadata
-      '100.64.0.1', // CGNAT
+      '169.254.169.254',
+      '100.64.0.1',
       '0.0.0.0',
       '224.0.0.1',
       '240.0.0.1',

@@ -1,25 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
 
-/**
- * Regression: end-of-game dialog ordering on the last-needed screenshot.
- *
- * Bug: when the player made the final correct guess while skipped positions
- * still remained, the game set `gamePhase='result'` (the per-screenshot
- * ResultCard, z-40) AND `showCompletionChoice=true` (the CompletionChoiceModal,
- * a z-50 portal) at the same time. The modal rendered on top of the result
- * card, so the player could never see whether that last guess was correct.
- *
- * Fix: the result card is shown FIRST (queued via `pendingCompletionChoice`);
- * the completion-choice modal only opens once the player advances from the
- * result. This spec asserts that ordering.
- *
- * The daily-game backend (challenge / session / screenshot / guess) is fully
- * network-mocked so the test is deterministic and runs against the frontend
- * dev server alone — no Postgres/Redis/backend required. The completion-choice
- * scenario ("visited all positions, one still skipped, last guess correct") is
- * seeded through the dev-only `window.__gameStore` test seam.
- */
-
 const TRANSPARENT_PNG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
@@ -57,7 +37,6 @@ function jsonOk(data: unknown) {
 async function mockDailyGameBackend(page: Page) {
   const today = new Date().toISOString().slice(0, 10)
 
-  // Better Auth session — a logged-in user so the guest gate never appears.
   await page.route('**/api/auth/get-session*', (route) =>
     route.fulfill({
       status: 200,
@@ -74,7 +53,6 @@ async function mockDailyGameBackend(page: Page) {
     })
   )
 
-  // Today's challenge exists; no prior session → fresh start via the intro.
   await page.route('**/api/game/today*', (route) =>
     route.fulfill(
       jsonOk({
@@ -87,7 +65,6 @@ async function mockDailyGameBackend(page: Page) {
     )
   )
 
-  // Start the challenge session.
   await page.route('**/api/game/start/*', (route) =>
     route.fulfill(
       jsonOk({
@@ -99,7 +76,6 @@ async function mockDailyGameBackend(page: Page) {
     )
   )
 
-  // Any screenshot request → a valid response for the requested position.
   await page.route('**/api/game/screenshot*', (route) => {
     const url = new URL(route.request().url())
     const position = Number(url.searchParams.get('position') ?? '1')
@@ -113,8 +89,6 @@ async function mockDailyGameBackend(page: Page) {
     )
   })
 
-  // Every guess is correct but the session is NOT complete (a skipped position
-  // still remains) — exactly the state that used to stack the two dialogs.
   await page.route('**/api/game/guess', (route) =>
     route.fulfill(
       jsonOk({
@@ -131,11 +105,6 @@ async function mockDailyGameBackend(page: Page) {
   )
 }
 
-/**
- * Seed the "visited all positions, one still skipped" state directly on the
- * store, keeping the CURRENT position (1) in progress so the next guess is the
- * final correct one that triggers the completion choice.
- */
 async function seedAllVisitedOneSkipped(page: Page) {
   await page.evaluate(() => {
     const store = (
@@ -169,12 +138,10 @@ test.describe('End-of-game dialog ordering', () => {
 
     await page.goto('/en/play')
 
-    // Open the daily box (one tap from the closed box, no intro screen).
     const startButton = page.getByTestId('today-open-box')
     await expect(startButton).toBeVisible({ timeout: 15000 })
     await startButton.click()
 
-    // Wait until we're actually in the playing phase with a screenshot loaded.
     await expect
       .poll(
         () =>
@@ -190,7 +157,6 @@ test.describe('End-of-game dialog ordering', () => {
       )
       .toBe('playing')
 
-    // Seed the completion-choice scenario, then make the final correct guess.
     await seedAllVisitedOneSkipped(page)
 
     const guessInput = page.getByPlaceholder(/game name/i).first()
@@ -198,17 +164,13 @@ test.describe('End-of-game dialog ordering', () => {
     await guessInput.fill('The Witcher 3')
     await page.getByRole('button', { name: /submit guess/i }).click()
 
-    // 1) The per-screenshot result appears first and clearly shows the outcome.
     const resultDialog = page.getByRole('dialog', { name: /round result/i })
     await expect(resultDialog).toBeVisible()
     await expect(resultDialog.getByText(/correct/i).first()).toBeVisible()
 
-    // 2) The completion-choice modal is NOT stacked on top of the result — the
-    //    regression assertion: its title must be absent while the result shows.
     const completionTitle = page.getByText('Nice Work!', { exact: true })
     await expect(completionTitle).toBeHidden()
 
-    // 3) Advancing from the result reveals the completion-choice modal.
     await resultDialog.getByRole('button', { name: /continue/i }).click()
 
     await expect(completionTitle).toBeVisible()
@@ -219,7 +181,6 @@ test.describe('End-of-game dialog ordering', () => {
       page.getByRole('button', { name: /continue playing/i })
     ).toBeVisible()
 
-    // 4) The result card is gone once the choice modal is up (clean hand-off).
     await expect(resultDialog).toBeHidden()
   })
 })

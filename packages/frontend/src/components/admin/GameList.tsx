@@ -16,9 +16,6 @@ import { AdminListSkeleton } from './AdminListSkeleton'
 import { toast } from '@/lib/toast'
 import { adminApi } from '@/lib/api/admin'
 
-// The four dialog-related values describe a single concept — which dialog is
-// open and on which game — so they live in one reducer rather than four loosely
-// coupled useState flags that can drift out of sync.
 interface DialogState {
   isFormOpen: boolean
   editingGame: Game | null
@@ -99,7 +96,6 @@ export function GameList() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [searchInput, setSearchInput] = useState(gamesSearch)
 
-  // Debounced search
   const debouncedSearch = useMemo(
     () =>
       debounce((value: string) => {
@@ -109,18 +105,15 @@ export function GameList() {
     [setGamesSearch, fetchGames]
   )
 
-  // Fetch games on mount
   useEffect(() => {
     fetchGames()
   }, [fetchGames])
 
-  // Handle search input change
   const handleSearchChange = (value: string) => {
     setSearchInput(value)
     debouncedSearch(value)
   }
 
-  // Handle sort change
   const handleSort = useCallback(
     (field: string) => {
       const newOrder =
@@ -130,7 +123,6 @@ export function GameList() {
     [gamesSort, setGamesSort]
   )
 
-  // Handle create
   const handleCreate = async (data: Omit<Game, 'id'>) => {
     setIsSubmitting(true)
     try {
@@ -144,7 +136,6 @@ export function GameList() {
     }
   }
 
-  // Handle update
   const handleUpdate = async (data: Omit<Game, 'id'>) => {
     if (!editingGame) return
     setIsSubmitting(true)
@@ -159,7 +150,6 @@ export function GameList() {
     }
   }
 
-  // Handle delete
   const handleDelete = async () => {
     if (!deletingGame) return
     setIsSubmitting(true)
@@ -174,7 +164,6 @@ export function GameList() {
     }
   }
 
-  // Handle sync from RAWG
   const handleSyncRawg = async () => {
     if (!editingGame) return
     setIsSyncing(true)
@@ -182,7 +171,7 @@ export function GameList() {
       const { game } = await adminApi.syncGameFromRawg(editingGame.id)
       dispatchDialog({ type: 'setEditingGame', game })
       toast.success(t('admin.games.messages.synced'))
-      fetchGames() // Refresh list
+      fetchGames()
     } catch {
       toast.error(t('admin.games.messages.syncError'))
     } finally {
@@ -190,7 +179,6 @@ export function GameList() {
     }
   }
 
-  // Close form dialog
   const handleCloseForm = () => {
     dispatchDialog({ type: 'closeForm' })
   }
@@ -215,7 +203,6 @@ export function GameList() {
       </CardHeader>
 
       <CardContent>
-        {/* Search */}
         <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -230,7 +217,6 @@ export function GameList() {
           </div>
         </div>
 
-        {/* Error state */}
         {gamesError && (
           <div role="alert" className="mb-4 flex flex-col gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
             <span className="flex items-start gap-2">
@@ -265,7 +251,6 @@ export function GameList() {
             )}
           </div>
         ) : (
-          /* Table */
           <>
             <div className="relative" aria-busy={gamesLoading}>
               {gamesLoading && (
@@ -284,7 +269,6 @@ export function GameList() {
               />
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-4">
                 <Pagination
@@ -298,7 +282,6 @@ export function GameList() {
         )}
       </CardContent>
 
-      {/* Create/Edit Dialog */}
       <ResponsiveDialog open={isFormOpen || !!editingGame} onOpenChange={(open) => !open && !isSubmitting && handleCloseForm()}>
         <ResponsiveDialogContent className="sm:max-w-2xl">
           <ResponsiveDialogTitle className="sr-only">
@@ -315,7 +298,6 @@ export function GameList() {
         </ResponsiveDialogContent>
       </ResponsiveDialog>
 
-      {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
         isOpen={!!deletingGame}
         onClose={() => dispatchDialog({ type: 'closeDelete' })}
@@ -329,7 +311,6 @@ export function GameList() {
         isLoading={isSubmitting}
       />
 
-      {/* Screenshots Dialog */}
       <ScreenshotsDialog
         game={screenshotsGame}
         open={!!screenshotsGame}

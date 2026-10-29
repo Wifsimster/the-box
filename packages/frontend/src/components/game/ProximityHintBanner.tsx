@@ -10,19 +10,12 @@ const RELATION_KEY: Record<GuessProximityHint['relation'], string> = {
   same_publisher: 'game.proximity.samePublisher',
 }
 
-/**
- * "Warmer" banner shown under the guess input after a wrong guess that the
- * server could relate to the answer (same franchise / studio / publisher). It
- * teaches the player something from a near-miss without ever revealing the
- * answer's title — `hint.value` is an attribute of the game they named.
- */
 export function ProximityHintBanner({ hint }: { hint: GuessProximityHint }) {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotionSafe()
 
   return (
     <m.div
-      // `aria-live` so the clue is announced; matches the wrong-guess feedback.
       role="status"
       aria-live="polite"
       initial={prefersReducedMotion ? false : { opacity: 0, y: -4 }}

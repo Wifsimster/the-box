@@ -12,10 +12,7 @@ interface ScreenshotViewerProps {
   onLoad?: () => void
 }
 
-// Swipe navigation is disabled, so slide changes are intentionally ignored.
-// Defined at module scope: it closes over no component state.
 function handleSlideChange(_index: number) {
-  // Swipe navigation disabled
 }
 
 export function ScreenshotViewer({
@@ -24,8 +21,6 @@ export function ScreenshotViewer({
   onLoad,
 }: ScreenshotViewerProps) {
   const { t } = useTranslation()
-  // Prefetched neighbour screenshots, keyed by their absolute position so the
-  // async results are tied to the data they describe rather than a slot index.
   const [adjacentImages, setAdjacentImages] = useState<
     Record<number, { url: string; alt: string }>
   >({})
@@ -38,7 +33,6 @@ export function ScreenshotViewer({
     sessionId,
   } = useGameStore()
 
-  // Find previous navigable position
   const findPreviousPosition = useMemo(() => {
     for (let i = currentPosition - 1; i >= 1; i--) {
       const state = positionStates[i]
@@ -55,7 +49,6 @@ export function ScreenshotViewer({
     return null
   }, [currentPosition, positionStates, totalScreenshots])
 
-  // Find next navigable position
   const findNextPosition = useMemo(() => {
     for (let i = currentPosition + 1; i <= totalScreenshots; i++) {
       const state = positionStates[i]
@@ -72,9 +65,6 @@ export function ScreenshotViewer({
     return null
   }, [currentPosition, positionStates, totalScreenshots])
 
-  // Prefetch the adjacent screenshots and stash them keyed by position. Each
-  // resolved fetch performs a single state update, so the effect never
-  // cascades multiple setState calls.
   useEffect(() => {
     if (!sessionId || gamePhase !== 'playing') return
 
@@ -108,8 +98,6 @@ export function ScreenshotViewer({
     }
   }, [sessionId, gamePhase, totalScreenshots, findPreviousPosition, findNextPosition, t])
 
-  // Derive the carousel images during render: [prev, current, next]. Neighbour
-  // slots fill in from prefetched data once available.
   const images = useMemo(() => {
     const prev = findPreviousPosition !== null ? adjacentImages[findPreviousPosition] : undefined
     const next = findNextPosition !== null ? adjacentImages[findNextPosition] : undefined
@@ -150,10 +138,8 @@ export function ScreenshotViewer({
         className="size-full"
       />
 
-      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-linear-to-t from-background/60 via-transparent to-background/40 pointer-events-none z-10" />
 
-      {/* Placeholder when no image */}
       {!imageUrl && (
         <AnimatePresence>
           <m.div

@@ -20,17 +20,9 @@ interface MapPickerProps {
     maps: GeoMap[]
     selectedMapId: number | null
     onSelect: (mapId: number | null) => void
-    // Extra "any map" pseudo-option at the top of the list for games with
-    // multiple maps; selecting it tells the picker to let the server
-    // randomize the map for the next round.
     showAnyMapOption?: boolean
 }
 
-/**
- * Free-play map chooser. Reuses the daily `GeoMapChooser` aesthetic
- * (thumbnail + region label) but lives inside a sheet/drawer instead of
- * inline so it doesn't compete with the immersive screenshot/map view.
- */
 export function MapPicker({
     open,
     onOpenChange,
@@ -42,10 +34,6 @@ export function MapPicker({
     const { t } = useTranslation()
     const isMobile = useIsMobile()
 
-    // Total radio count includes the optional "any map" pseudo-option at
-    // index 0. Initial focus lands on the currently-selected map (or the
-    // "any" option / first map when none is selected) so Tab moves the
-    // ring to a sensible spot.
     const itemCount = (showAnyMapOption ? 1 : 0) + maps.length
     const initialIndex = (() => {
         if (selectedMapId == null) return 0

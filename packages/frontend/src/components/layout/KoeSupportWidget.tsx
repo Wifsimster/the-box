@@ -9,16 +9,6 @@ import { useConsentStore } from '@/stores/consentStore'
 const KOE_PROJECT_KEY = import.meta.env.VITE_KOE_PROJECT_KEY as string | undefined
 const KOE_API_URL = import.meta.env.VITE_KOE_API_URL as string | undefined
 
-/**
- * Koe support widget mounted alongside the user menu.
- * Only renders for authenticated users when the Koe env vars are configured,
- * so the launcher appears in-context with the rest of the account controls.
- *
- * The userHash is fetched from /api/koe/identity (HMAC-SHA256 of user.id
- * with KOE_IDENTITY_SECRET) so the Koe backend can verify the requesting
- * user. If the backend hasn't been configured with the secret it returns
- * 204 and the widget falls back to unverified mode.
- */
 export function KoeSupportWidget() {
   const { user, isAuthenticated } = useAuth()
   const { i18n } = useTranslation()
@@ -44,18 +34,10 @@ export function KoeSupportWidget() {
 
   if (!KOE_PROJECT_KEY || !KOE_API_URL) return null
   if (!isAuthenticated || !user?.id) return null
-  // Gated behind explicit "support" consent (GDPR / RGPD) — the widget loads a
-  // third-party script and identifies the user, so it must not run until the
-  // user opts in.
   if (supportConsent !== true) return null
 
   return (
     <>
-      {/* Hide the floating launcher in its closed state — entry point is the
-          user-menu "Support" item, which calls .click() on the launcher
-          programmatically (display:none doesn't block synthetic clicks).
-          The open-state button (aria-expanded="true", X icon) stays visible
-          so users can still close the panel. */}
       <style>{`.koe-root button[aria-expanded="false"]{display:none!important;}`}</style>
       <KoeWidget
         projectKey={KOE_PROJECT_KEY}

@@ -8,20 +8,15 @@ import { GeoFetchControls } from './GeoFetchControls'
 import { GeoFetchGameList } from './GeoFetchGameList'
 import { GameMapsDrawer } from './GameMapsDrawer'
 
-// Top-level container for the geo-fetch admin tab. Owns socket subscription,
-// initial hydrate, and which game (if any) is open in the curation drawer.
-
 export default function GeoFetchPanel() {
   const { t } = useTranslation()
   const { hydrate, applyProgress, applyGameDone, applyMapSelected } = useGeoFetchStore()
   const [openGameId, setOpenGameId] = useState<number | null>(null)
 
-  // Initial load + reconnect reconciliation.
   useEffect(() => {
     void hydrate()
   }, [hydrate])
 
-  // Socket-pushed delta application. Re-hydrate on reconnect to sync drift.
   useEffect(() => {
     const socket = getAdminSocket()
     const onProgress = (payload: { gameId: number; source: string; stage: string }) =>
@@ -41,9 +36,6 @@ export default function GeoFetchPanel() {
     socket.on('geo:fetch:progress', onProgress)
     socket.on('geo:fetch:gameDone', onGameDone)
     socket.on('geo:fetch:mapSelected', onMapSelected)
-    // socket.io v4: 'reconnect' is fired by the Manager (`socket.io`),
-    // not by the Socket itself. The previous `socket.on('reconnect', ...)`
-    // never fired so the rehydrate-on-reconnect was effectively dead.
     socket.io.on('reconnect', onReconnect)
 
     return () => {

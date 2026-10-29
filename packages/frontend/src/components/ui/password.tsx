@@ -19,8 +19,6 @@ const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps
           type={showPassword ? "text" : "password"}
           data-slot="password"
           className={cn(
-            // 16px on mobile avoids iOS Safari's focus zoom; `md:text-sm`
-            // keeps the desktop scale. Mirrors the base Input component.
             "flex h-(--control-h) w-full rounded-md border border-border bg-card px-3 py-2 text-base md:text-sm text-foreground",
             "placeholder:text-muted-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
@@ -38,9 +36,6 @@ const Password = ({ className, showToggle = true, ref, ...props }: PasswordProps
             onClick={() => setShowPassword(!showPassword)}
             aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
             aria-pressed={showPassword}
-            // Fills the right gutter so the hit area is the full control
-            // height (`--control-h`: 40px, 44px on touch) instead of the 16px
-            // icon box.
             className="absolute inset-y-0 right-0 flex w-(--control-h) items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             tabIndex={-1}
           >

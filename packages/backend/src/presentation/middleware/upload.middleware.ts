@@ -8,12 +8,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Avatar uploads directory (served publicly under /uploads/avatars)
 export const avatarsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads', 'avatars')
 
-// Raw uploads land outside the public uploads tree: they are re-encoded into
-// avatarsPath and then deleted, so the client's original bytes (EXIF, GPS,
-// anything) are never reachable over HTTP, not even for a moment.
 const incomingAvatarsPath = path.join(os.tmpdir(), 'the-box-avatar-incoming')
 
 for (const dir of [avatarsPath, incomingAvatarsPath]) {
@@ -22,7 +18,6 @@ for (const dir of [avatarsPath, incomingAvatarsPath]) {
   }
 }
 
-// Configure storage for avatar uploads
 const avatarStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, incomingAvatarsPath)
@@ -41,7 +36,6 @@ class InvalidAvatarTypeError extends Error {
   }
 }
 
-// File filter for images only
 const imageFileFilter = (
   _req: Express.Request,
   file: Express.Multer.File,
@@ -54,9 +48,8 @@ const imageFileFilter = (
   }
 }
 
-export const AVATAR_MAX_UPLOAD_BYTES = 10 * 1024 * 1024 // 10MB
+export const AVATAR_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
-// Avatar upload middleware (max 10MB)
 export const avatarUpload = multer({
   storage: avatarStorage,
   fileFilter: imageFileFilter,
@@ -66,10 +59,6 @@ export const avatarUpload = multer({
   },
 })
 
-/**
- * `avatarUpload.single('avatar')`, with client mistakes answered as 4xx JSON
- * instead of falling through to the generic 500 handler.
- */
 export const avatarUploadSingle: RequestHandler = (req, res, next) => {
   avatarUpload.single('avatar')(req, res, (err?: unknown) => {
     if (!err) {
@@ -92,12 +81,10 @@ export const avatarUploadSingle: RequestHandler = (req, res, next) => {
   })
 }
 
-// Helper to get public URL for avatar
 export function getAvatarUrl(filename: string): string {
   return `/uploads/avatars/${filename}`
 }
 
-// Helper to delete old avatar file
 export async function deleteAvatarFile(avatarUrl: string): Promise<void> {
   if (!avatarUrl || !avatarUrl.startsWith('/uploads/avatars/')) {
     return
@@ -107,6 +94,5 @@ export async function deleteAvatarFile(avatarUrl: string): Promise<void> {
   try {
     await fs.promises.unlink(filepath)
   } catch {
-    // File doesn't exist or already deleted, ignore
   }
 }

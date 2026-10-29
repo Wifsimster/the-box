@@ -12,17 +12,12 @@ interface AchievementToastBodyProps {
     toastId: string | number
 }
 
-// Tier gradients map to semantic tokens; see AchievementCard for the palette rationale.
 const tierColors = {
     1: 'from-warning/20 to-warning/5 border-warning/50',
     2: 'from-primary/20 to-primary/5 border-primary/50',
     3: 'from-neon-cyan/20 to-neon-cyan/5 border-neon-cyan/50',
 }
 
-/**
- * Visual body for the achievement-unlocked sonner toast. Exported for
- * reuse inside `sonner.toast.custom(...)` — see `showAchievementToast`.
- */
 export function AchievementToastBody({ achievement, toastId }: AchievementToastBodyProps) {
     const { t } = useTranslation()
     const tierGradient = tierColors[achievement.tier as keyof typeof tierColors] || tierColors[1]

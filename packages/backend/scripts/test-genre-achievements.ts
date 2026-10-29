@@ -1,8 +1,3 @@
-/**
- * Test script to check genre achievement tracking
- * Usage: npx tsx scripts/test-genre-achievements.ts <userId>
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 
 async function testGenreAchievements(userId: string) {
@@ -13,7 +8,6 @@ async function testGenreAchievements(userId: string) {
     for (const genre of genres) {
         console.log(`\n=== Checking ${genre} genre ===`)
 
-        // Query to count correct guesses for this genre
         const result = await db('guesses')
             .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
             .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')

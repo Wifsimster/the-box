@@ -23,12 +23,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { authClient } from '@/lib/auth-client'
 import { toast } from '@/lib/toast'
 
-/**
- * Self-contained passkey list + add/delete flow. Better Auth's
- * nanostore-backed `useListPasskeys` keeps the list in sync with
- * register/delete events. Extracted from SecuritySettingsPage so that page
- * stays small and focused on the security overview.
- */
 export function PasskeyManager({ isAnonymous }: { isAnonymous: boolean }) {
   const { t, i18n } = useTranslation()
   const passkeysAtom = authClient.useListPasskeys()
@@ -74,8 +68,6 @@ export function PasskeyManager({ isAnonymous }: { isAnonymous: boolean }) {
     if (!passkeyToDelete) return
     setPasskeyBusy(true)
     try {
-      // deletePasskey is exposed on the underlying client even though it is not
-      // typed on the `passkey.*` namespace — invoke via the auto-generated path.
       const result = await (authClient as unknown as {
         passkey: { deletePasskey: (opts: { id: string }) => Promise<{ error?: unknown }> }
       }).passkey.deletePasskey({ id: passkeyToDelete })

@@ -1,13 +1,3 @@
-/**
- * Daily Challenge Creation Logic
- *
- * This module handles the recurring job that:
- * - Creates a new daily challenge for the current day (UTC)
- * - Randomly selects 10 screenshots from games with Metacritic score >= 85
- * - Allows reuse if fewer than 10 unique screenshots available
- * - Skips creation if challenge already exists for the date (idempotent)
- */
-
 import { queueLogger } from '../../logger/logger.js'
 import { challengeRepository } from '../../repositories/challenge.repository.js'
 import { sessionRepository } from '../../repositories/session.repository.js'
@@ -28,13 +18,6 @@ export interface DailyChallengeResult {
   message: string
 }
 
-/**
- * Get today's date in YYYY-MM-DD format (UTC).
- * Accepts an optional reference timestamp so the cron worker can use the
- * job's scheduled-fire time instead of `Date.now()` — otherwise a container
- * restart that re-registers the recurring job seconds before midnight UTC
- * would compute "tomorrow" and silently skip a day.
- */
 function getTodayDateUTC(referenceMs?: number): string {
   const ref = typeof referenceMs === 'number' ? new Date(referenceMs) : new Date()
   return ref.toISOString().split('T')[0]!
@@ -45,25 +28,13 @@ interface ScreenshotPick {
   difficulty: number
 }
 
-/**
- * Order picks so that easier screenshots come first.
- * Ties are broken by a small random jitter to keep ordering varied day-to-day.
- */
 function orderByDifficultyAscending(picks: ScreenshotPick[]): number[] {
   return [...picks]
     .sort((a, b) => a.difficulty - b.difficulty || Math.random() - 0.5)
     .map((p) => p.id)
 }
 
-/**
- * Select N random screenshots from the database.
- * Only selects screenshots from games with metacritic >= 85.
- * If fewer than N unique screenshots are available, allows reuse.
- * Returns screenshot IDs ordered by ascending difficulty so early positions
- * (1..3) are warm-up rounds and the session ramps up to harder screenshots.
- */
 async function selectRandomScreenshots(count: number): Promise<number[]> {
-  // Get count of available screenshots from games with metascore >= 85
   const result = await db('screenshots')
     .join('games', 'screenshots.game_id', 'games.id')
     .where('screenshots.is_active', true)
@@ -78,7 +49,6 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
 
   log.info({ available, needed: count, minMetascore: 85 }, 'Selecting random screenshots')
 
-  // If we have enough unique screenshots, use ORDER BY RANDOM()
   if (available >= count) {
     const rows = await db('screenshots')
       .join('games', 'screenshots.game_id', 'games.id')
@@ -93,13 +63,11 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
     return orderByDifficultyAscending(rows)
   }
 
-  // Not enough unique screenshots - allow reuse
   log.warn(
     { available, needed: count, minMetascore: 85 },
     'Not enough unique screenshots with metascore >= 85, allowing reuse'
   )
 
-  // Get all screenshot IDs from games with metascore >= 85
   const all = await db('screenshots')
     .join('games', 'screenshots.game_id', 'games.id')
     .where('screenshots.is_active', true)
@@ -109,7 +77,6 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
       'screenshots.difficulty'
     )
 
-  // Build selection with reuse
   const selected: ScreenshotPick[] = []
   while (selected.length < count) {
     const shuffled = [...all].sort(() => Math.random() - 0.5)
@@ -120,11 +87,6 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
   return orderByDifficultyAscending(selected.slice(0, count))
 }
 
-/**
- * End all in-progress game sessions by applying penalties for unfound screenshots.
- * This is called when a new daily challenge is created to ensure users can't continue
- * playing previous day's games.
- */
 async function endAllInProgressGames(): Promise<{ ended: number; failed: number }> {
   log.info('Starting to end all in-progress games')
 
@@ -137,18 +99,14 @@ async function endAllInProgressGames(): Promise<{ ended: number; failed: number 
 
     for (const session of inProgressSessions) {
       try {
-        // Get correct positions to calculate unfound count
         const correctPositions = await sessionRepository.getCorrectPositions(session.id)
         const screenshotsFound = correctPositions.length
         const unfoundCount = TOTAL_SCREENSHOTS - screenshotsFound
 
-        // Calculate penalty
         const penaltyApplied = unfoundCount * UNFOUND_PENALTY
 
-        // Calculate final score (allow negative)
         const finalScore = session.total_score - penaltyApplied
 
-        // Mark session as completed
         await sessionRepository.updateGameSession(session.id, {
           totalScore: finalScore,
           currentPosition: session.current_position,
@@ -186,22 +144,15 @@ async function endAllInProgressGames(): Promise<{ ended: number; failed: number 
   return { ended, failed }
 }
 
-/**
- * Main function to create a daily challenge for today.
- * This function is idempotent - it will skip if a challenge already exists.
- */
 export async function createDailyChallenge(
   onProgress?: ProgressCallback,
   options?: { referenceMs?: number; targetDate?: string }
 ): Promise<DailyChallengeResult> {
-  // Prefer an explicit target date when supplied, then fall back to a
-  // timestamp-derived date (cron worker passes job.timestamp), then to "now".
   const challengeDate = options?.targetDate ?? getTodayDateUTC(options?.referenceMs)
 
   log.info({ challengeDate }, 'Starting daily challenge creation')
   onProgress?.(0, 5, `Checking for existing challenge on ${challengeDate}...`)
 
-  // Step 1: Check if challenge already exists for this date
   const existingChallenge = await challengeRepository.findByDate(challengeDate)
   if (existingChallenge) {
     log.info(
@@ -209,7 +160,6 @@ export async function createDailyChallenge(
       'Challenge already exists for date, skipping creation'
     )
 
-    // Still end in-progress games even if challenge already exists
     onProgress?.(4, 5, 'Ending all in-progress games...')
     const endGamesResult = await endAllInProgressGames()
     log.info(
@@ -228,19 +178,16 @@ export async function createDailyChallenge(
 
   onProgress?.(1, 5, 'Selecting random screenshots...')
 
-  // Step 2: Select 10 random screenshots
   const screenshotIds = await selectRandomScreenshots(10)
   log.info({ count: screenshotIds.length }, 'Selected screenshots for challenge')
 
   onProgress?.(2, 5, 'Creating daily challenge entry...')
 
-  // Step 3: Create the daily challenge
   const challenge = await challengeRepository.create(challengeDate)
   log.info({ challengeId: challenge.id }, 'Created daily challenge')
 
   onProgress?.(3, 5, 'Creating tier and assigning screenshots...')
 
-  // Step 4: Create tier (single "Daily Challenge" tier)
   const tier = await challengeRepository.createTier({
     dailyChallengeId: challenge.id,
     tierNumber: 1,
@@ -248,12 +195,10 @@ export async function createDailyChallenge(
     timeLimitSeconds: 45,
   })
 
-  // Step 5: Assign screenshots to positions 1-10
   await challengeRepository.createTierScreenshots(tier.id, screenshotIds)
 
   onProgress?.(4, 5, 'Ending all in-progress games...')
 
-  // Step 6: End all in-progress games
   const endGamesResult = await endAllInProgressGames()
   log.info(
     { ended: endGamesResult.ended, failed: endGamesResult.failed },

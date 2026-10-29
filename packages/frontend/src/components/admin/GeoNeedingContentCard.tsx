@@ -8,14 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
-/**
- * The "one pin away" diagnostic (issue #331, phase 1). The GeoGamers health
- * card shows the *aggregate* eligible-game count; this card shows *which*
- * games are closest to becoming eligible — games with captures collecting
- * pins but no canonical pin yet — so an admin can spend pinning effort where
- * it moves the eligible-count needle. Each row deep-links into the review
- * queue for that game, where the existing override promotes a candidate.
- */
 export function GeoNeedingContentCard() {
     const { t } = useTranslation()
     const [rows, setRows] = useState<GeoGameNeedingContent[] | null>(null)
@@ -43,9 +35,6 @@ export function GeoNeedingContentCard() {
         }
     }, [])
 
-    // Deep-link into the review queue seeded on this game. GeoReviewPanel reads
-    // the `qGameId`/`qGameName` params once to pre-select the queue tab + game
-    // filter, then strips them from the URL.
     const openInQueue = (game: GeoGameNeedingContent) => {
         setSearchParams(
             (prev) => {

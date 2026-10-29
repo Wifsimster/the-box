@@ -1,10 +1,5 @@
 import { useEffect, useState } from 'react'
 
-/**
- * Animated count-up toward `target` (ease-out cubic over `durationMs`).
- * Under prefers-reduced-motion the final value renders immediately —
- * no intermediate frames. Used by the geo reveal sheet and run recap.
- */
 export function useCountUp(target: number, durationMs: number): number {
     const prefersReduced =
         typeof window !== 'undefined' &&
@@ -14,9 +9,6 @@ export function useCountUp(target: number, durationMs: number): number {
         let raf = 0
         const start = performance.now()
         const tick = (now: number) => {
-            // Reduced motion: jump straight to the final value (still via
-            // rAF so the state write never happens synchronously in the
-            // effect body).
             const t = prefersReduced
                 ? 1
                 : Math.min(1, (now - start) / durationMs)

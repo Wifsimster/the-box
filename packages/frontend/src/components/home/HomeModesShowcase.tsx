@@ -13,16 +13,11 @@ import { cn } from '@/lib/utils'
 
 interface ModeCard {
   key: string
-  /** Unlocalized route the card links to. */
   path: string
   icon: ComponentType<LucideProps>
-  /** i18n key for the visible mode title. */
   titleKey: string
-  /** i18n key for the one-sentence description. */
   descriptionKey: string
-  /** i18n key for the small status badge (alpha / new). */
   badgeKey: string
-  /** Runtime feature flag gating this card. Cards without one always show. */
   feature?: keyof RuntimeFeatures
 }
 
@@ -47,12 +42,6 @@ const MODES: ModeCard[] = [
   },
 ]
 
-/**
- * Home-page showcase for the app's secondary game modes. The daily challenge
- * gets the loud hero CTA above; this section answers "what are Geo and
- * GeoGamers?" with a one-sentence pitch and an explicit link into each mode,
- * so visitors aren't left guessing what the nav badges mean.
- */
 export function HomeModesShowcase() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
@@ -93,8 +82,6 @@ export function HomeModesShowcase() {
         </div>
       </div>
 
-      {/* One card must not sit alone in a two-column grid — with the geo
-          community surface sunset, a single mode is the default state. */}
       <div
         className={cn(
           'grid gap-3 sm:gap-5',

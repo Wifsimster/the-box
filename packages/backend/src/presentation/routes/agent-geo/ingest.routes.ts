@@ -19,13 +19,6 @@ import { gameIdParams } from './shared.js'
 
 const router = Router()
 
-// POST /games/:gameId/ingest — trigger the existing map-ingestion pipeline for
-// one game (phase 3). Pure enqueue: reuses `enqueueSingleTierImport`, so
-// tombstones/circuit-breakers, dedup, and license/attribution capture are
-// untouched. The agent can request specific tiers or default to all; it can
-// NEVER add a source outside the RunnableTier allowlist, and a source with a
-// disabled geo_source_config row is skipped (its kill switch is honored).
-// Bounded by a per-key Redis daily budget on top of the 60/min rate limit.
 const ingestBodySchema = z.object({
   sources: z.array(z.enum(RUNNABLE_TIERS)).nonempty().max(RUNNABLE_TIERS.length).optional(),
 })
@@ -41,8 +34,6 @@ router.post(
       const { sources } = req.body as z.infer<typeof ingestBodySchema>
       const requested: RunnableTier[] = sources ?? [...RUNNABLE_TIERS]
 
-      // Daily budget check BEFORE enqueuing. Validation errors (bad tier /
-      // gameId) are already handled by the schemas above and don't consume it.
       const maxPerDay = Number(env.GEO_AGENT_MAX_INGESTS_PER_DAY) || 20
       const keyId = req.apiKey!.id
       const budget = await consumeIngestBudget(keyId, maxPerDay)
@@ -58,9 +49,6 @@ router.post(
         return
       }
 
-      // Honor the per-source kill switch where a config row exists. Sources
-      // without a geo_source_config row (registry/fextralife/wikidata) have no
-      // switch and are always runnable — matching the admin "Run now" button.
       const configs = await geoSourceConfigRepository.list()
       const disabled = new Set(
         configs.filter((c) => !c.isEnabled).map((c) => c.source as string),
@@ -83,8 +71,6 @@ router.post(
         )
       }
 
-      // Audit every ingest trigger keyed to the API key (writes are always
-      // logged). Best-effort — never blocks the response.
       await adminAuditRepository.record({
         adminId: `apikey:${keyId}`,
         action: 'geo-agent.ingest',

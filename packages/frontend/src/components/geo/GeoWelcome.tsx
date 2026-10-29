@@ -3,14 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { ChevronRight, Gamepad2, MapPin, Play, Sparkles, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-/**
- * Cold-start hero for the free-play geo deck. Rendered across the FULL
- * deck (both panel slots) when no game is selected, replacing the old
- * flow that auto-opened the game picker over a blank split screen. The
- * player gets the pitch, social proof and three explicit entry points —
- * quick play (zero decisions), the catalog picker, and the scored run —
- * before any sheet is pushed in their face.
- */
 export function GeoWelcome({
     pinsToday,
     language,
@@ -29,9 +21,6 @@ export function GeoWelcome({
     const { t } = useTranslation()
     return (
         <div className="relative size-full overflow-y-auto">
-            {/* Decorative depth — one soft radial glow, per the one-hero-
-                glow-per-screen token rule (the reveal owns the glow once
-                a round is running; here the welcome is the only screen). */}
             <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_0%,var(--tw-gradient-stops))] from-neon-purple/20 via-transparent to-transparent"
@@ -52,8 +41,6 @@ export function GeoWelcome({
                     </p>
                 </div>
 
-                {/* Social proof — render only once a real, non-zero number
-                    landed; a "0 pins today" chip would do the opposite. */}
                 {pinsToday != null && pinsToday > 0 && (
                     <p
                         className="inline-flex items-center gap-1.5 rounded-full bg-neon-pink/10 px-3 py-1 text-xs text-white/90"

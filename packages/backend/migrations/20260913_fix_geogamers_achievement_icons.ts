@@ -1,12 +1,5 @@
 import type { Knex } from 'knex'
 
-// The GeoGamers achievements shipped with Lucide icon *names* in `icon_url`
-// ('crosshair', 'target') while every other achievement stores an emoji.
-// `icon_url` is rendered as raw text by the UI (AchievementCard,
-// HomeAchievementTeaser, AchievementNotification), so those two rows showed
-// the literal word "crosshair" / "target" where the badge should be.
-// Swap them for emoji in line with the rest of the catalogue.
-
 interface IconEdit {
   key: string
   to: string

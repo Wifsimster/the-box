@@ -1,14 +1,3 @@
-/**
- * Social share shells.
- *
- * Serves the SPA's index.html with per-share OpenGraph/Twitter meta patched
- * into the raw HTML — preview bots don't run JS, so client-side tags are
- * invisible to them, and a static logo would make every shared link look
- * identical in a timeline.
- *
- * Extracted from `index.ts`, which was both the process entrypoint and the
- * place three HTML-templating helpers lived.
- */
 import express, { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
@@ -17,14 +6,11 @@ import { env } from '../../config/env.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 import { parseGeoRunScores } from './og.routes.js'
 
-/** Where the built SPA lives, relative to this compiled module. */
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const frontendPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'packages', 'frontend', 'dist')
 
 const router = Router()
 
-// Share routes: serve index.html with per-challenge OG meta tags injected so
-// link previews are unique per shared day (defeats static-logo preview caching).
 function buildShareMeta(req: express.Request): { title: string; description: string; imageUrl: string; pageUrl: string } {
   const dateParam = typeof req.query.date === 'string' ? req.query.date : ''
   const isoMatch = /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
@@ -50,8 +36,6 @@ function escapeHtmlAttr(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-// Serve the SPA shell with the given OG/Twitter meta patched in — link
-// preview bots don't run JS, so the tags must be in the raw HTML.
 function serveShareShell(
   res: express.Response,
   next: express.NextFunction,
@@ -80,14 +64,9 @@ router.get('/share/daily', (req, res, next) => {
   serveShareShell(res, next, buildShareMeta(req))
 })
 
-// Geo free-play run recap share. Scores travel in the URL (runs are
-// client-side only — nothing is stored server-side), the OG image is
-// derived from the same query by /api/og/geo-run.png.
 router.get('/share/geo-run', (req, res, next) => {
   const scores = parseGeoRunScores(req.query.scores)
   if (!scores) {
-    // Malformed link: fall through to the SPA shell with default meta
-    // rather than 400ing a human click.
     next()
     return
   }

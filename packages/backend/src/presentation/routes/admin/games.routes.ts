@@ -6,9 +6,6 @@ import {
 
 const router = Router()
 
-// === Games ===
-
-// List all games with pagination and search
 router.get('/games', async (req, res, next) => {
   try {
     const page = parseInt(req.query['page'] as string) || 1
@@ -34,7 +31,6 @@ router.get('/games', async (req, res, next) => {
   }
 })
 
-// Add a game
 const createGameSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
@@ -68,7 +64,6 @@ router.post('/games', async (req, res, next) => {
   }
 })
 
-// Update a game
 router.put('/games/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -99,7 +94,6 @@ router.put('/games/:id', async (req, res, next) => {
   }
 })
 
-// Delete a game
 router.delete('/games/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -114,7 +108,6 @@ router.delete('/games/:id', async (req, res, next) => {
   }
 })
 
-// Sync a game from RAWG API
 router.post('/games/:id/sync-rawg', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -144,7 +137,6 @@ router.post('/games/:id/sync-rawg', async (req, res, next) => {
   }
 })
 
-// Get screenshots for a game
 router.get('/games/:id/screenshots', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)

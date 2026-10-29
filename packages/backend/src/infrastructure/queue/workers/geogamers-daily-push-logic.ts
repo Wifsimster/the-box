@@ -1,16 +1,3 @@
-/**
- * GeoGamers daily push fan-out.
- *
- * Fired once, right after a new GeoGamers challenge is created, to tell
- * subscribed players "today's panorama is live". Enumerates active,
- * non-anonymous push subscribers and enqueues a per-user send (the push
- * worker handles the per-device fan-out, retries, and 410-pruning).
- *
- * Best-effort and idempotent-enough: it runs only on the day's first
- * successful challenge creation (the scheduler is idempotent per date), so a
- * container restart that re-runs the already-created challenge won't re-notify.
- */
-
 import { db } from '../../database/connection.js'
 import { queueLogger } from '../../logger/logger.js'
 import {
@@ -34,9 +21,6 @@ export interface GeoGamersDailyPushResult {
   message: string
 }
 
-// Exported for testing: active, non-anonymous push subscribers (deduped).
-// Note: the `user` table stores no per-user locale, so copy defaults to French
-// (the app's default locale); the deep-link uses the same.
 export async function findSubscribers(): Promise<Subscriber[]> {
   return db('user')
     .join('push_subscriptions', 'push_subscriptions.user_id', 'user.id')
@@ -57,7 +41,6 @@ export async function sendGeoGamersDailyPush(
   let enqueued = 0
   let failed = 0
 
-  // No stored per-user locale → default to French (app default).
   const { title, body } = buildGeoGamersDailyCopy('fr')
 
   for (let i = 0; i < subscribers.length; i++) {

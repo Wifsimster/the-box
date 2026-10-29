@@ -1,13 +1,3 @@
-/**
- * Clear Daily Data Logic
- *
- * This module handles the job that:
- * - Deletes all users' game session data for the current day's daily challenge
- * - Runs on demand or can be scheduled
- * - Related records (tier_sessions, guesses, power_ups, bonus_rounds) are
- *   automatically deleted via CASCADE foreign key constraints
- */
-
 import { queueLogger } from '../../logger/logger.js'
 import { db } from '../../database/connection.js'
 
@@ -22,19 +12,11 @@ export interface ClearDailyDataResult {
   message: string
 }
 
-/**
- * Get today's date in UTC as YYYY-MM-DD string
- */
 function getTodayDateUTC(): string {
   const now = new Date()
   return now.toISOString().split('T')[0]!
 }
 
-/**
- * Main function to clear all users' daily game data for the current date.
- * Deletes all game_sessions for today's daily challenge.
- * CASCADE will automatically delete related records (tier_sessions, guesses, etc.)
- */
 export async function clearDailyData(
   onProgress?: ProgressCallback
 ): Promise<ClearDailyDataResult> {
@@ -43,7 +25,6 @@ export async function clearDailyData(
 
   onProgress?.(0, 4, 'Finding today\'s daily challenge...')
 
-  // Step 1: Find today's daily challenge
   const challenge = await db('daily_challenges')
     .where('challenge_date', challengeDate)
     .first<{ id: number; challenge_date: string } | undefined>()
@@ -63,7 +44,6 @@ export async function clearDailyData(
   log.info({ challengeId: challenge.id, challengeDate }, 'Found daily challenge')
   onProgress?.(1, 4, `Found challenge #${challenge.id} for ${challengeDate}`)
 
-  // Step 2: Count game sessions for this challenge
   const countResult = await db('game_sessions')
     .where('daily_challenge_id', challenge.id)
     .count('id as count')
@@ -87,8 +67,6 @@ export async function clearDailyData(
 
   onProgress?.(2, 4, `Found ${totalSessions} game session(s) to delete...`)
 
-  // Step 3: Delete all game sessions for this challenge
-  // CASCADE will automatically delete tier_sessions, guesses, power_ups, bonus_rounds
   const deletedCount = await db('game_sessions')
     .where('daily_challenge_id', challenge.id)
     .delete()

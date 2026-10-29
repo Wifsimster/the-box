@@ -1,13 +1,3 @@
-/**
- * Batch Import Logic for full RAWG database import
- *
- * This module handles importing ALL high-quality games from RAWG API with:
- * - Batch processing (configurable batch size, default 100 games)
- * - Pause/Resume capability
- * - Progress persistence to database
- * - Direct database insertion (no JSON intermediate)
- */
-
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -26,7 +16,6 @@ const log = queueLogger.child({ module: 'batch-import' })
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Timing utilities
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   const seconds = Math.floor(ms / 1000)
@@ -49,7 +38,6 @@ function calculateETA(processed: number, total: number, elapsedMs: number): stri
 const ROOT_DIR = path.resolve(__dirname, '..', '..', '..', '..')
 const UPLOADS_DIR = path.resolve(ROOT_DIR, '..', '..', 'uploads', 'screenshots')
 
-// Progress callback type for batch imports
 export type BatchProgressCallback = (
   current: number,
   total: number,
@@ -57,7 +45,6 @@ export type BatchProgressCallback = (
   state: ImportState
 ) => void
 
-// RAWG API Types
 interface RAWGGenre {
   id: number
   name: string
@@ -113,7 +100,6 @@ interface RAWGPaginatedResponse<T> {
   results: T[]
 }
 
-// Batch result type
 export interface BatchResult {
   gamesProcessed: number
   gamesImported: number
@@ -128,10 +114,9 @@ export interface BatchResult {
   totalGamesAvailable: number | null
 }
 
-// Rate Limiter
 class RateLimiter {
   private requests: number[] = []
-  private readonly windowMs = 60000 // 1 minute
+  private readonly windowMs = 60000
   private readonly maxRequests: number
   private readonly delayMs: number
 
@@ -151,7 +136,6 @@ class RateLimiter {
       await sleep(waitTime)
     }
 
-    // Add minimum delay between requests
     if (this.requests.length > 0) {
       const lastRequest = this.requests[this.requests.length - 1]!
       const timeSinceLast = now - lastRequest
@@ -164,7 +148,6 @@ class RateLimiter {
   }
 }
 
-// RAWG API Client
 class RAWGBatchClient {
   private baseUrl = 'https://api.rawg.io/api'
   private apiKey: string
@@ -226,7 +209,6 @@ class RAWGBatchClient {
   }
 }
 
-// Utility functions
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -248,15 +230,12 @@ async function downloadImage(url: string, outputPath: string, retries: number = 
         log.error({ url, error: String(error) }, 'failed to download image')
         return false
       }
-      await sleep(1000 * Math.pow(2, attempt)) // Exponential backoff
+      await sleep(1000 * Math.pow(2, attempt))
     }
   }
   return false
 }
 
-/**
- * Start a new full import
- */
 export async function startBatchImport(config: {
   batchSize?: number
   minMetacritic?: number
@@ -267,25 +246,21 @@ export async function startBatchImport(config: {
     throw new Error('RAWG_API_KEY environment variable is required')
   }
 
-  // Check for existing active import
   const activeImport = await importStateRepository.findActive()
   if (activeImport) {
     throw new Error('An import is already in progress or paused')
   }
 
-  // Create import state
   const importState = await importStateRepository.create({
     batchSize: config.batchSize ?? 100,
     minMetacritic: config.minMetacritic ?? 70,
     screenshotsPerGame: config.screenshotsPerGame ?? 5,
   })
 
-  // Fetch total count from RAWG
   const client = new RAWGBatchClient(apiKey)
   const totalGamesAvailable = await client.fetchTotalCount(importState.minMetacritic)
   const totalBatches = Math.ceil(totalGamesAvailable / importState.batchSize)
 
-  // Update import state with totals
   await importStateRepository.update(importState.id, {
     totalGamesAvailable,
     totalBatchesEstimated: totalBatches,
@@ -308,22 +283,18 @@ export async function startBatchImport(config: {
   }, `Config: ${importState.batchSize} games/batch, Metacritic >= ${importState.minMetacritic}, ${importState.screenshotsPerGame} screenshots/game`)
   log.info(`Target: ${totalGamesAvailable.toLocaleString()} games across ${totalBatches} batches`)
 
-  // Create the first batch job with lowest priority (runs after all other tasks)
   const job = await importQueue.add('batch-import-games', {
     importStateId: importState.id,
     batchSize: importState.batchSize,
     screenshotsPerGame: importState.screenshotsPerGame,
     minMetacritic: importState.minMetacritic,
   }, {
-    priority: 1000, // Lowest priority - yields to all other tasks
+    priority: 1000,
   })
 
   return { importState: updatedState!, job }
 }
 
-/**
- * Process a single batch of games
- */
 export async function processBatch(
   importStateId: number,
   onProgress?: BatchProgressCallback
@@ -338,7 +309,6 @@ export async function processBatch(
     throw new Error(`Import state ${importStateId} not found`)
   }
 
-  // Check if paused before starting
   if (state.status === 'paused') {
     log.info('──────────────────────────────────────────────────────────────────────────')
     log.info(`IMPORT PAUSED - Skipping batch processing`)
@@ -376,7 +346,6 @@ export async function processBatch(
   await fs.mkdir(UPLOADS_DIR, { recursive: true })
 
   while (gamesInBatch < state.batchSize && hasMorePages) {
-    // Check for pause signal
     const currentState = await importStateRepository.findById(importStateId)
     if (currentState?.status === 'paused') {
       log.info('──────────────────────────────────────────────────────────────────────────')
@@ -409,7 +378,6 @@ export async function processBatch(
     for (const rawGame of response.results) {
       if (gamesInBatch >= state.batchSize) break
 
-      // Check for pause signal during game processing
       const midState = await importStateRepository.findById(importStateId)
       if (midState?.status === 'paused') {
         log.info('──────────────────────────────────────────────────────────────────────────')
@@ -432,7 +400,6 @@ export async function processBatch(
 
       const gameIndex = state.gamesProcessed + gamesInBatch
 
-      // Check if game already exists
       const existingGame = await gameRepository.findBySlug(rawGame.slug)
       if (existingGame) {
         gamesSkipped++
@@ -446,7 +413,6 @@ export async function processBatch(
         continue
       }
 
-      // Fetch screenshots
       const screenshotResponse = await client.fetchGameScreenshots(rawGame.id)
       if (screenshotResponse.results.length === 0) {
         gamesSkipped++
@@ -454,11 +420,9 @@ export async function processBatch(
         continue
       }
 
-      // Fetch detailed game info
       const details = await client.fetchGameDetails(rawGame.id)
 
       try {
-        // Insert game to database
         const game = await gameRepository.create({
           name: rawGame.name,
           slug: rawGame.slug,
@@ -472,7 +436,6 @@ export async function processBatch(
           metacritic: details.metacritic,
         })
 
-        // Process screenshots
         const screenshotsToAdd = screenshotResponse.results.slice(0, state.screenshotsPerGame)
         for (let i = 0; i < screenshotsToAdd.length; i++) {
           const rawScreenshot = screenshotsToAdd[i]!
@@ -480,17 +443,14 @@ export async function processBatch(
           const localPath = `/uploads/screenshots/${rawGame.slug}/${filename}`
           const absolutePath = path.join(UPLOADS_DIR, rawGame.slug, filename)
 
-          // Distribute difficulty evenly
           const difficulty = ((i % 3) + 1) as 1 | 2 | 3
 
-          // Download screenshot
           const downloaded = await downloadImage(rawScreenshot.image, absolutePath)
           if (!downloaded) {
             failedCount++
             continue
           }
 
-          // Insert screenshot to database
           await screenshotRepository.create({
             gameId: game.id,
             imageUrl: localPath,
@@ -498,7 +458,7 @@ export async function processBatch(
           })
 
           screenshotsDownloaded++
-          await sleep(100) // Small delay between downloads
+          await sleep(100)
         }
 
         gamesImported++
@@ -516,7 +476,6 @@ export async function processBatch(
         log.error(`  [${gameIndex}/${totalGames}] FAIL "${rawGame.slug}": ${String(error)}`)
       }
 
-      // Update progress every 10 games
       if (gamesInBatch % 10 === 0) {
         await importStateRepository.updateProgress(importStateId, {
           gamesProcessed: state.gamesProcessed + gamesInBatch,
@@ -542,7 +501,6 @@ export async function processBatch(
 
   const batchDuration = Date.now() - batchStartTime
 
-  // Update final progress for this batch
   const newCurrentBatch = state.currentBatch + 1
   await importStateRepository.updateProgress(importStateId, {
     currentPage: page,
@@ -554,7 +512,6 @@ export async function processBatch(
     currentBatch: newCurrentBatch,
   })
 
-  // Broadcast progress update via WebSocket
   const updatedState = await importStateRepository.findById(importStateId)
   if (updatedState) {
     const progress = Math.round(
@@ -575,11 +532,9 @@ export async function processBatch(
     })
   }
 
-  // Check if import is complete
   const totalProcessed = updatedState!.gamesProcessed
   const isComplete = !hasMorePages || totalProcessed >= (updatedState!.totalGamesAvailable || 0)
 
-  // Log batch summary
   log.info('──────────────────────────────────────────────────────────────────────────')
   log.info(`BATCH ${newCurrentBatch} COMPLETED in ${formatDuration(batchDuration)}`)
   log.info('──────────────────────────────────────────────────────────────────────────')
@@ -619,9 +574,6 @@ export async function processBatch(
   return createResult(finalState!, false, isComplete)
 }
 
-/**
- * Schedule the next batch job
- */
 export async function scheduleNextBatch(importStateId: number): Promise<BullJob<JobData> | null> {
   const state = await importStateRepository.findById(importStateId)
   if (!state) {
@@ -642,15 +594,12 @@ export async function scheduleNextBatch(importStateId: number): Promise<BullJob<
     screenshotsPerGame: state.screenshotsPerGame,
     minMetacritic: state.minMetacritic,
   }, {
-    priority: 1000, // Lowest priority - yields to all other tasks
+    priority: 1000,
   })
 
   return job
 }
 
-/**
- * Pause an ongoing import
- */
 export async function pauseImport(importStateId: number): Promise<ImportState> {
   const state = await importStateRepository.findById(importStateId)
   if (!state) {
@@ -674,9 +623,6 @@ export async function pauseImport(importStateId: number): Promise<ImportState> {
   return updated!
 }
 
-/**
- * Resume a paused import
- */
 export async function resumeImport(importStateId: number): Promise<{ importState: ImportState; job: BullJob<JobData> }> {
   const state = await importStateRepository.findById(importStateId)
   if (!state) {
@@ -698,7 +644,6 @@ export async function resumeImport(importStateId: number): Promise<{ importState
   }, `Resuming from page ${state.currentPage} (${state.gamesProcessed} games processed, batch ${state.currentBatch})`)
   const updated = await importStateRepository.setStatus(importStateId, 'in_progress')
 
-  // Create a new batch job with lowest priority (runs after all other tasks)
   const job = await importQueue.add('batch-import-games', {
     importStateId: state.id,
     batchSize: state.batchSize,
@@ -706,27 +651,20 @@ export async function resumeImport(importStateId: number): Promise<{ importState
     minMetacritic: state.minMetacritic,
     isResume: true,
   }, {
-    priority: 1000, // Lowest priority - yields to all other tasks
+    priority: 1000,
   })
 
   return { importState: updated!, job }
 }
 
-/**
- * Get current active import
- */
 export async function getActiveImport(): Promise<ImportState | null> {
   return importStateRepository.findActive()
 }
 
-/**
- * Get import state by ID
- */
 export async function getImportState(id: number): Promise<ImportState | null> {
   return importStateRepository.findById(id)
 }
 
-// Helper function to create result object
 function createResult(state: ImportState, isPaused: boolean, isComplete: boolean): BatchResult {
   return {
     gamesProcessed: state.gamesProcessed,

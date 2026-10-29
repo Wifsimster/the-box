@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// control-thebox — drive a throwaway local The Box instance the way a player does.
-// Agent-facing: JSON on stdout, one object per invocation, exit 0 on success.
-// Run `control-thebox --help` or `control-thebox <command> --help`.
 
 import { spawn, execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -11,10 +8,6 @@ import net from 'node:net'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
-// With NODE_USE_ENV_PROXY=1 and HTTP(S)_PROXY set, Node sends fetch() through
-// the proxy, loopback included. The proxy closes the socket (UND_ERR_SOCKET), so
-// `launch` times out on /health ("fetch failed") while curl gets 200. Every call
-// this CLI makes is local, so keep loopback direct (children inherit it too).
 for (const k of ['NO_PROXY', 'no_proxy']) {
   const hosts = (process.env[k] || '').split(',').map((s) => s.trim()).filter(Boolean)
   for (const h of ['localhost', '127.0.0.1']) if (!hosts.includes(h)) hosts.push(h)
@@ -39,7 +32,6 @@ const USERS = {
   admin: { email: 'e2e_admin@test.local', password: 'test123' },
 }
 
-// ---------- output ----------
 function out(obj) {
   process.stdout.write(JSON.stringify(obj, null, 2) + '\n')
 }
@@ -54,7 +46,6 @@ function fail(message, fix, extra) {
   throw new CliError(message, fix, extra)
 }
 
-// ---------- args ----------
 function parseArgs(argv) {
   const pos = []
   const flags = {}
@@ -70,7 +61,6 @@ function parseArgs(argv) {
   return { pos, flags }
 }
 
-// ---------- state ----------
 function readState() {
   try {
     return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
@@ -93,7 +83,6 @@ function evidenceDir(state) {
   return dir
 }
 
-// ---------- helpers ----------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 function portInUse(port) {
   return new Promise((resolve) => {
@@ -170,8 +159,6 @@ function shotPath(state, name) {
   return path.join(evidenceDir(state), `${stamp}_${safe}.png`)
 }
 async function dismissModals(page) {
-  // Daily-login reward modal and other Radix dialogs show after login. Claim
-  // (harmless on fake data) or close, then Escape as a last resort.
   for (const loc of [
     page.getByRole('button', { name: /claim/i }).first(),
     page.getByRole('dialog').getByRole('button', { name: /close|fermer/i }).first(),
@@ -184,10 +171,6 @@ async function dismissModals(page) {
   await page.keyboard.press('Escape').catch(() => {})
 }
 
-// ---------- fixture images ----------
-// The e2e seed points screenshots at placeholder URLs the image route refuses
-// (415). We render one local PNG per fake screenshot with Playwright and
-// repoint the rows at /uploads/verify-fixtures/. Removed by teardown.
 async function makeFixtureImages() {
   const rows = psqlJson(`select s.id, g.name from screenshots s join games g on g.id = s.game_id where g.name like 'E2E Test Game%' order by s.id`)
   if (!rows.length) fail('No E2E screenshots in the database after seeding.', 'Check .verify-run/logs/seed.log; the e2e seed must create "E2E Test Game" rows.')
@@ -206,7 +189,6 @@ async function makeFixtureImages() {
   return rows.length
 }
 
-// ---------- commands ----------
 const COMMANDS = {}
 
 COMMANDS.launch = {
@@ -264,14 +246,12 @@ Refuses to start if any of those ports is already taken: one instance at a time.
       FRONTEND_URL: BASE,
       CORS_ORIGIN: BASE,
       LOG_LEVEL: 'info',
-      // Never real third parties during verification.
       STRIPE_SECRET_KEY: '', STRIPE_WEBHOOK_SECRET: '', RESEND_API_KEY: '', RAWG_API_KEY: '',
       RELANCE_EMAIL_ENABLED: 'false', INACTIVE_USER_REMINDER_ENABLED: 'false',
       VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '', KOE_IDENTITY_SECRET: '',
       VITE_API_URL: '', VITE_USE_MOCK_API: 'false', VITE_KOE_PROJECT_KEY: '', VITE_KOE_API_URL: '',
     }
     const logDir = path.join(RUN_DIR, 'logs'); fs.mkdirSync(logDir, { recursive: true })
-    // Backend and frontend import @the-box/types from its dist/: build it first.
     for (const [name, script, ws] of [['types', 'build', '@the-box/types'], ['migrate', 'db:migrate', '@the-box/backend'], ['seed', 'e2e:seed', '@the-box/backend']]) {
       try {
         const o = sh('npm', ['run', script, '-w', ws], { cwd: REPO, env, maxBuffer: 64 << 20 })
@@ -331,7 +311,6 @@ Run it first whenever anything looks off.`,
       } catch (e) { checks.db = e.message }
     }
     checks.gitSha = sh('git', ['-C', REPO, 'rev-parse', '--short', 'HEAD'])
-    // Fetch today's public preview image: proves the upload route streams a real screenshot file.
     try {
       const r = await fetch(`http://127.0.0.1:${PORTS.backend}/api/game/preview/image`)
       checks.screenshotsServable = r.ok && (r.headers.get('content-type') || '').startsWith('image/')
@@ -503,12 +482,6 @@ COMMANDS.key = {
   },
 }
 
-// ---------- passkeys ----------
-// A CDP virtual authenticator lives only as long as the CDP session that
-// created it, and every CLI call opens and closes its own session. So each
-// passkey command creates the authenticator, does its flow, then exports the
-// credentials (fake, throwaway keys) to .verify-run/passkey-credentials.json;
-// `passkey signin` imports them into a fresh authenticator.
 const PASSKEY_FILE = path.join(RUN_DIR, 'passkey-credentials.json')
 const AUTHENTICATOR = { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true }
 
@@ -526,14 +499,11 @@ async function isLoggedIn(page) {
   return r?.user ? r.user.email : null
 }
 async function logoutThroughMenu(page) {
-  // Same path as a player: user menu in the header → "Logout".
   await page.goto(`${BASE}/en`, { waitUntil: 'networkidle' })
   await dismissModals(page)
   const email = await isLoggedIn(page)
   if (!email) return null
   const username = email.split('@')[0]
-  // The trigger's name starts with the avatar fallback initial ("E e2e_user")
-  // when the user has no avatar image, so only anchor the end.
   await page.getByRole('button', { name: new RegExp(`(^|\\s)${username}$`, 'i') }).first().click()
   await page.getByRole('menuitem', { name: /^logout$/i }).click()
   await waitFor(async () => !(await isLoggedIn(page)), { timeoutMs: 10000, label: 'logout' })
@@ -614,7 +584,6 @@ list    Read-only: saved credential ids and the passkey rows in the DB.
         await page.getByRole('button', { name: /^sign in with a passkey$/i }).click()
         const vr = await verify
         await page.waitForURL((u) => !u.pathname.endsWith('/login'), { timeout: 15000 }).catch(() => {})
-        // The URL changes before the login card unmounts; wait for it so the screenshot shows the landing page.
         await page.getByRole('button', { name: /^sign in with a passkey$/i }).waitFor({ state: 'detached', timeout: 10000 }).catch(() => {})
         await page.waitForLoadState('networkidle').catch(() => {})
         await dismissModals(page)
@@ -622,8 +591,6 @@ list    Read-only: saved credential ids and the passkey rows in the DB.
         const file = shotPath(state, 'passkey-signin-after')
         await page.screenshot({ path: file })
         const counterAfter = passkeyRows(saved.email).map((r) => r.counter)
-        // The server rejects a sign counter that does not increase (cloned-authenticator check),
-        // so save the bumped counter for the next signin.
         const { credentials } = await cdp.send('WebAuthn.getCredentials', { authenticatorId })
         fs.writeFileSync(PASSKEY_FILE, JSON.stringify({ email: saved.email, credentials }, null, 2))
         const url = page.url()
@@ -650,14 +617,10 @@ function pickAnswer(flags, position) {
   return answer
 }
 
-// Opens /en/play and returns the guess input, or a dry-run report when the
-// intro is showing (clicking Start inserts a game_sessions row).
 async function openPlay(page, flags) {
   await page.goto(`${BASE}/en/play`, { waitUntil: 'networkidle' })
   if (page.url().includes('/login')) fail('Not logged in: /en/play redirected to login.', 'Run `control-thebox login` first.')
   await dismissModals(page)
-  // The closed box ("Open today's box") carries a stable test id; the role
-  // fallback covers older checkouts that still had the intro's Start button.
   const start = page.getByTestId('today-open-box')
     .or(page.getByRole('button', { name: /^(start|commencer)/i }))
     .first()
@@ -677,10 +640,6 @@ async function currentPosition(page) {
   return parseInt(text || '0', 10) || null
 }
 
-// Reloading /en/play while a result card was pending resumes on the already
-// solved position with an enabled input (submitting there returns 409
-// POSITION_ALREADY_SOLVED). Do what a player would: leave the card, then pick
-// the next open dot. Returns a note when it had to move.
 async function ensureOpenPosition(page) {
   const next = page.getByRole('button', { name: /next round|manche suivante/i }).first()
   if (await next.isVisible().catch(() => false)) { await next.click().catch(() => {}); await sleep(800) }
@@ -695,7 +654,6 @@ async function ensureOpenPosition(page) {
 
 async function guessOnce(page, state, input, flags) {
   const resumeNote = await ensureOpenPosition(page)
-  // The input is disabled while the carousel moves to the next position.
   const enabledIn = await waitFor(() => input.isEnabled(), { timeoutMs: 15000, label: 'the guess input to become enabled (position timed out or game finished?)' })
   const position = await currentPosition(page)
   const answer = pickAnswer(flags, position)
@@ -754,7 +712,6 @@ game_sessions row. Needed before the leaderboard can show the player (it lists c
         steps.push({ position: r.position, status: r.response.status, isCorrect: r.response.body?.data?.isCorrect, totalScore: r.response.body?.data?.totalScore })
         if (!r.ok) fail(`Guess at position ${r.position} failed with HTTP ${r.response.status}.`, 'Run `control-thebox network-log --filter /api/game --status-min 400` and read the backend log.', { steps, response: r.response })
         if (r.response.body?.data?.isCompleted) break
-        // A correct guess opens the result card ("Next Round (4s)", auto-advances); click it like a player.
         const next = page.getByRole('button', { name: /next round|manche suivante/i }).first()
         if (await next.isVisible().catch(() => false)) await next.click().catch(() => {})
         await sleep(800)
@@ -828,7 +785,6 @@ COMMANDS['network-log'] = {
   },
 }
 
-// Internal: the long-lived browser owner, spawned by launch.
 async function browserd() {
   const { chromium } = loadPlaywright()
   const consentFile = path.join(REPO, 'packages', 'frontend', 'e2e', 'consent-storage-state.json')
@@ -839,7 +795,6 @@ async function browserd() {
     locale: 'en-US',
     args: [`--remote-debugging-port=${PORTS.cdp}`],
   })
-  // Same GDPR-consent pre-seed the repo's Playwright config uses, so the banner never covers the UI.
   await ctx.addInitScript(([k, v]) => { try { if (!localStorage.getItem(k)) localStorage.setItem(k, v) } catch {} }, [consent.name, consent.value])
   const con = fs.createWriteStream(path.join(RUN_DIR, 'console.jsonl'), { flags: 'a' })
   const netw = fs.createWriteStream(path.join(RUN_DIR, 'network.jsonl'), { flags: 'a' })
@@ -851,8 +806,6 @@ async function browserd() {
       netw.write(JSON.stringify({ ts: new Date().toISOString(), method: req.method(), url: req.url(), status: res?.status() ?? null, ms: Math.round(req.timing().responseEnd) }) + '\n')
     })
     page.on('requestfailed', (req) => netw.write(JSON.stringify({ ts: new Date().toISOString(), method: req.method(), url: req.url(), status: null, failure: req.failure()?.errorText }) + '\n'))
-    // socket.io runs over WebSocket (/notifications achievement toasts, admin jobs, panorama party):
-    // log the upgrade and each frame (truncated) so `network-log --filter socket.io` can prove pushes.
     page.on('websocket', (ws) => {
       const log = (dir, payload) => netw.write(JSON.stringify({ ts: new Date().toISOString(), method: 'WS', dir, url: ws.url(), status: 101, frame: String(payload).slice(0, 300) }) + '\n')
       log('open', '')
@@ -909,8 +862,6 @@ async function main() {
     out(await c.run(flags, pos))
   } catch (e) {
     out({ ok: false, command: cmd, error: e.message, fix: e.fix || 'Run `control-thebox doctor` and read .verify-run/logs/.', ...(e.extra || {}) })
-    // A command that failed after connect() still holds its CDP connection open; exit
-    // once stdout is flushed so the CLI never hangs (the browser daemon keeps running).
     process.stdout.write('', () => process.exit(1))
   }
 }

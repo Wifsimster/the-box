@@ -78,7 +78,6 @@ export default function LoginPage() {
         return
       }
 
-      // Wait a moment for the session cookie to be set
       await new Promise(resolve => setTimeout(resolve, 100))
       navigate(redirectTo)
     } catch (err) {

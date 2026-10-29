@@ -24,8 +24,6 @@ import { limitQuery } from './shared.js'
 
 const router = Router()
 
-// GET /health — content-readiness snapshot (shares the admin query). Tells an
-// agent whether the eligible-game pool is starved and by how much.
 router.get('/health', requireScope('geo-agent:read'), async (_req, res, next) => {
   try {
     const data = await getGeoGamersHealthSnapshot()
@@ -35,9 +33,6 @@ router.get('/health', requireScope('geo-agent:read'), async (_req, res, next) =>
   }
 })
 
-// GET /games-needing-content — the "one pin away" list: games with an active
-// map and captures collecting pins but no canonical pin yet. This is the
-// agent's work queue — where a proposed pin would grow the eligible pool.
 router.get(
   '/games-needing-content',
   requireScope('geo-agent:read'),
@@ -57,9 +52,6 @@ router.get(
   },
 )
 
-// GET /games — the whole geo-curated catalog (issue #331, phase 5), not just
-// the "one pin away" work queue. Read-only: lets an agent see what's already
-// enrolled before deciding whether to enroll/top-up/curate a game.
 router.get(
   '/games',
   requireScope('geo-agent:read'),
@@ -75,17 +67,6 @@ router.get(
   },
 )
 
-// POST /games — enroll a game into the geo pipeline (issue #331, phase 5).
-// Reuses the SAME curation switch the admin "Games" tab flips
-// (`games.geo_curated = true` + `geo_metadata_status = 'pending'`) rather
-// than duplicating the RAWG import / metadata-resolve / map-ingest pipeline —
-// that one write is all it takes for the existing resolver + ingest tick to
-// pick the game up on their next pass and fetch its map + captures. By
-// `gameId` the game must already exist (created via the RAWG screenshot
-// importer or another mode); by `rawgId` a new minimal game row is created
-// first if none exists yet with that rawg_id. Idempotent: enrolling an
-// already-curated game just re-arms metadata resolution. Bounded by a
-// per-key daily budget — enrollment is the most expensive curate action.
 const enrollBodySchema = z
   .object({
     gameId: z.coerce.number().int().positive().optional(),
@@ -203,9 +184,5 @@ router.post(
     }
   },
 )
-
-// GET /games/:gameId/candidates — unpinned/collecting captures for a game plus
-// its active maps (image url + dimensions), so a proposer has everything it
-// needs to localize a screenshot. Promoted captures are omitted (they already
 
 export default router

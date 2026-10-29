@@ -13,23 +13,17 @@ interface AchievementNotification {
 }
 
 interface AchievementState {
-    // All achievements (loaded once)
     achievements: Achievement[]
 
-    // User's achievements with progress
     userAchievements: AchievementWithProgress[]
 
-    // Achievement statistics
     stats: AchievementStats | null
 
-    // Notifications for newly earned achievements
     notifications: AchievementNotification[]
 
-    // Loading states
     isLoading: boolean
     isLoadingUserAchievements: boolean
 
-    // Actions
     fetchAchievements: () => Promise<void>
     fetchUserAchievements: (userId?: string) => Promise<void>
     addNotifications: (newAchievements: NewlyEarnedAchievement[]) => void

@@ -46,7 +46,6 @@ function sheet(id: number, name: string, extra: Partial<DescribeGameSheet> = {})
   }
 }
 
-/** Deterministic PRNG (mulberry32). */
 function seeded(seed: number): () => number {
   let a = seed >>> 0
   return () => {
@@ -213,10 +212,6 @@ describe('isAccepted', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// evaluate / submit
-// ─────────────────────────────────────────────────────────────────────────────
-
 function judgeReturning(
   fn: (input: DescribeJudgeInput, signal: AbortSignal) => Promise<unknown>,
   model = 'test-model'
@@ -229,7 +224,6 @@ function judgeReturning(
   }
 }
 
-/** A judge that puts `p` on the candidate with game id `gameId`. */
 function judgeChoosing(gameId: number, p: number): DescribeJudge {
   return judgeReturning(async (input) => {
     const probabilities: Record<string, number> = {}

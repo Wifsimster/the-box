@@ -1,11 +1,6 @@
-/**
- * Check user's leaderboard ranks across challenges
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 
 async function checkLeaderboardRanks() {
-    // Find admin user
     const admin = await db('user')
         .where('username', 'testadmin')
         .first()
@@ -18,7 +13,6 @@ async function checkLeaderboardRanks() {
 
     console.log(`Checking leaderboard ranks for: ${admin.username} (${admin.id})\n`)
 
-    // Get all challenges where the user has completed a game
     const userChallenges = await db('game_sessions')
         .where('user_id', admin.id)
         .where('is_completed', true)
@@ -33,20 +27,17 @@ async function checkLeaderboardRanks() {
         return
     }
 
-    // Check rank for each challenge
     const rankResults = []
 
     for (const userChallenge of userChallenges) {
         const challengeId = userChallenge.daily_challenge_id
         const userScore = userChallenge.total_score
 
-        // Get challenge date
         const challenge = await db('daily_challenges')
             .where('id', challengeId)
             .select('challenge_date')
             .first()
 
-        // Get all completed sessions for this challenge, ranked by score
         const rankings = await db('game_sessions')
             .where('daily_challenge_id', challengeId)
             .where('is_completed', true)
@@ -64,7 +55,6 @@ async function checkLeaderboardRanks() {
         })
     }
 
-    // Sort by rank
     rankResults.sort((a, b) => a.rank - b.rank)
 
     console.log('Leaderboard Ranks:\n')
@@ -81,7 +71,6 @@ async function checkLeaderboardRanks() {
         console.log(`${rankStr} | ${dateStr}     | ${scoreStr} | ${playersStr} players ${medal}`)
     })
 
-    // Check best rank
     const bestRank = Math.min(...rankResults.map(r => r.rank))
     console.log(`\nBest rank achieved: ${bestRank}`)
 

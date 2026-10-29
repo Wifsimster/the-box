@@ -1,14 +1,5 @@
 import type { Knex } from 'knex'
 
-// Per-game state machine for the multi-source map fetch pipeline.
-//
-// Today, "where is game X in the fetch process?" is unanswerable: state is
-// scattered across BullMQ job statuses, `import_states.last_processed_offset`,
-// and `geo_ingest_failure` tombstones. This table makes it a single SELECT.
-//
-// Written by the `maps:pipeline` orchestrator only — single-writer to avoid
-// races. BullMQ job state stays ephemeral; this row is the truth.
-
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('geo_game_pipeline_state', (table) => {
     table

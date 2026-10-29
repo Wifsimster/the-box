@@ -26,8 +26,6 @@ describe('computeStanding', () => {
   })
 
   it('infers an outsider when a bare score is below every ranked session', () => {
-    // The reported bug: one ranked session (the player's real 1925) above a
-    // stale 200 used to read "Rank #2 of 1 players".
     assert.deepEqual(
       computeStanding({ rankedPlayers: 1, playersAbove: 1 }),
       { rank: 2, totalPlayers: 2, percentile: 100 },

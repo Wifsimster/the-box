@@ -4,9 +4,6 @@ import { queueLogger } from '../../logger/logger.js'
 import { geoQueue, type GeoJobData } from '../queues.js'
 import { geoMapRepository } from '../../repositories/index.js'
 import { findRegistryEntryBySlug } from './geo-registry-import-logic.js'
-// Combined per-game capture-provider cap. Shared with the agent curate
-// surface (geo_list_games "starved" flag, geo_import_captures default
-// target) via the domain service so neither side drifts.
 import { CAPTURE_TARGET_CANDIDATES } from '../../../domain/services/geo-metadata.service.js'
 
 const log = queueLogger.child({ worker: 'geo-ingest-tick' })
@@ -38,37 +35,10 @@ export interface IngestTickResult {
   rawgEnqueued: number
 }
 
-/**
- * One pass over curated, resolved games. For each game we enqueue **every**
- * eligible ingestion tier so the admin can compare results and pick the best
- * map per game (instead of only the first tier to land winning by default):
- *   1. `registry`     — curated GitHub Leaflet repo (if entry exists for slug)
- *   2. `fandom`       — Fandom Interactive Maps (if wiki_subdomain + map page resolved)
- *   3. `strategywiki` — StrategyWiki MediaWiki API (CC-BY-SA, no pre-resolution)
- *   4. `fextralife`   — Fextralife wiki og:image scrape (RPG / Soulsborne coverage)
- *   5. `wand`         — wand.com og:image scrape via slug (Cloudflare-gated)
- *   6. `wikidata`     — Wikidata P242 locator map (if wikidata_qid resolved)
- *
- * Tiers 3, 4 and 5 don't require pre-resolution — they probe the upstream
- * inline using the game slug + name, so a game can succeed there even if
- * the metadata resolver couldn't find a Fandom subdomain or Wikidata Q-id.
- *
- * The first tier to successfully insert a row becomes the default active map
- * (so games stay playable). Subsequent tiers store their results as inactive
- * candidates — visible in the admin Maps tab side panel where an operator
- * can swap which one is active for the game.
- *
- * Each tier is gated by its own tombstone, so a permanently-failing tier
- * doesn't block the next one. Idempotency is preserved via deterministic
- * jobIds + the importers' per-source `findBySourceAndGameId` short-circuit.
- */
 export async function runGeoIngestTick(
   batchSize = DEFAULT_BATCH,
   gameId?: number,
 ): Promise<IngestTickResult> {
-  // When `gameId` is set the tick runs only for that single game (and ignores
-  // the LIMIT). Used by the admin "Run for this game" button so an operator
-  // can replay the cascade for a specific row without scanning the catalog.
   const params: Array<number | null> =
     gameId === undefined ? [null, batchSize] : [gameId, null]
   const rows = await db
@@ -134,18 +104,7 @@ export async function runGeoIngestTick(
     wandEnqueued += enqueued.wand
     wikidataEnqueued += enqueued.wikidata
 
-    // Capture providers (Steam + RAWG) only run once an active map exists,
-    // so pins have something to anchor to. Both are enqueued in parallel
-    // when below the combined cap — they return different screenshots
-    // (Steam = publisher store-page shots, RAWG = aggregated incl.
-    // Switch / console / mobile titles that aren't on Steam) so running
-    // both is strictly additive. (source, external_id) uniqueness in
-    // geo_screenshot_candidate prevents dupes inside each provider.
     if (row.active_map_id && row.candidate_count < CAPTURE_TARGET_CANDIDATES) {
-      // Re-fetch off the repo so we don't pass a stale id (the SELECT
-      // above can be racing a recent map import). Multi-map mode prefers
-      // the capture-default row; falls back to any enabled map for
-      // games that haven't yet had a default promoted.
       const map =
         (await geoMapRepository.findCaptureDefaultByGameId(row.id)) ??
         (await geoMapRepository.findFirstEnabledByGameId(row.id))
@@ -231,7 +190,6 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     wikidata: 0,
   }
 
-  // Tier 1 — registry
   if (!(await tombstoneBlocks(row.id, 'registry'))) {
     const entry = await findRegistryEntryBySlug(row.slug)
     if (entry) {
@@ -244,7 +202,6 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     }
   }
 
-  // Tier 2 — Fandom Interactive Maps
   if (
     row.wiki_subdomain &&
     row.wiki_page_title &&
@@ -263,7 +220,6 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     tally.fandom++
   }
 
-  // Tier 3 — StrategyWiki (no pre-resolution required; probes via opensearch)
   if (!(await tombstoneBlocks(row.id, 'strategywiki'))) {
     await geoQueue.add(
       'import-strategywiki-map',
@@ -278,7 +234,6 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     tally.strategywiki++
   }
 
-  // Tier 4 — Fextralife (no pre-resolution required; probes by slug)
   if (!(await tombstoneBlocks(row.id, 'fextralife'))) {
     await geoQueue.add(
       'import-fextralife-map',
@@ -293,7 +248,6 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     tally.fextralife++
   }
 
-  // Tier 5 — Wand (no pre-resolution required; probes wand.com/maps/<slug>)
   if (!(await tombstoneBlocks(row.id, 'wand'))) {
     await geoQueue.add(
       'import-wand-map',
@@ -307,7 +261,6 @@ async function enqueueAllEligibleMapImports(row: TickRow): Promise<TierEnqueueTa
     tally.wand++
   }
 
-  // Tier 6 — Wikidata P242 fallback
   if (row.wikidata_qid && !(await tombstoneBlocks(row.id, 'wikidata'))) {
     await geoQueue.add(
       'import-wikidata-map',
@@ -347,8 +300,6 @@ export type RunnableTier =
   | 'wand'
   | 'wikidata'
 
-// Runtime list of the single-tier map imports an operator (or an agent, #331
-// phase 3) can trigger. Kept in sync with RunnableTier via `satisfies`.
 export const RUNNABLE_TIERS = [
   'registry',
   'fandom',
@@ -381,26 +332,10 @@ interface SingleTierGameRow {
   geo_metadata_status: 'pending' | 'resolved' | 'unresolved'
 }
 
-/**
- * A tier either produces a job to enqueue, or explains why it can't.
- */
 type TierJobPlan =
   | { name: string; data: GeoJobData }
   | { reason: SingleTierFailure }
 
-/**
- * Per-source job builders.
- *
- * This replaced a six-branch `if (source === ...)` chain inside
- * `enqueueSingleTierImport`: adding an ingestion source meant editing that
- * function, and the final source was an unlabelled fall-through at the
- * bottom (easy to misread as a default). Now a source is one entry here and
- * the dispatcher never changes.
- *
- * Typing this as `Record<RunnableTier, ...>` makes the compiler reject a new
- * `RunnableTier` that has no builder, so the union and the behavior cannot
- * drift apart.
- */
 const TIER_JOB_BUILDERS: Record<
   RunnableTier,
   (game: SingleTierGameRow) => Promise<TierJobPlan> | TierJobPlan
@@ -463,13 +398,6 @@ const TIER_JOB_BUILDERS: Record<
   },
 }
 
-/**
- * Enqueue a single tier's import job for one game. Used by the admin "Run now"
- * button on the per-tier eligible row, which lets an operator kick off just
- * that source instead of the whole cascade. Tombstones are intentionally not
- * checked: the UI only surfaces this for `eligible` tiers (no live tombstone),
- * and bypassing the gate makes the button do exactly what it says.
- */
 export async function enqueueSingleTierImport(
   gameId: number,
   source: RunnableTier,

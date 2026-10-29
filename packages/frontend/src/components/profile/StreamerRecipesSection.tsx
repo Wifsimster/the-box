@@ -4,14 +4,7 @@ import { BookOpen, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
 
-// Copy-paste integration recipes — the fourth Streamer Kit section, below
-// webhooks. Builds three ready-to-paste snippets (Nightbot chat command, OBS
-// overlay, webhook) from the streamer's own slug, so the in-app panel matches
-// what docs/streamer-kit.html shows. Rendered by StreamerKitCard only when the
-// public profile is enabled.
-
 interface Props {
-  // The saved public slug, or null if the streamer hasn't claimed one yet.
   slug: string | null
 }
 
@@ -21,9 +14,6 @@ export function StreamerRecipesSection({ slug }: Props) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState<RecipeId | null>(null)
 
-  // The public API is served from the app's own origin (Node serves both in
-  // production; the dev server proxies /api). Deriving the base from the live
-  // origin keeps the snippets correct in every environment.
   const base = `${window.location.origin}/api/public/v1`
   const effectiveSlug = slug || 'YOUR_SLUG'
 

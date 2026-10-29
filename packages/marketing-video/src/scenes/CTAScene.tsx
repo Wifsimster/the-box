@@ -22,7 +22,6 @@ export const CTAScene: React.FC = () => {
     config: { damping: 12, stiffness: 200 },
   });
 
-  // Subtle button pulse after it lands
   const pulse = interpolate(
     Math.sin((frame - 60) / 12),
     [-1, 1],

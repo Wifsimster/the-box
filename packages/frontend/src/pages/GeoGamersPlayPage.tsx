@@ -15,8 +15,6 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/lib/utils'
 import type { GeoMap, GeoMapOption } from '@the-box/types'
 
-// GeoMapOption is a structural subset of GeoMap; MapPicker wants GeoMap[] but
-// only reads id/region/imageUrl/size, so widen safely for the picker.
 function asGeoMaps(options: GeoMapOption[]): GeoMap[] {
     return options as unknown as GeoMap[]
 }
@@ -121,7 +119,6 @@ export default function GeoGamersPlayPage() {
                 </nav>
             </header>
 
-            {/* ---------------- IDENTIFY ---------------- */}
             {phase === 'identify' && run && (
                 <section>
                     <div className="mb-4 overflow-hidden rounded-xl border border-border bg-card">
@@ -139,7 +136,6 @@ export default function GeoGamersPlayPage() {
                         {t('geogamers.identify.prompt')}
                     </label>
 
-                    {/* attempt dots */}
                     <div className="mb-3 flex items-center gap-2">
                         {[100, 66, 33].map((pts, i) => (
                             <span
@@ -194,7 +190,6 @@ export default function GeoGamersPlayPage() {
                         </Button>
                     </form>
 
-                    {/* joker */}
                     <div className="mt-4">
                         {run.jokerAvailable ? (
                             <Button
@@ -213,7 +208,6 @@ export default function GeoGamersPlayPage() {
                 </section>
             )}
 
-            {/* ---------------- LOCATE ---------------- */}
             {phase === 'locate' && run && selectedMap && (
                 <section>
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-primary/15 px-4 py-2">
@@ -243,9 +237,6 @@ export default function GeoGamersPlayPage() {
                         )}
                     </div>
 
-                    {/* Map + floating capture: the screenshot stays in view as
-                        a picture-in-picture card while the player pins, instead
-                        of vanishing when the map appears. */}
                     <div className="relative">
                         <GeoMapCanvas
                             imageUrl={selectedMap.imageUrl}
@@ -295,7 +286,6 @@ export default function GeoGamersPlayPage() {
                 </section>
             )}
 
-            {/* ---------------- RESULT ---------------- */}
             {phase === 'result' && run && result && selectedMap && (
                 <section>
                     <Card variant="neon" className="mb-4 text-center">

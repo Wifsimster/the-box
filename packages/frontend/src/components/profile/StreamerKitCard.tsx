@@ -20,8 +20,6 @@ export function StreamerKitCard() {
   const [settings, setSettings] = useState<StreamerSettingsResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Revoke-confirmation state. `revokeTargetId` doubles as the open flag
-  // and as the id to revoke when the user confirms — null means closed.
   const [revokeTargetId, setRevokeTargetId] = useState<number | null>(null)
   const [revoking, setRevoking] = useState(false)
 
@@ -52,7 +50,6 @@ export function StreamerKitCard() {
   }
 
   function onKeyCreated(summary: ApiKeySummary) {
-    // Refresh the list so the new key (sans plaintext) shows up below.
     setSettings((s) => (s ? { ...s, keys: [summary, ...s.keys] } : s))
   }
 
@@ -112,14 +109,12 @@ export function StreamerKitCard() {
 
         {!loading && settings && (
           <>
-            {/* Public profile toggle + slug */}
             <StreamerPublicProfileSettings
               savedEnabled={settings.publicProfileEnabled}
               savedSlug={settings.publicSlug}
               onPersisted={onSettingsPersisted}
             />
 
-            {/* Keys list */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-sm font-semibold">{t('streamerKit.keysTitle')}</h4>
@@ -151,19 +146,13 @@ export function StreamerKitCard() {
               )}
             </div>
 
-            {/* Webhooks — only meaningful once the profile is public.
-                Self-contained section: fetches + manages its own data. */}
             {enabled && <StreamerWebhooksSection enabled={enabled} />}
 
-            {/* Copy-paste integration recipes — uses the saved slug, so it
-                reflects what the public API actually returns. */}
             {enabled && <StreamerRecipesSection slug={settings.publicSlug} />}
           </>
         )}
       </CardContent>
 
-      {/* Revoke confirmation — destructive variant; replaces the previous
-          window.confirm() so the UX matches the rest of the settings page. */}
       <ConfirmDialog
         open={revokeTargetId !== null}
         onOpenChange={(open) => {

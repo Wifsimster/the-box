@@ -23,10 +23,6 @@ import {
     RARITY_CLAIM_ANIMATION,
 } from '@/lib/rarity'
 
-// i18n key per item_key. Unknown keys (including the metadata hints
-// retired 2026-06, which can still appear on historical claims) fall
-// back to the raw item_key so a missing translation does not break
-// the modal.
 const REWARD_ITEM_I18N_KEY: Record<string, string> = {
     hint_letter: 'dailyLogin.hintLetter',
     streak_freeze: 'dailyLogin.streakFreeze',
@@ -58,10 +54,7 @@ export function DailyRewardModal() {
     } = useDailyLoginStore()
 
     const [isAnimating, setIsAnimating] = useState(false)
-    // A brand-new player sees the welcome dialog first; the reward waits.
     const welcomeActive = useWelcomeActive()
-    // Never interrupt a round: the reward stays pending and opens once the
-    // player leaves the game screen.
     const { pathname } = useLocation()
     const inGame = IN_GAME_PATH.test(pathname)
 
@@ -70,22 +63,14 @@ export function DailyRewardModal() {
     const handleClaim = async () => {
         setIsAnimating(true)
         await claimReward()
-        // Keep the modal open after claiming so the player can read what they
-        // won. The success state renders a "Fermer" button for manual dismissal
-        // instead of auto-closing out from under them.
         setIsAnimating(false)
     }
 
-    // Closing the modal while a reward is still claimable would otherwise
-    // strand the player on a "you forgot to click Récupérer" path. Fire
-    // the claim and let the store update; the badge in the header reflects
-    // the result. We don't await — a closed dialog shouldn't block on IO.
     const handleClose = () => {
         if (status.canClaim && !isClaiming && !justClaimed) {
             void claimReward()
         }
         closeModal()
-        // Clear the just claimed state after a delay to allow exit animation
         setTimeout(clearJustClaimed, 300)
     }
 
@@ -126,11 +111,9 @@ export function DailyRewardModal() {
                     </ResponsiveDialogDescription>
                 </ResponsiveDialogHeader>
 
-                {/* Reward hero */}
                 {reward && rarityStyle && (
                     <div className="flex flex-col items-center text-center">
                         <div className="relative flex size-28 sm:size-36 items-center justify-center">
-                            {/* Light rays behind the medallion, tinted by rarity */}
                             <div
                                 aria-hidden
                                 className={cn(
@@ -208,7 +191,6 @@ export function DailyRewardModal() {
                     </div>
                 )}
 
-                {/* Streak + weekly track */}
                 <section className="rounded-xl border border-border bg-muted/30 p-3 sm:p-4">
                     <div className="mb-4 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -243,7 +225,6 @@ export function DailyRewardModal() {
                     />
                 </section>
 
-                {/* Action Button */}
                 {showClaimSuccess ? (
                     <Button onClick={handleClose} variant="gaming" size="lg" className="w-full">
                         {t('common.close')}

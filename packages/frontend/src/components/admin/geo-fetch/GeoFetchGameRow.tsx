@@ -18,9 +18,6 @@ interface Props {
   onOpen: (gameId: number) => void
 }
 
-// One game's state. Memoized + selector-keyed in the parent so a socket update
-// for game X only re-renders that row, not the whole list.
-
 const STAGE_META: Record<
   GeoFetchStage,
   { Icon: typeof Clock; color: string; labelKey: string; fallback: string }

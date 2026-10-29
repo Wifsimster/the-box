@@ -7,8 +7,6 @@ const router = Router()
 
 router.get('/geogamers/health', async (_req, res, next) => {
   try {
-    // Shared with the agent read surface (/api/agent/v1/geo/health) so the
-    // eligibility query lives in one place.
     const data = await getGeoGamersHealthSnapshot()
     res.json({ success: true, data })
   } catch (err) {
@@ -16,11 +14,6 @@ router.get('/geogamers/health', async (_req, res, next) => {
   }
 })
 
-// POST /api/admin/geogamers/create-challenge — create TODAY's GeoGamers
-// challenge on demand (idempotent), instead of waiting for the 00:05 UTC cron.
-// The enablement path: set GEOGAMERS_ENABLED=true, redeploy, then hit this so
-// there's a playable challenge immediately. Returns the same gate feedback the
-// worker logs (created / ALREADY_EXISTS / INSUFFICIENT_CONTENT).
 router.post('/geogamers/create-challenge', async (req, res, next) => {
   try {
     const result = await createGeoGamersChallenge()

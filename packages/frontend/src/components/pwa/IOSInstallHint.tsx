@@ -17,7 +17,6 @@ function shouldShowHint(): boolean {
     (ua.includes('Mac') && 'ontouchend' in document)
   if (!isIOS) return false
 
-  // Only Safari on iOS can install a PWA; Chrome/Firefox-on-iOS just bookmark.
   const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua)
   if (!isSafari) return false
 
@@ -30,7 +29,6 @@ function shouldShowHint(): boolean {
     const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
     if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) return false
   } catch {
-    // storage blocked — show the hint; dismissal just won't persist
   }
 
   return true
@@ -53,7 +51,6 @@ export function IOSInstallHint() {
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()))
     } catch {
-      // localStorage unavailable (private mode) — accept the loss; user can dismiss again next visit.
     }
     setVisible(false)
   }
@@ -63,9 +60,6 @@ export function IOSInstallHint() {
       open
       aria-labelledby="ios-install-title"
       className={cn(
-        // Sit just above the mobile BottomNav (matching the other PWA banners);
-        // drop to the corner at md where the BottomNav is hidden. A bare
-        // bottom-3 anchored the hint on top of the fixed bottom nav.
         'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
         'border-border py-3 pl-4 pr-1 flex gap-2 items-start sm:max-w-md sm:left-auto sm:right-3',
         'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4',

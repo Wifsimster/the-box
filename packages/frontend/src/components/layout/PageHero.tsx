@@ -7,9 +7,6 @@ interface PageHeroProps {
   icon?: LucideIcon
   logo?: string
   iconStyle?: 'gradient' | 'simple'
-  // 'cube' is the default brand visual; pages where conversion matters
-  // more than vibe (e.g. /premium) opt out via 'none' to skip the ~875kB
-  // three.js chunk.
   background?: 'cube' | 'none'
   title: string
   subtitle?: string

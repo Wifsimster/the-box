@@ -1,12 +1,5 @@
 import type { Knex } from 'knex'
 
-// Content-addressed dedup. SHA256 of raw image bytes is deterministic and
-// catches the common case: Steam and RAWG mirror the same JPEG. Computed in
-// the worker before insert; ON CONFLICT DO NOTHING drops dupes.
-//
-// `perceptual_hash` is reserved for a phase-2 fuzzy layer (pHash). Nullable
-// for now; do not block ingestion on it.
-
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('geo_screenshot_candidate', (table) => {
     table.specificType('content_sha256', 'CHAR(64)').nullable()

@@ -22,8 +22,6 @@ const emptyAdvanced: AdvancedStatsAggregates = {
 
 describe('buildAdvancedStats', () => {
   it('renders zeros for a premium user who has never completed a session', () => {
-    // Postgres returns NULL for every percentile over an empty set. The panel
-    // renders numbers, so nothing may reach it as null.
     const stats = buildAdvancedStats(emptyAdvanced, {})
 
     assert.equal(stats.bestScore, 0)
@@ -122,8 +120,6 @@ describe('buildPublicProfile', () => {
   })
 
   it('never leaks an id, email or session id', () => {
-    // A session id here would let an anonymous visitor pivot to
-    // /api/leaderboard/session/:id and read today's answers.
     const profile = buildPublicProfile(identity, aggregates) as unknown as Record<string, unknown>
     const serialized = JSON.stringify(profile)
 

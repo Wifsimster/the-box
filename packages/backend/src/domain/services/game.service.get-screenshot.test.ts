@@ -11,14 +11,10 @@ const silentLogger: DomainLogger = {
   error: () => {},
 }
 
-// Minimal harness exercising getScreenshot's projection of the tier's
-// countdown limit into the ScreenshotResponse the client uses to run its timer.
 function buildService(timeLimitSeconds: number | null) {
   const deps = {
     logger: silentLogger,
     fuzzyMatchService: {
-      // Fragments never match in this harness — letter caps stay at the
-      // static formula, which is all the masked-title assertions need.
       isMatch: () => false,
       evaluateMatch: () => ({ matched: false, precision: 'none' as const }),
     },

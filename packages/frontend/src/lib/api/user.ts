@@ -33,9 +33,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const userApi = {
-  /**
-   * Get current user profile
-   */
   async getProfile(): Promise<User> {
     const response = await fetch('/api/users/me', {
       credentials: 'include',
@@ -43,9 +40,6 @@ export const userApi = {
     return handleResponse<User>(response)
   },
 
-  /**
-   * Upload avatar image
-   */
   async uploadAvatar(file: File): Promise<User> {
     const formData = new FormData()
     formData.append('avatar', file)
@@ -58,9 +52,6 @@ export const userApi = {
     return handleResponse<User>(response)
   },
 
-  /**
-   * Delete avatar image
-   */
   async deleteAvatar(): Promise<User> {
     const response = await fetch('/api/user/avatar', {
       method: 'DELETE',
@@ -69,9 +60,6 @@ export const userApi = {
     return handleResponse<User>(response)
   },
 
-  /**
-   * Update email marketing consent (opt-in / opt-out).
-   */
   async updateEmailConsent(consent: boolean): Promise<User> {
     const response = await fetch('/api/user/email-consent', {
       method: 'PUT',
@@ -82,10 +70,6 @@ export const userApi = {
     return handleResponse<User>(response)
   },
 
-  // Premium-only. Resolves with a typed payload on 200; the caller is
-  // responsible for hiding the panel for free users so we never see a
-  // 402 here in practice — but if we do, handleResponse throws a
-  // PREMIUM_REQUIRED UserApiError the panel can swallow.
   async getAdvancedStats(): Promise<AdvancedStats> {
     const response = await fetch('/api/user/advanced-stats', {
       credentials: 'include',
@@ -93,9 +77,6 @@ export const userApi = {
     return handleResponse<AdvancedStats>(response)
   },
 
-  // Free users can only set `default`; premium themes 402 server-side.
-  // Returns the updated User so callers can refresh local state without
-  // a follow-up GET /me.
   async updateTheme(theme: string): Promise<User> {
     const response = await fetch('/api/user/theme', {
       method: 'PUT',
@@ -106,14 +87,9 @@ export const userApi = {
     return handleResponse<User>(response)
   },
 
-  /**
-   * Update editable profile fields (display name / username). Returns the
-   * updated User so callers can refresh local state.
-   */
   async updateProfile(input: {
     displayName?: string
     username?: string
-    /** ISO 3166-1 alpha-2 code, or null to clear. */
     country?: string | null
   }): Promise<User> {
     const response = await fetch('/api/user/profile', {
@@ -125,12 +101,6 @@ export const userApi = {
     return handleResponse<User>(response)
   },
 
-  /**
-   * Permanently delete the current user's account (GDPR / RGPD right to
-   * erasure). Requires the user to re-type their username as confirmation.
-   * The success payload is `{ deleted: true }` rather than the usual
-   * `{ data }` envelope, so we parse it directly instead of handleResponse.
-   */
   async deleteAccount(confirmUsername: string): Promise<void> {
     const response = await fetch('/api/user/account', {
       method: 'DELETE',
@@ -147,11 +117,6 @@ export const userApi = {
     }
   },
 
-  /**
-   * Export all of the current user's personal data (GDPR / RGPD right to
-   * portability). The backend responds with a file attachment; we read it as
-   * a blob and trigger a browser download.
-   */
   async exportData(): Promise<void> {
     const response = await fetch('/api/user/export', {
       credentials: 'include',
@@ -162,8 +127,6 @@ export const userApi = {
 
     const blob = await response.blob()
 
-    // Prefer the server-provided filename from Content-Disposition; fall back
-    // to a sensible default if the header is absent.
     let filename = 'the-box-data-export.json'
     const disposition = response.headers.get('Content-Disposition')
     if (disposition) {

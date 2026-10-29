@@ -21,9 +21,6 @@ const SLUG_RE = /^[a-z0-9-]+$/
 const URL_RE = /^https?:\/\/\S+$/i
 const YEAR_RE = /^\d{4}$/
 
-// The form holds strings everywhere — text inputs, CSV fields, number-as-text.
-// The transform to `Omit<Game, 'id'>` lives in `toGameData` so Zod only
-// validates the shape the UI actually produces.
 const formSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   slug: z
@@ -114,9 +111,6 @@ export function GameForm({
   const isEditing = !!game
   const [imageError, setImageError] = useState(false)
 
-  // Using `values` (vs `defaultValues`) makes RHF track the game prop and
-  // reset the form automatically when the user switches rows in a
-  // master-detail view — no effect needed.
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     values: defaults(game),
@@ -124,7 +118,6 @@ export function GameForm({
 
   const handleNameChange = (name: string, onChange: (v: string) => void) => {
     onChange(name)
-    // Auto-generate slug only when creating a new game.
     if (!isEditing) {
       form.setValue('slug', slugify(name), { shouldValidate: true, shouldDirty: true })
     }
@@ -327,7 +320,6 @@ export function GameForm({
                 <FormItem>
                   <FormLabel>{t('admin.games.form.coverImageUrl')}</FormLabel>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    {/* Image Preview */}
                     <div className="relative w-24 h-32 shrink-0 rounded-lg overflow-hidden bg-muted border border-border self-start">
                       {field.value && !imageError ? (
                         <img

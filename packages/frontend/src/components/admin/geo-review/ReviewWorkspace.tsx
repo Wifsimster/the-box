@@ -42,11 +42,6 @@ export interface ReviewWorkspaceProps {
     onNavigate: (id: number) => void | Promise<void>
 }
 
-// Side-by-side review surface: capture on the left, map on the right at xl+,
-// stacked below xl. The actions bar is sticky at the bottom of the card so the
-// moderator never has to scroll to reach Promote / Reject. Keyboard shortcuts
-// (J/K next-prev, A approve, R reject, Esc close) are wired here so they only
-// apply while a candidate is open.
 export function ReviewWorkspace({
     detail,
     pin,
@@ -144,10 +139,6 @@ export function ReviewWorkspace({
     )
 }
 
-// Surfaces machine-proposed pins (issue #331) to the moderator: which pins came
-// from an agent, their source tier, and the required rationale. Agent pins are
-// downweighted in consensus and never promote on their own, so this is context
-// for the human decision, not an action. Renders nothing when there are none.
 function AgentPinsNotice({ pins }: { pins: GeoPinSubmission[] }) {
     const agentPins = pins.filter((p) => p.source && p.source !== 'human')
     if (agentPins.length === 0) return null
@@ -183,9 +174,6 @@ interface CompareBodyProps {
     onPinChange: (point: GeoPoint | null) => void
 }
 
-// Two-pane comparison layout. Both panes share the same max height so they
-// line up and the moderator's eyes can flick between them without losing
-// context. Stacks below xl so 13" laptops and tablets keep both visible.
 function CompareBody({ detail, pin, onPinChange }: CompareBodyProps) {
     const { t } = useTranslation()
     if (!detail || !detail.map) {
@@ -284,9 +272,6 @@ interface ActionBarProps {
     onDemote: () => void
 }
 
-// Sticky action bar — always visible at the bottom of the card so Promote /
-// Reject are one tap away, no scroll required. Background uses card token +
-// backdrop-blur so it reads cleanly over either pane.
 function ActionBar({
     detail,
     pin,
@@ -463,18 +448,7 @@ interface ReviewShortcutsArgs {
     onClose: () => void
 }
 
-// Window-level keyboard shortcuts for the review surface. Guards against:
-//  - typing inside an input/textarea/contenteditable (so Dialog text fields
-//    don't trigger Promote when the moderator types "a"),
-//  - any modifier key (so Cmd+R reload still works),
-//  - acting on a candidate while a save request is in flight.
-// All handlers reference the latest props via a ref so we don't tear down
-// the listener on every render.
 function useReviewShortcuts(args: ReviewShortcutsArgs) {
-    // Latest-props ref pattern via useLayoutEffect (the project's
-    // `react-hooks/refs` rule forbids writing to ref.current during render).
-    // Runs synchronously before paint, so the keydown handler always reads
-    // fresh args without tearing down the listener.
     const ref = useRef(args)
     useLayoutEffect(() => {
         ref.current = args
@@ -483,10 +457,6 @@ function useReviewShortcuts(args: ReviewShortcutsArgs) {
     useEffect(() => {
         if (!args.enabled) return
         const handler = (event: KeyboardEvent) => {
-            // Cooperate with Radix DismissableLayer (Reject / Demote dialogs):
-            // its Escape listener runs on document before this window listener
-            // and sets defaultPrevented. Without this guard, pressing Escape
-            // inside a dialog would close both the dialog and the workspace.
             if (event.defaultPrevented) return
             if (
                 event.metaKey ||

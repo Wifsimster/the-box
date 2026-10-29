@@ -6,7 +6,6 @@ import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { cn } from '@/lib/utils'
 import type { PositionStatus } from '@/types'
 
-/** Background colour class for a position dot based on its status. */
 function getStatusColor(status: PositionStatus) {
   switch (status) {
     case 'correct':
@@ -18,14 +17,6 @@ function getStatusColor(status: PositionStatus) {
   }
 }
 
-/**
- * Non-colour badge for a resolved position. Colour alone carried found-vs-missed
- * here, which `docs/oxygen-design-system.md` §2.1 forbids: the dot is the only
- * at-a-glance record of how the run is going, and green/red is exactly the pair
- * that fails for the most common colour-vision deficiency.
- *
- * Decorative: the status is already spelled out in each button's aria-label.
- */
 function StatusBadge({ status }: { status: PositionStatus }) {
   if (status !== 'correct' && status !== 'timed_out') return null
   const Icon = status === 'correct' ? Check : X
@@ -33,9 +24,6 @@ function StatusBadge({ status }: { status: PositionStatus }) {
     <span
       aria-hidden="true"
       className={cn(
-        // Dark chip with a coloured glyph, not a same-colour chip: on a green
-        // or red dot the badge has to read as a distinct object, and this way
-        // the SHAPE carries the meaning and colour merely reinforces it.
         'absolute -right-1 -top-1 grid size-3.5 place-items-center rounded-full',
         'bg-background ring-1 ring-background',
         status === 'correct' ? 'text-success' : 'text-error',
@@ -46,13 +34,6 @@ function StatusBadge({ status }: { status: PositionStatus }) {
   )
 }
 
-/**
- * ProgressDots displays the status of all screenshots in the challenge.
- * Color coding:
- * - success: correct (guessed correctly)
- * - muted:   unguessed (not visited, skipped, in progress)
- * - primary: current page (with ring + glow)
- */
 export function ProgressDots() {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotionSafe()
@@ -64,7 +45,6 @@ export function ProgressDots() {
   } = useGameStore()
 
   const handleDotClick = (position: number) => {
-    // Timed-out positions are locked (permanent miss) — not navigable.
     if (position !== currentPosition && positionStates[position]?.status !== 'timed_out') {
       navigateToPosition(position)
     }
@@ -90,7 +70,6 @@ export function ProgressDots() {
             onClick={() => handleDotClick(pos)}
             disabled={!isClickable}
             className={cn(
-              // Outer tap area guarantees ~44px target on mobile without crowding the visual
               "relative shrink-0 p-1.5 sm:p-1 -m-1 touch-manipulation rounded-full",
               isClickable && "cursor-pointer active:scale-95",
               !isClickable && "cursor-default"
@@ -118,8 +97,6 @@ export function ProgressDots() {
               style={isCurrent ? { boxShadow: 'var(--glow-md)' } : undefined}
             >
               <span className="text-primary-foreground drop-shadow-md tabular-nums">{pos}</span>
-              {/* Anchored to the visible circle, not the button — the button
-                  carries padding, which would park the badge out in the gap. */}
               <StatusBadge status={status} />
             </span>
           </m.button>

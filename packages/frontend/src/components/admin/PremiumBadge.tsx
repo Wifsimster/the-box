@@ -20,9 +20,6 @@ export function PremiumBadge({ entitlement }: { entitlement: BillingEntitlement 
           ? t('admin.users.premium.tier.premiumMonthly')
           : t('admin.users.premium.tier.unknown')
 
-  // supporter (free grant) is bright, paid sub is the same neon-purple/pink
-  // we use elsewhere for the gaming accent - the source dot below carries
-  // the distinction.
   const sourceDotClass =
     entitlement.source === 'supporter' ? 'bg-neon-cyan' : 'bg-neon-purple'
 

@@ -44,7 +44,6 @@ describe('formatTileUrl — xyz-padded2-inverted (World-of-MapCraft)', () => {
   })
 
   it('inverts z so leaflet maxZoom -> URL minZoom', () => {
-    // Most zoomed-out leaflet view (z=minZoom=0) should request URL z=5.
     assert.equal(
       formatTileUrl(WOW, 0, 1, 2),
       'https://cdn.example.com/azeroth/tile_z5_01_02.png',
@@ -59,9 +58,6 @@ describe('formatTileUrl — xyz-padded2-inverted (World-of-MapCraft)', () => {
   })
 
   it('round-trips every zoom level for the (0,0) tile', () => {
-    // Snapshot all 6 levels to catch any off-by-one regression on the
-    // z-inversion. URL z values must monotonically decrease as leaflet z
-    // grows (deeper Leaflet zoom = lower URL z).
     const urlZs = [0, 1, 2, 3, 4, 5].map(
       (leafletZ) => formatTileUrl(WOW, leafletZ, 0, 0).match(/tile_z(\d+)/)![1],
     )

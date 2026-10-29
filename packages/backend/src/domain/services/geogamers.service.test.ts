@@ -20,7 +20,6 @@ const noopLogger: DomainLogger = {
   child() { return noopLogger },
 }
 
-// ---- in-memory fakes ----
 const CHALLENGE: GeoGamersChallengeRecord = {
   id: 1,
   challengeDate: '2026-07-10',
@@ -128,7 +127,7 @@ function makeDeps(overrides: { jokerUsed?: boolean } = {}) {
     logger: noopLogger, challengeRepo, runRepo, jokerRepo, alternatePicker,
     screenshotRepo, mapRepo, gameRepo, fuzzyMatch, scoring,
     screenshotUrlFor: (t) => `/api/geogamers/image/${t}`,
-    now: () => 60_000, // 60s after epoch — well past the min-run floor
+    now: () => 60_000,
   })
   return { svc, runs }
 }
@@ -141,7 +140,6 @@ describe('geogamers.service anti-leak', () => {
     assert.equal(view.game, undefined)
     assert.equal(view.maps, undefined)
     assert.equal(view.gamePoints, undefined)
-    // screenshot url is opaque (no game slug)
     assert.match(view.screenshotUrl, /^\/api\/geogamers\/image\//)
     assert.doesNotMatch(view.screenshotUrl, /elden|uploads/i)
   })

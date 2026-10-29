@@ -15,7 +15,6 @@ describe('distance helpers', () => {
     assert.ok(Math.abs(euclideanDistance({ x: 0, y: 0 }, { x: 0.3, y: 0.4 }) - 0.5) < 1e-9)
   })
   it('normalized divides by the unit-square diagonal (√2)', () => {
-    // Opposite corners → raw √2 → normalized 1.
     assert.ok(Math.abs(normalizedDistance({ x: 0, y: 0 }, { x: 1, y: 1 }) - 1) < 1e-9)
   })
 })
@@ -28,7 +27,6 @@ describe('summarizeVisionEval', () => {
   })
 
   it('passes when ≥40% land within radius and median error < 0.1', () => {
-    // 5 spot-on predictions (distance 0) → 100% within radius, median 0.
     const samples: VisionEvalSample[] = Array.from({ length: 5 }, () => ({
       predicted: { x: 0.5, y: 0.5 },
       truth: { x: 0.5, y: 0.5 },
@@ -41,7 +39,6 @@ describe('summarizeVisionEval', () => {
   })
 
   it('fails when predictions are far off (noise floor)', () => {
-    // All predictions at the opposite corner → 0% within radius, median ≈ 1.
     const samples: VisionEvalSample[] = Array.from({ length: 10 }, () => ({
       predicted: { x: 1, y: 1 },
       truth: { x: 0, y: 0 },
@@ -53,8 +50,6 @@ describe('summarizeVisionEval', () => {
   })
 
   it('fails when within-radius is below the 40% bar despite some hits', () => {
-    // 3 hits + 7 far misses → 30% within radius < 40% → fail even if the 3
-    // hits drag the median around.
     const hits: VisionEvalSample[] = Array.from({ length: 3 }, () => ({
       predicted: { x: 0.5, y: 0.5 },
       truth: { x: 0.5, y: 0.5 },

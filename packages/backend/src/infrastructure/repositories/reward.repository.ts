@@ -41,9 +41,6 @@ export const rewardRepository = {
     log.info({ userId, source, sourceRef, autoUnlock }, 'grantAtomic')
 
     return db.transaction(async (trx) => {
-      // Try insert. ON CONFLICT DO NOTHING + RETURNING omits the row when
-      // the unique key collides, which is exactly the idempotency contract:
-      // a retry returns wasNew=false and we do not re-touch inventory.
       const insertResult = await trx.raw<{ rows: RewardGrantRow[] }>(
         `
         INSERT INTO reward_grants (user_id, source, source_ref, payload, unlocked_at)
@@ -55,13 +52,10 @@ export const rewardRepository = {
       )
 
       if (insertResult.rows.length === 0) {
-        // Conflict: fetch the existing row, do NOT re-upsert inventory.
         const existing = await trx<RewardGrantRow>('reward_grants')
           .where({ user_id: userId, source, source_ref: sourceRef })
           .first()
         if (!existing) {
-          // Should be impossible — race-window between conflict and read
-          // would be the only way. Surface loudly so we notice.
           throw new Error(
             `reward_grants insert conflict but no existing row found for ${userId}/${source}/${sourceRef}`
           )
@@ -75,13 +69,9 @@ export const rewardRepository = {
 
       const inserted = insertResult.rows[0]
       if (!inserted) {
-        // Postgres returned an empty rows array on an INSERT … RETURNING
-        // that did NOT hit the conflict path. Should be unreachable.
         throw new Error('reward_grants insert returned no row and no conflict')
       }
 
-      // Upsert each item into user_inventory in the same transaction.
-      // Mirrors the pattern used by inventory.repository.addMultipleItems.
       for (const item of payload.items) {
         await trx.raw(
           `
@@ -107,7 +97,6 @@ export const rewardRepository = {
 
   async markUnlocked(id: string, userId: string): Promise<RewardGrant | null> {
     log.info({ id, userId }, 'markUnlocked')
-    // Set unlocked_at only if currently null. Re-runs are no-ops.
     const rows = await db<RewardGrantRow>('reward_grants')
       .where({ id, user_id: userId })
       .whereNull('unlocked_at')
@@ -115,7 +104,6 @@ export const rewardRepository = {
       .returning('*')
     const updated = rows[0]
     if (updated) return mapRow(updated)
-    // Row exists but already unlocked — return current state.
     const existing = await db<RewardGrantRow>('reward_grants')
       .where({ id, user_id: userId })
       .first()
@@ -124,9 +112,6 @@ export const rewardRepository = {
 
   async markClaimed(id: string, userId: string): Promise<RewardGrant | null> {
     log.info({ id, userId }, 'markClaimed')
-    // Claim is a no-op if already claimed. We require unlocked_at to be set
-    // so a staged-but-not-yet-earned reward (e.g. reactivation pre-play)
-    // cannot be claimed prematurely.
     const rows = await db<RewardGrantRow>('reward_grants')
       .where({ id, user_id: userId })
       .whereNotNull('unlocked_at')
@@ -169,6 +154,5 @@ export const rewardRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const _rewardRepositoryTypeCheck: RewardRepositoryPort = rewardRepository

@@ -10,15 +10,6 @@ import type { AchievementRow } from '../types/achievement.types.js'
 import { createRecordingLogger } from '../ports/logger.test-double.js'
 import type { AchievementRepository, AchievementUserContext } from '../ports/index.js'
 
-/**
- * Guards the criteria registry against the two ways it used to rot:
- *  1. a criteria type seeded into the database that nothing implements
- *     (it used to fall through to a `default:` and warn forever), and
- *  2. the post-game evaluator and the progress calculator disagreeing,
- *     because they were two separate `switch` statements.
- */
-
-/** Every `criteria.type` any migration actually seeds into `achievements`. */
 function seededCriteriaTypes(): Set<string> {
   const migrationsDir = join(import.meta.dirname, '../../../migrations')
   const types = new Set<string>()
@@ -26,9 +17,6 @@ function seededCriteriaTypes(): Set<string> {
   for (const file of readdirSync(migrationsDir)) {
     if (!file.endsWith('.ts')) continue
     const source = readFileSync(join(migrationsDir, file), 'utf8')
-    // Only look inside JSON.stringify({ type: '...' }) calls, which is how
-    // every achievement migration writes its criteria column. This avoids
-    // picking up unrelated `type:` keys (e.g. daily-login reward_type).
     for (const match of source.matchAll(/JSON\.stringify\(\{\s*type:\s*'([a-z_]+)'/g)) {
       if (match[1]) types.add(match[1])
     }
@@ -60,9 +48,6 @@ describe('achievement criteria registry', () => {
   })
 
   it('does not warn about a registered criteria type after a game', async () => {
-    // Before the registry, the GeoGamers achievements (awarded by key from
-    // their own route) hit the evaluator's `default:` branch and logged
-    // "Unknown achievement criteria type" after EVERY classic game.
     const logger = createRecordingLogger()
 
     const achievements: AchievementRow[] = ACHIEVEMENT_CRITERIA_TYPES.map((type, i) => ({

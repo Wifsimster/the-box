@@ -8,12 +8,6 @@ import { GamePlayScreen } from '@/components/game/GamePlayScreen'
 import { useDailyGame } from '@/hooks/useDailyGame'
 import { useOnline } from '@/hooks/useOnline'
 
-/**
- * `/play`: the daily box outside the home route — catch-up of a past box
- * (`?date=`), old links and the verification harness. Today's box normally
- * lives on `/` (TodayPage); both share `useDailyGame` and the closed-box
- * screen (`TodayStart`).
- */
 export default function GamePage() {
   const { t } = useTranslation()
   const isOnline = useOnline()
@@ -46,15 +40,10 @@ export default function GamePage() {
     <div
       className="relative w-full bg-background overflow-hidden h-[var(--page-h)]"
       style={{
-        // Reserve space for the on-screen keyboard. The value snaps with the
-        // keyboard's own animation; we intentionally don't add a CSS
-        // transition on padding-bottom — animating a layout property would
-        // force a reflow every frame (layout thrash).
         paddingBottom: isKeyboardOpen ? keyboardHeight : 0,
       }}
     >
       <AnimatePresence mode="wait">
-        {/* Loading State - also show while waiting for hydration */}
         {(isLoading || !_hasHydrated) && gamePhase === 'idle' && (
           <m.div
             key="loading"
@@ -69,7 +58,6 @@ export default function GamePage() {
           </m.div>
         )}
 
-        {/* Error State */}
         {error && (
           <GameErrorState
             key="error"
@@ -79,7 +67,6 @@ export default function GamePage() {
           />
         )}
 
-        {/* The closed box: one tap opens it (no intro screen, no account gate) */}
         {gamePhase === 'daily_intro' && !error && (
           <TodayStart
             key="today-start"
@@ -93,7 +80,6 @@ export default function GamePage() {
           />
         )}
 
-        {/* Main Game Screen */}
         {(gamePhase === 'playing' || gamePhase === 'result') && (
           <GamePlayScreen
             key="game"
@@ -105,7 +91,6 @@ export default function GamePage() {
           />
         )}
 
-        {/* Challenge Complete Screen */}
         {gamePhase === 'challenge_complete' && (
           <ChallengeCompleteScreen
             key="challenge-complete"

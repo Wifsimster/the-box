@@ -9,21 +9,10 @@ const log = queueLogger.child({ worker: 'milestone-account-age' })
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// Active-ish window. Awarding an account-age milestone to a user who has
-// not opened the app in months has zero retention value — they will not
-// see it. Same 60-day window used by streak-freeze-grant; we re-check
-// daily so a returning user gets their milestone within 24 h.
 const ACTIVE_DAYS = 60
 
-// Account-age thresholds we currently award. Keeping the list explicit
-// here (rather than scanning all achievements with type=account_age_days)
-// lets the worker pre-filter candidates with one simple SQL clause —
-// only users old enough to have crossed the smallest threshold are
-// considered. The achievement evaluator is the source of truth on which
-// thresholds actually award; the worker just narrows the input set.
 const MIN_THRESHOLD_DAYS = 365
 
-// Safety cap. Same rationale as the other recurring workers.
 const MAX_CANDIDATES_PER_RUN = 5000
 
 export interface MilestoneAccountAgeResult {
@@ -86,8 +75,6 @@ export async function evaluateAccountAgeMilestones(
             if (earned.length > 0) {
                 usersWithUnlocks++
                 totalUnlocks += earned.length
-                // This sweep is the only unlock path for account-age
-                // milestones — without this push the user is never told.
                 emitAchievementUnlocked(user.id, earned)
             }
         } catch (error) {

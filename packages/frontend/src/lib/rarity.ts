@@ -1,15 +1,5 @@
 import type { DailyReward, RewardRarity } from '@the-box/types'
 
-/**
- * Visual mapping for daily-login reward rarities. Centralised here so the
- * calendar, the claim modal and any future surface share one source of
- * truth for colours, labels and animations.
- *
- * IMPORTANT: every Tailwind class below is written as a complete literal
- * string (never composed at runtime), so the Tailwind v4 scanner can see
- * and emit them. Do not build these class names dynamically.
- */
-
 export const RARITY_ORDER: readonly RewardRarity[] = [
     'common',
     'uncommon',
@@ -19,27 +9,14 @@ export const RARITY_ORDER: readonly RewardRarity[] = [
 ]
 
 export interface RarityStyle {
-    /** i18n key for the human-readable rarity label. */
     labelKey: string
-    /** Calendar cell tint (background + border) when the day is active/locked. */
     cell: string
-    /** Ring colour used to highlight "today" in the calendar. */
     ring: string
-    /** Text/icon accent colour. */
     text: string
-    /** Border colour for the modal reward card + badges. */
     border: string
-    /** Soft gradient backdrop for the modal reward card. */
     gradient: string
-    /** Badge classes (bg + text) shown in the modal. */
     badge: string
-    /** Sparkle / accent colour for the claim celebration. */
     sparkle: string
-    /**
-     * Inline box-shadow used for the rarity "glow". Kept as a raw CSS value
-     * (consumed via `style`) so we can lean on the theme CSS variables and
-     * vary intensity per tier without bloating the Tailwind safelist.
-     */
     glow: string
 }
 
@@ -101,11 +78,6 @@ export const RARITY_STYLES: Record<RewardRarity, RarityStyle> = {
     },
 }
 
-/**
- * CSS keyframe animation name (defined in index.css) used for the unlock
- * celebration, escalating with rarity. `prefers-reduced-motion` zeroes
- * these out at the stylesheet level.
- */
 export const RARITY_CLAIM_ANIMATION: Record<RewardRarity, string> = {
     common: 'rarity-reveal-soft',
     uncommon: 'rarity-reveal-soft',
@@ -114,10 +86,6 @@ export const RARITY_CLAIM_ANIMATION: Record<RewardRarity, string> = {
     legendary: 'rarity-reveal-burst',
 }
 
-/**
- * Resolve a reward's rarity, falling back to a sensible derived value for
- * historical rewards that predate the `rarity` column.
- */
 export function getRewardRarity(reward: Pick<DailyReward, 'rarity' | 'rewardType'>): RewardRarity {
     if (reward.rarity && RARITY_ORDER.includes(reward.rarity)) {
         return reward.rarity

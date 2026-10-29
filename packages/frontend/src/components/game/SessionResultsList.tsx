@@ -6,16 +6,6 @@ import { calculateSpeedMultiplier, formatDiscoveryTime } from '@/lib/utils'
 import { GuessAttemptsList } from '@/components/game/GuessAttemptsList'
 import type { GuessResult } from '@/types'
 
-/**
- * Per-screenshot results breakdown for a finished game session. This is the
- * single, canonical list rendering shared by every session-detail surface —
- * the post-game results page, the game-history details page, and the
- * leaderboard answers dialog — so they never drift apart again.
- *
- * Each row shows the screenshot thumbnail, the (revealed) game name, the
- * score badge, every guess attempt, and — for correct guesses — the discovery
- * time and speed multiplier. Unfound games render with the miss styling.
- */
 export function SessionResultsList({
   results,
   totalScreenshots,
@@ -25,20 +15,14 @@ export function SessionResultsList({
   results: GuessResult[]
   totalScreenshots: number
   reducedMotion?: boolean
-  /** Lay the rows out in two balanced columns on wider screens (≥ md). */
   columns?: 1 | 2
 }) {
   const { t } = useTranslation()
-  // Two-column uses CSS grid with minmax(0,1fr) tracks (Tailwind grid-cols-2)
-  // so each column has a definite width and the row contents can truncate —
-  // CSS multi-column leaves children unconstrained and overflows instead.
   const isGrid = columns === 2
   const animate = !reducedMotion && !isGrid
   return (
     <ul className={isGrid ? 'list-none grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3' : 'space-y-2 sm:space-y-3 list-none'}>
       {results.map((result, index) => {
-        // Unfound games are folded in with no submitted guess; they score 0
-        // (the backend applies no unfound penalty) but still render as a miss.
         const isUnguessed = !result.isCorrect && result.userGuess === null
         const attempts = result.attempts ?? []
         const multiplier =

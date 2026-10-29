@@ -6,8 +6,6 @@ import path from 'path'
 import { readFileSync } from 'fs'
 import { scopeKoeCss } from './src/lib/koeCssScope'
 
-// Read version from root package.json (single source of truth)
-// Fallback to environment variable for Docker builds, then local package.json
 const getAppVersion = () => {
   if (process.env.VITE_APP_VERSION) {
     return process.env.VITE_APP_VERSION
@@ -20,10 +18,6 @@ const getAppVersion = () => {
 const appVersion = getAppVersion()
 const buildTime = new Date().toISOString()
 
-// Defence-in-depth: a production build with VITE_USE_MOCK_API=true would
-// ship mock services to users. The runtime guard already short-circuits
-// when the flag is anything other than 'true', but failing the build is
-// loud enough that the mistake can't slip into a release tag.
 if (process.env.NODE_ENV === 'production' && process.env.VITE_USE_MOCK_API === 'true') {
   throw new Error(
     'Refusing to build a production bundle with VITE_USE_MOCK_API=true. ' +
@@ -31,11 +25,8 @@ if (process.env.NODE_ENV === 'production' && process.env.VITE_USE_MOCK_API === '
   )
 }
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    // Koe's stylesheet ships an unlayered global `*` reset that wipes the
-    // app's focus rings and shadows; confine it to the widget (see koeCssScope).
     {
       name: 'the-box:scope-koe-css',
       enforce: 'pre',
@@ -58,9 +49,6 @@ export default defineConfig({
       },
       manifest: {
         id: '/',
-        // Mirrors SITE_CATEGORY.fr / SITE_TAGLINE.fr in @the-box/types. Kept
-        // literal: this config is evaluated before the types package is built.
-        // seo.test.ts fails if these drift from the constants (docs/brand.md).
         name: 'The Box — le jeu quotidien du screenshot',
         short_name: 'The Box',
         description: 'Une capture. Un jeu à deviner.',
@@ -136,7 +124,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        ws: true, // Enable WebSocket proxying for Socket.io
+        ws: true,
       },
       '/uploads': {
         target: 'http://localhost:3000',
@@ -145,7 +133,7 @@ export default defineConfig({
       '/socket.io': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        ws: true, // Enable WebSocket proxying
+        ws: true,
       },
     },
   },

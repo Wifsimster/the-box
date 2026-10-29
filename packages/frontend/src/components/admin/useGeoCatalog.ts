@@ -23,8 +23,6 @@ interface UseGeoCatalogArgs {
 
 export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeoCatalogArgs) {
     const { t } = useTranslation()
-    // The two catalog lists and their loading flag arrive from one fetch, so
-    // they share a state object.
     const [data, setData] = useState<{
         curated: CuratedGame[] | null
         candidates: CatalogRow[] | null
@@ -32,24 +30,14 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     }>({ curated: null, candidates: null, loading: true })
     const { curated, candidates, loading } = data
 
-    // The side-panel selection and the sources it loads are one slice (selecting
-    // a game drives the fetch).
     const [panel, setPanel] = useState<{
         selectedId: number | null
         sources: SourcesResponse | null
         sourcesLoading: boolean
     }>({ selectedId: null, sources: null, sourcesLoading: false })
-    // `sources` is written both from the selectGame click handler and from the
-    // run-polling external-sync effect below (refetch when a background run
-    // finishes). That second writer is a legitimate "synchronize with an
-    // external system" effect, not a state-as-event-handler smell, so
-    // no-event-handler is a false positive on this slice.
     // oxlint-disable-next-line react-doctor/no-event-handler
     const { selectedId, sources, sourcesLoading } = panel
 
-    // Filter pill + search box + the row checkboxes are the catalog's view
-    // controls; a filter/search change clears the selection, so they update
-    // together as one slice.
     const [view, setView] = useState<{
         filter: FilterMode
         search: string
@@ -73,8 +61,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         [],
     )
 
-    // The success/error banner pair is one feedback slice — every mutation
-    // clears both and then writes at most one, so they share a state object.
     const [feedback, setFeedback] = useState<{ message: string | null; error: string | null }>({
         message: null,
         error: null,
@@ -88,14 +74,8 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         [],
     )
 
-    // Every per-row / per-tier / bulk mutation is mutually exclusive from the
-    // operator's point of view, so the "what's in flight" flags collapse into a
-    // single reducer that flips exactly one field per dispatch.
     const [ops, dispatchOps] = useReducer(opsReducer, INITIAL_OPS)
 
-    // The three modal surfaces (Add-Map, Reset confirm, Uncurate confirm) are
-    // one "active dialog" slice. Add-Map keeps the unified strategy tab so the
-    // three side-panel buttons open it at their preferred tab.
     const [dialog, dispatchDialog] = useReducer(catalogDialogReducer, INITIAL_CATALOG_DIALOG)
     const addMapFor = dialog.kind === 'addMap' ? dialog.addMap : null
     const resetOpen = dialog.kind === 'reset'
@@ -116,15 +96,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     const setUncurateFor = (game: CuratedGame | null) =>
         dispatchDialog(game ? { type: 'openUncurate', uncurate: game } : { type: 'close' })
 
-    // Loaded together so the count badges on the filter pills stay
-    // accurate regardless of which filter is active. The non-curated list
-    // returns a leaner shape (no hasMap / mapCount), which is fine — those
-    // columns are only meaningful for curated rows.
-    //
-    // fetchCatalog / fetchSources only write state once the request settles;
-    // the loading flags are raised by whoever starts the fetch (initial state,
-    // reload/reloadSources from handlers, the run-settled render adjustment
-    // below), so the effects that fetch never write state synchronously.
     const fetchCatalog = useCallback(
         () =>
             Promise.all([
@@ -182,10 +153,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         void fetchCatalog()
     }, [fetchCatalog])
 
-    // Select (or deselect) a catalog row's side panel. Clearing `sources`
-    // synchronously avoids flashing the previous game's preview while the next
-    // request is in flight; the fetch runs directly from this handler rather
-    // than via a selection-watching effect.
     const selectGame = useCallback(
         (gameId: number | null) => {
             setPanel((p) => ({ ...p, selectedId: gameId, sources: null }))
@@ -208,8 +175,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
                 body: JSON.stringify({ gameId: game.id }),
             })
             setMessage(t('admin.geo.maps.reimportQueued', { name: game.name }))
-            // Show live progress in the run banner since /reimport now
-            // enqueues the full resolve+tick pipeline (not just resolver).
             armRunPolling()
             await Promise.all([reload(), reloadSources(game.id)])
         } catch (e) {
@@ -222,9 +187,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     const onAddMapSuccess = () => {
         if (!addMapFor) return
         const { game, strategy } = addMapFor
-        // Strategy determines which success message to show — the dialog
-        // doesn't tell us which form was submitted, but we know which one
-        // was active when success fired.
         const messageKey =
             strategy === 'wand' ? 'admin.geo.wandMap.success' : 'admin.geo.manualMap.success'
         setMessage(t(messageKey, { name: game.name }))
@@ -234,13 +196,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     const openAddMap = (strategy: AddMapStrategy) => (game: CuratedGame) =>
         setAddMapFor({ game, strategy })
 
-    // Synchronize with the external run-polling system: when the parent-owned
-    // `runState` (from useGeoRunPolling) flips active → idle, refetch so a game
-    // moving 'pending' → 'resolved' or gaining `hasMap` becomes visible. There is
-    // no in-component event to hang this on — the run completes asynchronously in
-    // a hook this file doesn't own. The transition is detected during render
-    // (previous-value pattern), which raises the loading flags and bumps
-    // `runSettledCount`; the effect then only performs the fetches.
     const runActive = runState?.isActive ?? false
     const [prevRunActive, setPrevRunActive] = useState(runActive)
     const [runSettledCount, setRunSettledCount] = useState(0)
@@ -296,9 +251,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         }
     }
 
-    // Multi-map mode: "activate" a map = enable it. The legacy endpoint
-    // (`/active-map`) is kept on the backend as an alias; this path uses
-    // the explicit enable so multiple maps can be enabled in turn.
     const handleActivateMap = async (gameId: number, mapId: number) => {
         dispatchOps({ type: 'activatingMapId', value: mapId })
         setMessage(null)
@@ -329,9 +281,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
             setMessage(t('admin.geo.maps.multi.disabled', 'Map disabled.'))
             await Promise.all([reload(), reloadSources(gameId)])
         } catch (e) {
-            // Look at the structured ApiError code instead of stringifying —
-            // matching on substring of `String(e)` works for the happy path
-            // but breaks the moment the error message changes locale.
             const code = (e as { code?: string } | null)?.code ?? ''
             if (code === 'LAST_ENABLED') {
                 setError(
@@ -389,10 +338,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         }
     }
 
-    // Drop a game from the curated set straight from the Maps panel so an
-    // operator who notices a wrong pick (low quality, no map) can retire it
-    // without switching to the Games sub-tab. Backend flips `geo_curated`
-    // off; the row falls out of the curated list on the next reload.
     const handleUncurate = async (game: CuratedGame) => {
         dispatchOps({ type: 'uncurating', value: true })
         setMessage(null)
@@ -428,7 +373,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
             }>('/api/admin/scraping/reset', { method: 'POST' })
             setMessage(t('admin.geo.reset.success', data))
             setResetOpen(false)
-            // Side panel referenced rows that no longer exist.
             clearSelection()
             await reload()
         } catch (e) {
@@ -441,11 +385,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     const selectedGame =
         curated?.find((g) => g.id === selectedId) ?? null
 
-    // Build a unified row list. Curated rows carry the rich
-    // metadataStatus/hasMap/mapCount info needed by the status badges and
-    // the side panel; candidate rows are flat. Counts are computed from the
-    // raw lists so the filter pills always show the true totals — never the
-    // post-search ones.
     const allRows = useMemo<CatalogRow[]>(() => {
         const fromCurated: CatalogRow[] = (curated ?? []).map((g) => ({
             id: g.id,
@@ -500,10 +439,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         )
     }, [allRows, filter, search])
 
-    // The effective selection is the raw user selection intersected with the
-    // currently-visible rows — derived during render so an id hidden by the
-    // active filter/search never leaks into the bulk-action count, without
-    // mirroring it back into state via an effect.
     const selected = useMemo(() => {
         if (rawSelected.size === 0) return rawSelected
         const visibleIds = new Set(visibleRows.map((r) => r.id))
@@ -533,8 +468,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         }
     }
 
-    // Bulk curate / un-curate. Mixed selections are allowed — the verb
-    // determines the target state for every row.
     const applyBulk = async (target: boolean) => {
         if (selected.size === 0) return
         dispatchOps({ type: 'bulkBusy', value: true })
@@ -558,7 +491,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
                 ),
             )
             setSelected(new Set())
-            // If the side-panel target just lost its curated state, drop it.
             if (!target && selectedId !== null && selected.has(selectedId)) {
                 clearSelection()
             }
@@ -571,7 +503,6 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
     }
 
     return {
-        // state slices
         curated,
         candidates,
         loading,
@@ -585,13 +516,11 @@ export function useGeoCatalog({ runState, armRunPolling, initialFilter }: UseGeo
         addMapFor,
         resetOpen,
         uncurateFor,
-        // derived
         selected,
         selectedGame,
         allRows,
         counts,
         visibleRows,
-        // handlers
         reload,
         reloadSources,
         reimport,

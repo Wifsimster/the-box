@@ -1,8 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import { routeLogger } from '../../infrastructure/logger/logger.js'
 
-// Query-string parameters that carry short-lived credentials. Logging them
-// gives anyone with log access the ability to use the token before its TTL.
 const SENSITIVE_QUERY_KEYS = new Set([
   'token',
   'code',
@@ -13,9 +11,6 @@ const SENSITIVE_QUERY_KEYS = new Set([
   'refresh_token',
 ])
 
-// Strip query string entirely for auth-adjacent paths; redact specific keys
-// elsewhere. We log path-only by default to avoid surprises from new routes
-// that might add tokens to the URL.
 function sanitizeUrl(rawUrl: string): string {
   const queryStart = rawUrl.indexOf('?')
   if (queryStart === -1) return rawUrl

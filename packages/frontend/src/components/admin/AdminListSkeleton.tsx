@@ -4,7 +4,6 @@ interface AdminListSkeletonProps {
   rows?: number
 }
 
-/** Placeholder rows shaped like the admin list cards (mobile) / table rows (md+). */
 export function AdminListSkeleton({ rows = 5 }: AdminListSkeletonProps) {
   return (
     <div className="space-y-3" aria-busy="true">

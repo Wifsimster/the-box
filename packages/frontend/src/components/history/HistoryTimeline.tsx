@@ -33,11 +33,6 @@ export type TimelineItem =
   | { kind: 'played'; date: string; entry: GameHistoryEntry }
   | { kind: 'missed'; date: string; challenge: MissedChallenge }
 
-/**
- * Unified history timeline — played sessions and missed (catch-up)
- * challenges interleaved by date. Extracted from HistoryPage so the page
- * component stays focused on data fetching and filter state.
- */
 export function HistoryTimeline({
   timeline,
   reducedMotion,

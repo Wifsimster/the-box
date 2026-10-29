@@ -10,8 +10,6 @@ import type { BillingPrice, BillingTier } from '@the-box/types'
 import { PlanFeatureList } from './PlanFeatureList'
 import { PREMIUM_TIER_FEATURE_KEYS } from './planFeatures'
 
-/** Per-card status flags, grouped so the component takes a single object prop
- *  instead of a wide row of booleans. */
 export interface PricingCardStatus {
   isCurrentPlan: boolean
   isLoggedIn: boolean
@@ -33,8 +31,6 @@ export function PricingCard({
   onSelect,
 }: PricingCardProps) {
   const { t, i18n } = useTranslation()
-  // Hoist the currency formatter out of per-call construction; rebuild only
-  // when the active locale changes.
   const currencyFormatter = useMemo(
     () =>
       new Intl.NumberFormat(i18n.language, {
@@ -46,8 +42,6 @@ export function PricingCard({
     [i18n.language],
   )
   const tierKey = `pricing.tiers.${price.tier}`
-  // One-time tiers (interval === null, e.g. supporter_lifetime) aren't a
-  // "subscription" — use patronage wording and a one-time price label.
   const isOneTime = price.interval === null
   const ctaKey = isCurrentPlan
     ? 'pricing.ctaCurrent'

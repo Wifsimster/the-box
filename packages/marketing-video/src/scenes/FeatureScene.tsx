@@ -17,10 +17,6 @@ type Props = {
   features: Feature[];
 };
 
-/**
- * Reusable feature highlight slide. Used by Daily Challenges, Hints,
- * Achievements, Leaderboards.
- */
 export const FeatureScene: React.FC<Props> = ({ eyebrow, headline, features }) => {
   return (
     <AbsoluteFill>

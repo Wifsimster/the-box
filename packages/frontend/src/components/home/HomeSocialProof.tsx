@@ -3,12 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { m } from 'framer-motion'
 import { Users } from 'lucide-react'
 
-/**
- * Live social-proof badge: "N players have taken on today's challenge".
- * Backed by real data from GET /api/leaderboard/today/count — never a
- * fabricated number. Renders nothing until a positive count arrives, so we
- * never show a deflating "0 players" on a fresh challenge or while loading.
- */
 export function HomeSocialProof() {
   const { t, i18n } = useTranslation()
   const [count, setCount] = useState(0)
@@ -21,7 +15,6 @@ export function HomeSocialProof() {
         if (!cancelled && json?.success) setCount(Number(json.data?.count ?? 0))
       })
       .catch(() => {
-        /* fail-soft: no badge if the count can't be fetched */
       })
     return () => {
       cancelled = true

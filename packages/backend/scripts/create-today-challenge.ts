@@ -1,8 +1,3 @@
-/**
- * Standalone script to create today's daily challenge
- * Usage: npx tsx scripts/create-today-challenge.ts
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 import { challengeRepository } from '../src/infrastructure/repositories/challenge.repository.js'
 
@@ -24,7 +19,6 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
         return rows
     }
 
-    // Not enough unique screenshots - allow reuse
     console.warn('Not enough unique screenshots, allowing reuse')
     const allIds = await db('screenshots').pluck<number[]>('id')
     const selected: number[] = []
@@ -40,22 +34,18 @@ async function createTodayChallenge() {
     const challengeDate = new Date().toISOString().split('T')[0]!
     console.log(`Creating challenge for ${challengeDate}`)
 
-    // Check if challenge already exists
     const existing = await challengeRepository.findByDate(challengeDate)
     if (existing) {
         console.log(`Challenge already exists for ${challengeDate} (ID: ${existing.id})`)
         return
     }
 
-    // Select 10 random screenshots
     const screenshotIds = await selectRandomScreenshots(10)
     console.log(`Selected ${screenshotIds.length} screenshots`)
 
-    // Create challenge
     const challenge = await challengeRepository.create(challengeDate)
     console.log(`Created challenge ID: ${challenge.id}`)
 
-    // Create tier
     const tier = await challengeRepository.createTier({
         dailyChallengeId: challenge.id,
         tierNumber: 1,
@@ -64,7 +54,6 @@ async function createTodayChallenge() {
     })
     console.log(`Created tier ID: ${tier.id}`)
 
-    // Assign screenshots
     await challengeRepository.createTierScreenshots(tier.id, screenshotIds)
     console.log(`Assigned ${screenshotIds.length} screenshots to tier`)
 

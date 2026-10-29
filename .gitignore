@@ -1,68 +1,52 @@
-# Dependencies
 node_modules/
 
-# Build outputs
 **/dist/
 build/
 
-# Environment files
 .env
 .env.local
 .env.*.local
 
-# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# OS
 .DS_Store
 Thumbs.db
 
-# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Testing
 coverage/
 
-# Uploads (user-generated content)
 uploads/*
 !uploads/.gitkeep
 
-# TypeScript
 *.tsbuildinfo
 
-# Misc
 .cache/
 
-# Playwright
 .playwright-mcp/
 test-results/
 playwright-report/
 playwright/.cache/
 
-# AI Agent Tools
 .agentvibes/
 .cursor/
 _bmad/
 _bmad-output/
 packages/frontend/test-output.txt
 .claude/*
-# Project skills are shared with every agent (verify harness: .claude/skills/verify)
 !.claude/skills/
 ralph/
 
-# Database backups
 backups/
 
-# Docker secrets — populated locally before `docker compose up`
 secrets/*
 !secrets/.gitkeep
 !secrets/README.md
-# Verification harness (.claude/skills/verify): scratch state and proof artifacts
 .verify-run/
 .verify-evidence/

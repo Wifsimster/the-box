@@ -27,7 +27,6 @@ export function EndGameButton() {
   const endGameAction = useGameStore((s) => s.endGameAction)
   const isSessionCompleted = useGameStore((s) => s.isSessionCompleted)
 
-  // Pick a fresh random fun sentence each time the confirm dialog opens.
   const openConfirm = () => {
     const sentences = t('game.endGame.confirmDescriptions', { returnObjects: true }) as string[]
     setFunSentence(sentences[Math.floor(Math.random() * sentences.length)])
@@ -43,7 +42,6 @@ export function EndGameButton() {
       setShowConfirm(false)
       navigate('/leaderboard')
     } catch (error) {
-      // Show error toast to user
       const errorMessage = error instanceof Error ? error.message : 'Failed to end game'
       toast.error(t('game.endGame.error', { defaultValue: errorMessage }))
     } finally {

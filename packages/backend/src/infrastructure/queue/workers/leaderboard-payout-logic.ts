@@ -9,10 +9,6 @@ import type { RewardGrantedEvent } from '@the-box/types'
 
 const log = queueLogger.child({ worker: 'leaderboard-payout' })
 
-// How many top players receive the monthly payout. Per the rewards meeting
-// (Nour's "recognition tier, not cash" framing): the cosmetic itself is
-// purely competence recognition + historical scarcity. Don't widen this
-// without re-litigating the design — top-100 keeps the badge meaningful.
 const MONTHLY_TOP_N = 100
 
 export interface LeaderboardPayoutResult {
@@ -23,17 +19,8 @@ export interface LeaderboardPayoutResult {
     message: string
 }
 
-// `priorMonthLabel` and `frameItemKey` live in a sibling module — see
-// leaderboard-payout-period.ts. That module imports zero infrastructure,
-// so unit tests can pull in the date math without spinning up BullMQ.
 export { priorMonthLabel, frameItemKey } from './leaderboard-payout-period.js'
 
-/**
- * Grant the monthly top-100 cosmetic frame to every player on last
- * month's leaderboard. Idempotent on `(user_id, leaderboard_payout,
- * leaderboard_payout:monthly:YYYY-MM)` via the reward_grants unique
- * constraint, so re-running the cron the same day is a no-op.
- */
 export async function grantMonthlyLeaderboardPayout(
     onProgress?: (current: number, total: number) => void
 ): Promise<LeaderboardPayoutResult> {

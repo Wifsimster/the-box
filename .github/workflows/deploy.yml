@@ -1,10 +1,5 @@
 name: Deploy — homelab
 
-# Runs on the self-hosted runner alongside the target docker host. Fires
-# after the Release workflow succeeds on main, pulls `:latest`, reconciles
-# the compose stack, and prunes dangling images.
-# Replaces Watchtower — deploys are now observable in the Actions log.
-
 on:
   workflow_run:
     workflows: ["Release"]
@@ -30,10 +25,6 @@ jobs:
       run:
         working-directory: /opt/docker/the-box
     steps:
-      # Pull only the app image. postgres and redis come from Docker Hub
-      # official repos (anonymous pulls are rate-limited to 100/6h/IP);
-      # pulling them every deploy risks throttling and offers no benefit
-      # since only the-box changes between runs.
       - name: Pull latest the-box image
         run: docker compose pull the-box
 
@@ -41,19 +32,11 @@ jobs:
         run: docker compose up -d
 
       - name: Show status
-        # The repo is public, so Actions logs are world-readable. Keep the
-        # status output to names/state and omit the ports column (internal
-        # topology). Fall back for older compose versions without --format.
         run: |
           docker compose ps --format "table {{.Name}}\t{{.Service}}\t{{.Status}}" \
             || docker compose ps --services
 
       - name: Wait for the-box to become healthy
-        # `up -d` returns as soon as containers start, not when the app is
-        # ready. Without this gate, a container restart-looping on a bad
-        # migration or boot error would still leave the workflow green.
-        # The healthcheck in compose.yml polls /health every 30s with a 30s
-        # start_period; allow ~3 minutes before declaring the deploy failed.
         run: |
           set -euo pipefail
 

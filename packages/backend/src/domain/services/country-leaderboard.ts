@@ -1,32 +1,14 @@
 import type { CountryCode, CountryLeaderboardEntry } from '@the-box/types'
 
-/**
- * A country is ranked for a month only once this many distinct players from
- * it have a ranked session that month. Below it, one strong player would put
- * their country on top, which says nothing about the country. Five keeps
- * small countries reachable while the player base is still growing; raise it
- * when most ranked countries clear it easily.
- */
 export const MIN_PLAYERS_PER_COUNTRY = 5
 
-/** One player's ranked sessions for a month, from a country they declared. */
 export interface CountryPlayerMonthStats {
   userId: string
   countryCode: CountryCode
-  /** Completed, non-catch-up sessions this month. */
   gamesPlayed: number
-  /** Sum of those sessions' scores. */
   totalScore: number
 }
 
-/**
- * Monthly country ranking. A country's score is the mean of its players'
- * average daily score this month: every player weighs the same, however
- * many days they played, so one daily regular cannot carry a country alone.
- * Countries under `minPlayers` are left out. Ties on the rounded score share
- * a rank (dense ranking, as on the player boards); order within a tie is by
- * player count, then country code, so the list is stable across refreshes.
- */
 export function rankCountries(
   players: readonly CountryPlayerMonthStats[],
   minPlayers: number = MIN_PLAYERS_PER_COUNTRY,
@@ -66,7 +48,6 @@ export function rankCountries(
   })
 }
 
-/** Distinct players from `countryCode` in `players` (for the viewer's progress line). */
 export function countCountryPlayers(
   players: readonly CountryPlayerMonthStats[],
   countryCode: CountryCode,

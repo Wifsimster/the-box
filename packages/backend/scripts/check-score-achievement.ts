@@ -1,13 +1,7 @@
-/**
- * Script to check why score_500 achievement is not unlocking
- * Run with: npx tsx scripts/check-score-achievement.ts <userId>
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 
 async function checkScoreAchievement(userId?: string) {
     try {
-        // If no userId provided, check all users
         if (!userId) {
             const users = await db('user')
                 .select('id', 'username', 'display_name')
@@ -23,7 +17,6 @@ async function checkScoreAchievement(userId?: string) {
 
         console.log('\n=== Checking Score Achievement for User ===\n')
 
-        // Get user info
         const user = await db('user')
             .where('id', userId)
             .select('id', 'username', 'display_name')
@@ -37,7 +30,6 @@ async function checkScoreAchievement(userId?: string) {
         console.log(`User: ${user.display_name || user.username} (${user.id})`)
         console.log()
 
-        // Get score_500 achievement
         const achievement = await db('achievements')
             .where('key', 'score_500')
             .first()
@@ -52,7 +44,6 @@ async function checkScoreAchievement(userId?: string) {
         console.log(`Criteria: ${JSON.stringify(achievement.criteria)}`)
         console.log()
 
-        // Check if user already has this achievement
         const userAchievement = await db('user_achievements')
             .where('user_id', userId)
             .where('achievement_id', achievement.id)
@@ -68,7 +59,6 @@ async function checkScoreAchievement(userId?: string) {
         console.log('❌ User does NOT have this achievement yet')
         console.log()
 
-        // Get all completed game sessions with their scores
         const sessions = await db('game_sessions')
             .where('user_id', userId)
             .where('is_completed', true)
@@ -96,7 +86,6 @@ async function checkScoreAchievement(userId?: string) {
         }
         console.log()
 
-        // Check if any session has >= 500 points
         const qualifyingSessions = sessions.filter(s => s.total_score >= 500)
 
         if (qualifyingSessions.length > 0) {
@@ -107,7 +96,6 @@ async function checkScoreAchievement(userId?: string) {
             console.log(`   Score: ${top.total_score}`)
             console.log(`   Completed: ${top.completed_at}`)
 
-            // Check guesses for this session
             const guesses = await db('guesses')
                 .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
                 .where('tier_sessions.game_session_id', top.id)
@@ -135,6 +123,5 @@ async function checkScoreAchievement(userId?: string) {
     }
 }
 
-// Get userId from command line args
 const userId = process.argv[2]
 checkScoreAchievement(userId)

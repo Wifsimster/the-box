@@ -5,10 +5,6 @@ interface KeyboardState {
   keyboardHeight: number;
 }
 
-/**
- * Hook to detect mobile keyboard appearance using the visualViewport API.
- * Only triggers on mobile devices when the virtual keyboard opens.
- */
 export function useKeyboardHeight(): KeyboardState {
   const [state, setState] = useState<KeyboardState>({
     isKeyboardOpen: false,
@@ -19,15 +15,12 @@ export function useKeyboardHeight(): KeyboardState {
     const viewport = window.visualViewport;
     if (!viewport) return;
 
-    // The keyboard height is the difference between the layout viewport
-    // (window.innerHeight) and the visual viewport (viewport.height)
     const keyboardHeight = Math.round(window.innerHeight - viewport.height);
     const KEYBOARD_THRESHOLD = 150;
 
     const isOpen = keyboardHeight > KEYBOARD_THRESHOLD;
 
     setState((prev) => {
-      // Only update if values changed to avoid unnecessary re-renders
       if (prev.isKeyboardOpen === isOpen && prev.keyboardHeight === (isOpen ? keyboardHeight : 0)) {
         return prev;
       }
@@ -38,9 +31,6 @@ export function useKeyboardHeight(): KeyboardState {
     });
   }, []);
 
-  // Keep the latest handler in a ref so the subscription effect can read
-  // `handlerRef.current()` through a stable wrapper and never re-subscribe
-  // when the handler identity changes.
   const handlerRef = useRef(updateKeyboardState);
   useEffect(() => {
     handlerRef.current = updateKeyboardState;
@@ -55,13 +45,8 @@ export function useKeyboardHeight(): KeyboardState {
 
     const listener = () => handlerRef.current();
 
-    // Initial check
-     
     listener();
 
-    // The handler only reads viewport metrics and never calls
-    // event.preventDefault(), so { passive: true } is safe and avoids
-    // blocking scroll performance.
     viewport.addEventListener('resize', listener, { passive: true });
     viewport.addEventListener('scroll', listener, { passive: true });
 

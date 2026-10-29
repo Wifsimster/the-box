@@ -6,14 +6,6 @@ const router = Router()
 
 const MAX_LIMIT = 100
 
-/**
- * GET /api/admin/describe-guesses?page=1&limit=50
- *
- * Read-only list of recent "describe the game" rows (shadow mode) for
- * labelling: description, target, model choice, probability, verdict.
- * Admin-only through the parent router's adminMiddleware. Stays available
- * when the feature is off so rows collected earlier remain reviewable.
- */
 router.get('/describe-guesses', async (req, res, next) => {
   try {
     const page = Math.max(1, Number.parseInt(String(req.query['page'] ?? '1'), 10) || 1)

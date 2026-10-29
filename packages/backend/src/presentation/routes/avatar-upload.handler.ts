@@ -6,9 +6,7 @@ import type { User } from '@the-box/types'
 import { InvalidAvatarImageError } from '../../infrastructure/images/avatar-image.js'
 
 export interface AvatarUploadHandlerDeps {
-  /** Directory where stored avatars live (served under /uploads/avatars). */
   avatarsDir: string
-  /** Re-encode `inputPath` into the final avatar at `outputPath`. */
   normalizeImage(inputPath: string, outputPath: string): Promise<void>
   findCurrentAvatarUrl(userId: string): Promise<string | null | undefined>
   updateAvatarUrl(userId: string, avatarUrl: string): Promise<User | null>
@@ -21,11 +19,6 @@ async function removeQuietly(filePath: string): Promise<void> {
   await fs.promises.rm(filePath, { force: true }).catch(() => {})
 }
 
-/**
- * POST /api/user/avatar, after multer has written the raw upload to disk.
- * The raw file is never served: it is re-encoded to `<uuid>.webp` and then
- * removed, whether the re-encode worked or not.
- */
 export function createAvatarUploadHandler(deps: AvatarUploadHandlerDeps): RequestHandler {
   return async (req, res, next) => {
     if (!req.file) {
@@ -41,7 +34,6 @@ export function createAvatarUploadHandler(deps: AvatarUploadHandlerDeps): Reques
     const outputPath = path.join(deps.avatarsDir, filename)
 
     try {
-      // The raw upload is removed before any response leaves, success or not.
       let normalizeError: unknown = null
       try {
         await deps.normalizeImage(rawPath, outputPath)

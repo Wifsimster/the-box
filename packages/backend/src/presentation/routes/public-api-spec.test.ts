@@ -4,22 +4,10 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import publicV1Routes from './public.routes.js'
 
-// Drift guard: docs/public-api.openapi.yaml must stay in sync with the routes
-// actually registered on the public router. Catches both failure modes — a
-// route added without a spec entry, and a spec entry whose route was removed
-// or renamed.
-//
-// No YAML dependency: the router is introspected via its layer stack, and the
-// spec's `paths:` block is scanned with line regexes. That works because we
-// control the spec's formatting (2-space path keys, 4-space method keys); if
-// someone reformats it unrecognisably this test fails loudly, which is the
-// correct signal — regenerate the spec.
-
 const SPEC_PATH = fileURLToPath(
   new URL('../../../../../docs/public-api.openapi.yaml', import.meta.url),
 )
 
-// Express template (`:slug`) → OpenAPI template (`{slug}`).
 function toOpenApiPath(p: string): string {
   return p.replace(/:([A-Za-z0-9_]+)/g, '{$1}')
 }
@@ -28,7 +16,6 @@ interface RouteLayer {
   route?: { path?: string; methods?: Record<string, boolean> }
 }
 
-// "METHOD /path" pairs registered on the public router.
 function routerPairs(): Set<string> {
   const stack = (publicV1Routes as unknown as { stack?: RouteLayer[] }).stack ?? []
   const pairs = new Set<string>()
@@ -44,13 +31,11 @@ function routerPairs(): Set<string> {
   return pairs
 }
 
-// "METHOD /path" pairs declared in the OpenAPI spec's paths: block.
 function specPairs(): Set<string> {
   const text = readFileSync(SPEC_PATH, 'utf8')
   const start = text.indexOf('\npaths:')
   assert.ok(start >= 0, 'spec must have a paths: section')
   const after = text.slice(start + '\npaths:'.length)
-  // The block ends at the next column-0 key (e.g. `components:`).
   const end = after.match(/\n[A-Za-z]/)
   const block = end ? after.slice(0, end.index) : after
 

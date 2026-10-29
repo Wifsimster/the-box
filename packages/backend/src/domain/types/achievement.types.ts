@@ -1,15 +1,3 @@
-/**
- * Achievement domain row types.
- *
- * These are the snake_case shapes that the achievement domain service and
- * its consumers in the presentation layer work with. They intentionally
- * mirror the database rows because the achievement routes serialize them
- * directly to clients (mapping snake_case to camelCase there).
- *
- * Kept under `domain/types/` so the domain service no longer needs to
- * reach into `infrastructure/repositories/achievement.repository.ts`.
- */
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface AchievementRow {
   id: number

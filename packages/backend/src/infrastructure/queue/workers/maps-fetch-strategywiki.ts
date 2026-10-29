@@ -5,11 +5,6 @@ import {
   type FetchOutcomeReport,
 } from './maps-fetch-runtime.js'
 
-/**
- * Pipeline-aware StrategyWiki map fetcher. Uses the game's name + slug to
- * search StrategyWiki's MediaWiki API for a matching page and ingest the
- * largest image as the map.
- */
 export async function runMapsFetchStrategyWiki(input: {
   gameId: number
   correlationId?: string

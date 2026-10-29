@@ -129,17 +129,6 @@ export const sessionRepository = {
     return row!
   },
 
-  // Serialise everything inside `fn` against other holders of the same
-  // tier-session lock. submitGuess wraps its entire body in this so two
-  // concurrent POSTs from the same user can't interleave reads of the
-  // tier_session row, double-apply the second-chance floor, or leave
-  // wrong_guesses out of sync with the guesses table.
-  //
-  // The lock is a Postgres advisory transaction lock — automatically
-  // released when the transaction commits or rolls back, so we never
-  // need to track release in code. The callback should NOT use `trx`
-  // for its writes (the lock works regardless of which connection the
-  // writes go through); it exists purely for serialisation.
   async withTierSessionLock<T>(tierSessionId: string, fn: () => Promise<T>): Promise<T> {
     return db.transaction(async (trx) => {
       await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`tier_session:${tierSessionId}`])
@@ -147,18 +136,6 @@ export const sessionRepository = {
     })
   },
 
-  // Mark the moment the server served position N for the given tier session.
-  // submitGuess later derives elapsed = NOW() - round_started_at so the
-  // speed multiplier no longer trusts the client-supplied timer.
-  //
-  // We only (re)stamp when this is a DIFFERENT position than the one already
-  // active (or the timer was never started). Re-serving the *current* position
-  // — a refresh, a carousel re-fetch, or a deliberate re-GET to zero the clock
-  // right before submitting — must NOT reset `round_started_at`, otherwise the
-  // server's elapsed measurement resets to ~0 and the speed multiplier becomes
-  // forgeable (look the game up at leisure, re-GET, submit in <3s for 200pts).
-  // `IS DISTINCT FROM` treats a NULL round_position (first serve) as different,
-  // so the initial stamp still happens.
   async markRoundStarted(tierSessionId: string, position: number): Promise<void> {
     log.debug({ tierSessionId, position }, 'markRoundStarted')
     await db('tier_sessions')
@@ -170,10 +147,6 @@ export const sessionRepository = {
       })
   },
 
-  // Atomic variant used by startChallenge: only inserts when the parent game
-  // session is still in-progress. Returns null if a concurrent guess submit
-  // flipped `is_completed=true` between the service-layer check and this
-  // insert (the original replay race documented in the production review).
   async createTierSessionIfActive(data: {
     gameSessionId: string
     tierId: number
@@ -319,11 +292,6 @@ export const sessionRepository = {
     })
   },
 
-  // Number of screenshots solved = number of DISTINCT positions with a
-  // correct guess. Counting rows (not distinct positions) let a duplicate
-  // correct row for the same position inflate the completion tally, which
-  // combined with the replay vector below could end a challenge before all
-  // ten screenshots were actually solved.
   async getCorrectAnswersCount(tierSessionId: string): Promise<number> {
     log.debug({ tierSessionId }, 'getCorrectAnswersCount')
     const result = await db('guesses')
@@ -336,14 +304,6 @@ export const sessionRepository = {
     return count
   },
 
-  // Has this (tier_session, position) already been solved? Used by
-  // submitGuess to reject a replayed winning answer. The round-timer guard
-  // alone is insufficient: `round_position` is never cleared after a correct
-  // guess, so a client that simply re-POSTs the same answer for an
-  // already-solved slot would otherwise re-bank score and insert another
-  // correct row.
-  // Solved positions with no wrong guess on them. A solved position accepts
-  // no further guess (anti-replay), so any wrong row predates the correct one.
   async getFirstTrySolvedPositions(tierSessionId: string): Promise<number[]> {
     const rows = await db('guesses')
       .where('tier_session_id', tierSessionId)
@@ -362,9 +322,6 @@ export const sessionRepository = {
     return !!row
   },
 
-  // Letter-reveal gate: the first paid reveal requires at least one honest
-  // (wrong) attempt on the position, enforced server-side so a client
-  // can't skip straight to buying letters.
   async hasWrongGuessForPosition(tierSessionId: string, position: number): Promise<boolean> {
     const row = await db('guesses')
       .where('tier_session_id', tierSessionId)
@@ -385,7 +342,6 @@ export const sessionRepository = {
 
   async getCorrectPositions(gameSessionId: string): Promise<number[]> {
     log.debug({ gameSessionId }, 'getCorrectPositions')
-    // Get all positions with correct guesses across all tier sessions for this game
     const result = await db('guesses')
       .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
       .where('tier_sessions.game_session_id', gameSessionId)
@@ -401,7 +357,6 @@ export const sessionRepository = {
   async deleteGameSession(userId: string, challengeId: number): Promise<boolean> {
     log.info({ userId, challengeId }, 'deleteGameSession')
 
-    // First find the game session
     const session = await db('game_sessions')
       .where('user_id', userId)
       .andWhere('daily_challenge_id', challengeId)
@@ -412,19 +367,16 @@ export const sessionRepository = {
       return false
     }
 
-    // Delete guesses from all tier sessions for this game session
     await db('guesses')
       .whereIn('tier_session_id', function () {
         this.select('id').from('tier_sessions').where('game_session_id', session.id)
       })
       .delete()
 
-    // Delete tier sessions
     await db('tier_sessions')
       .where('game_session_id', session.id)
       .delete()
 
-    // Delete game session
     await db('game_sessions')
       .where('id', session.id)
       .delete()
@@ -560,7 +512,6 @@ export const sessionRepository = {
         'guesses.created_at'
       )
 
-    // Calculate try_number for each guess by counting previous guesses for the same position
     const positionCounts = new Map<number, number>()
 
     const result = rows.map(row => {
@@ -634,11 +585,6 @@ export const sessionRepository = {
     }))
   },
 
-  /**
-   * Distinct calendar days (by game_sessions.completed_at) the user has
-   * completed at least one session on. Used as the unlock gate for the
-   * Geo crowdsource mini-game.
-   */
   async countDistinctDaysPlayed(userId: string): Promise<number> {
     const row = await db('game_sessions')
       .where('user_id', userId)
@@ -649,7 +595,6 @@ export const sessionRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { SessionRepository as SessionRepositoryPort } from '../../domain/ports/repositories.js'
 export const _sessionRepositoryTypeCheck: SessionRepositoryPort = sessionRepository

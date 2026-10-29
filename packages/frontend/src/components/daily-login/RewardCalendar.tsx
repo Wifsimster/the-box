@@ -28,9 +28,6 @@ export function RewardCalendar({
         return 'locked'
     }
 
-    // The track fills from day 1 to the last claimed day. With 7 columns the
-    // rail runs between the centres of the first and last cells, i.e. it is
-    // inset by half a column (100% / 14) on each side.
     const lastClaimedDay = hasClaimedToday ? currentDayInCycle : currentDayInCycle - 1
     const segments = Math.max(rewards.length - 1, 1)
     const fillRatio = Math.min(Math.max((lastClaimedDay - 1) / segments, 0), 1)
@@ -38,7 +35,6 @@ export function RewardCalendar({
 
     return (
         <div className={cn('relative', className)}>
-            {/* Rail behind the nodes: muted base + progress fill */}
             <div
                 aria-hidden
                 className="absolute top-5 sm:top-6 h-1 -translate-y-1/2 rounded-full bg-muted"
@@ -75,7 +71,6 @@ export function RewardCalendar({
                                 className={cn(
                                     'relative flex items-center justify-center rounded-full border-2 bg-card transition-all',
                                     isChest ? 'size-10 sm:size-12' : 'size-9 sm:size-11 mt-0.5 sm:mt-0.5',
-                                    // Claimed days read as "done": solid gradient, no rarity noise.
                                     isClaimed && 'border-transparent bg-linear-to-br from-neon-purple to-neon-pink text-white',
                                     !isClaimed && rarityStyle.cell,
                                     isToday && !isClaimed && cn('ring-2 ring-offset-2 ring-offset-card', rarityStyle.ring),

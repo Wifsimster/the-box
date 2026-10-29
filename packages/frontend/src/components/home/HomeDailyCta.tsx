@@ -20,12 +20,6 @@ interface TimeRemaining {
   seconds: number
 }
 
-/**
- * The home page's daily-challenge call-to-action block: completion card +
- * countdown, primary play/history buttons, the anonymous-visitor preview
- * teaser and the "missed yesterday" catch-up prompt. Extracted from
- * HomePage to keep that component focused on orchestration.
- */
 export interface HomeDailyCtaStatus {
   isLoading: boolean
   isTodayCompleted: boolean
@@ -92,8 +86,6 @@ export function HomeDailyCta({
               </div>
             </div>
 
-            {/* `role="timer"` is implicitly `aria-live="off"`: announcing a
-                value that changes every second would flood screen readers. */}
             <div
               role="timer"
               aria-label={`${t('home.nextDailyIn')} ${countdown}`}
@@ -145,8 +137,6 @@ export function HomeDailyCta({
         )}
       </div>
 
-      {/* Public teaser — today's first screenshot for anonymous visitors,
-          blurred (D1): nobody studies screenshot 1 before its clock starts. */}
       {!hasSession && previewAvailable && !isTodayCompleted && (
         <button
           type="button"

@@ -9,8 +9,6 @@ const log = queueLogger.child({ worker: 'streak-risk-email' })
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// How often we are willing to re-nudge the same user — even if they have
-// a fresh streak risk every day, we don't want to mail them daily.
 const MIN_HOURS_BETWEEN_EMAILS = 20
 
 export interface StreakRiskResult {
@@ -29,18 +27,6 @@ interface StreakCandidate {
   current_streak: number
 }
 
-/**
- * Returns users who:
- *   - have opted in to marketing emails,
- *   - own a non-guest account,
- *   - have an active streak (>= 1),
- *   - have not played today (their streak is about to break at midnight),
- *   - were not already nudged within the cooldown window.
- *
- * Uses a day-boundary comparison against `now - interval '1 day'` so the
- * timezone chosen at the database layer (UTC) stays consistent with the
- * rest of the scheduled jobs.
- */
 async function findCandidates(): Promise<StreakCandidate[]> {
   const rows = await db('user')
     .select<StreakCandidate[]>('id', 'email', 'display_name', 'name', 'current_streak')
@@ -125,8 +111,6 @@ export async function sendStreakRiskEmails(
   const candidates = await findCandidates()
   log.info({ count: candidates.length }, 'streak-risk candidates identified')
 
-  // Personalize with today's title holder when one can safely be featured.
-  // Streak-risk recipients haven't played today, so they are never the leader.
   const leader = await loadFeaturedLeader()
   const leaderLine = leader.safeName
     ? `Et pour te motiver : ${leader.safeName} est en tête du classement du jour avec ${leader.score} pts. Reprends ta place avant minuit !`

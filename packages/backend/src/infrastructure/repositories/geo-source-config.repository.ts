@@ -29,9 +29,6 @@ function rowTo(row: Row): GeoSourceConfig {
   }
 }
 
-// Cache the config in-process for 60s. The set of providers changes very
-// rarely (only via admin SQL), and the orchestrator reads it on every
-// pipeline transition — bypassing the round trip pays off.
 let cache: { at: number; rows: GeoSourceConfig[] } | null = null
 const CACHE_TTL_MS = 60_000
 
@@ -72,7 +69,6 @@ export const geoSourceConfigRepository = {
     cache = null
   },
 
-  // Test seam — flush in-memory cache so changes are visible on next read.
   invalidateCache(): void {
     cache = null
   },

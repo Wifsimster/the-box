@@ -11,15 +11,8 @@ const silentLogger: DomainLogger = {
   error: () => {},
 }
 
-/**
- * In-memory harness for the letter-reveal flow, modeled on the submit-guess
- * harness. Exercises the full contract: the wrong-guess gate, the per-title
- * cap, ranked-daily inventory gating, premium-in-catch-up free reveals, and
- * the penalty deduction in submitGuess (applied after the 200 cap, before
- * the second-chance floor, exactly once thanks to the anti-replay guard).
- */
 function buildHarness(opts: { letterItems?: number; isCatchUp?: boolean } = {}) {
-  const GAME_NAME = 'Elden Ring' // 9 maskable letters → cap 2
+  const GAME_NAME = 'Elden Ring'
   let letterItems = opts.letterItems ?? 0
 
   const guesses: Array<{
@@ -163,7 +156,7 @@ function buildHarness(opts: { letterItems?: number; isCatchUp?: boolean } = {}) 
 
   const submit = (position: number, text: string) => {
     tierSession.round_position = position
-    tierSession.round_started_at = new Date(Date.now() - 5000) // 1.5x → 150 pts
+    tierSession.round_started_at = new Date(Date.now() - 5000)
     return service.submitGuess({
       tierSessionId: tierSession.id,
       screenshotId: position,
@@ -268,10 +261,9 @@ describe('game.service submitGuess — letter penalty', () => {
     const h = buildHarness({ letterItems: 2 })
     await h.submit(1, 'wrong')
     await h.reveal(1)
-    await h.reveal(1) // cumulative 35%
+    await h.reveal(1)
 
     const res = await h.submit(1, 'right')
-    // 5s round → 1.5x → 150 pts, minus 35% letter penalty (52.5 → 53).
     assert.equal(res.letterPenalty, 53)
     assert.equal(res.scoreEarned, 97)
     assert.equal(h.guesses.at(-1)!.scoreEarned, 97, 'persisted score carries the penalty')

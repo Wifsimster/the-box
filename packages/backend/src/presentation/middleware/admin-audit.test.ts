@@ -4,11 +4,6 @@ import type { Request } from 'express'
 import { recordAdminGeoAudit } from './admin-audit.js'
 import { adminAuditRepository } from '../../infrastructure/repositories/admin-audit.repository.js'
 
-// We don't have a DB in this unit test, so swap the repository's `record`
-// out for a spy and verify the helper passes the right shape through.
-// The repository itself is exercised in the e2e tests where a real
-// Postgres connection is available.
-
 function fakeReq(over: Partial<Request> = {}): Request {
   return {
     userId: 'admin-1',
@@ -48,7 +43,6 @@ describe('recordAdminGeoAudit', () => {
     assert.deepEqual(call.before, { isActive: false })
     assert.deepEqual(call.after, { isActive: true })
     assert.equal(call.requestId, 'req-abc')
-    // First hop of x-forwarded-for, never the trailing private one.
     assert.equal(call.ip, '203.0.113.4')
   })
 

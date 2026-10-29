@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 
 const STORAGE_KEY = 'thebox.referral'
-const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
+const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 
 export interface StoredReferral {
   code: string
@@ -27,13 +27,9 @@ export function clearStoredReferral(): void {
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch {
-    // ignore
   }
 }
 
-// Captures a `?ref=<code>` query param on page load and persists it in
-// localStorage so later signup attribution can read it. Only the first
-// referral is stored — re-landing with a new ref does not overwrite.
 export function useReferralCapture(): void {
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -49,7 +45,6 @@ export function useReferralCapture(): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
     } catch {
-      // localStorage may be unavailable (private mode, quota) — silently ignore
     }
   }, [])
 }

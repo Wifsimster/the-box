@@ -177,7 +177,6 @@ export const importStateRepository = {
     log.info({ importStateId: id, status }, 'setStatus')
     const updateData: Record<string, unknown> = { status, updated_at: new Date() }
 
-    // Set appropriate timestamp based on status
     if (status === 'in_progress') {
       const current = await this.findById(id)
       if (current?.status === 'paused') {
@@ -206,7 +205,6 @@ export const importStateRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ImportStateRepository as ImportStateRepositoryPort } from '../../domain/ports/repositories.js'
 export const _importStateRepositoryTypeCheck: ImportStateRepositoryPort = importStateRepository

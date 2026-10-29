@@ -55,9 +55,6 @@ export function DatePicker({
         size="icon"
         onClick={handlePrevDay}
         disabled={disabled || isPrevDisabled}
-        // 44px (Apple HIG / WCAG 2.5.5) on a phone, where these day/month
-        // steppers are the leaderboard's most-tapped control; back to the
-        // compact 36px from `sm` up.
         className="size-11 sm:size-9"
       >
         <ChevronLeft className="size-4" />
@@ -70,9 +67,6 @@ export function DatePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              // `min-w-0 flex-1` below `sm` so the trigger gives way to the
-              // enlarged steppers instead of pushing the row past a 320px
-              // screen; the 200px floor returns once there is room for it.
               "min-h-11 min-w-0 flex-1 justify-start gap-2 text-left font-normal sm:min-h-10 sm:min-w-[200px] sm:flex-none",
               !value && "text-muted-foreground"
             )}
@@ -107,9 +101,6 @@ export function DatePicker({
         size="icon"
         onClick={handleNextDay}
         disabled={disabled || isNextDisabled}
-        // 44px (Apple HIG / WCAG 2.5.5) on a phone, where these day/month
-        // steppers are the leaderboard's most-tapped control; back to the
-        // compact 36px from `sm` up.
         className="size-11 sm:size-9"
       >
         <ChevronRight className="size-4" />

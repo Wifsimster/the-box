@@ -5,17 +5,13 @@ async function main() {
   if (!user) throw new Error('e2e_user not found')
   console.log('e2e_user id =', user.id)
 
-  // Ensure we have ≥4 past daily_challenges (seed fresh ones if needed). Each
-  // also needs at least one tier so the new findUserGameHistory subquery can
-  // count tier_screenshots — though for our visual test, an empty tier is OK
-  // since the row simply shows 0/0.
   let challenges = await db('daily_challenges').orderBy('challenge_date', 'desc').limit(10)
   if (challenges.length < 4) {
     console.log(`only ${challenges.length} challenges; topping up to 4`)
     const today = new Date()
     for (let i = challenges.length; i < 4; i++) {
       const date = new Date(today)
-      date.setDate(today.getDate() - 30 - i)  // 30+ days ago to avoid clashes
+      date.setDate(today.getDate() - 30 - i)
       const ymd = date.toISOString().slice(0, 10)
       await db('daily_challenges')
         .insert({ challenge_date: ymd, is_active: false })

@@ -29,8 +29,6 @@ export interface SubmitReportOutcome {
   deactivated: boolean
 }
 
-// Three independent users flagging the same capture is enough signal to pull
-// it out of rotation; admins can re-enable later if it was a false positive.
 export const REPORT_DEACTIVATION_THRESHOLD = 3
 
 export const screenshotReportRepository = {
@@ -43,10 +41,6 @@ export const screenshotReportRepository = {
     }
 
     return await db.transaction(async (trx: Knex.Transaction) => {
-      // Insert with ON CONFLICT DO NOTHING via the partial unique indexes from
-      // the migration. We can't use knex's onConflict() builder because the
-      // unique index is partial; raw insert + catch dup-key would also work
-      // but the count query gives us idempotent semantics either way.
       const inserted = await trx('screenshot_reports')
         .insert({
           user_id: args.userId,
@@ -110,11 +104,6 @@ export const screenshotReportRepository = {
     return Number(row?.count ?? 0)
   },
 
-  // Admin-facing aggregate: one row per reported target, enriched with the
-  // capture preview (image + game name) and a reason breakdown so moderators
-  // can act on a report without leaving the panel. `onlyDeactivated` focuses
-  // the queue on captures already pulled from rotation; the default returns
-  // everything so admins can intervene before the threshold trips.
   async listAggregated(args: {
     limit?: number
     onlyDeactivated?: boolean
@@ -131,8 +120,6 @@ export const screenshotReportRepository = {
         db.raw('r.geo_screenshot_candidate_id as geo_screenshot_candidate_id'),
         db.raw('s.is_active as screenshot_is_active'),
         db.raw('g.is_active as geo_candidate_is_active'),
-        // COALESCE to the geo URL when this is a geo-only candidate (no
-        // linked main screenshot row).
         db.raw('COALESCE(s.image_url, g.image_url) as image_url'),
         db.raw('COALESCE(s.thumbnail_url, g.thumbnail_url) as thumbnail_url'),
         db.raw('COALESCE(sg.name, gg.name) as game_name'),
@@ -154,8 +141,6 @@ export const screenshotReportRepository = {
       .orderBy('count', 'desc')
       .limit(limit)
 
-    // Reason breakdown is fetched in a single follow-up query and merged in
-    // memory; cheaper than a window function and keeps the SQL readable.
     const reasonRows = await db('screenshot_reports')
       .select<ReasonBreakdownRow[]>(
         db.raw('screenshot_id as screenshot_id'),
@@ -208,10 +193,6 @@ export const screenshotReportRepository = {
     return summaries
   },
 
-  // Re-enable a target an admin reviewed and judged a false positive. We don't
-  // delete the underlying reports — they stay as audit trail, but a flag is
-  // flipped so the capture is back in rotation. Re-reports past the threshold
-  // will deactivate it again.
   async reactivate(args: {
     screenshotId?: number
     geoScreenshotCandidateId?: number
@@ -231,9 +212,6 @@ export const screenshotReportRepository = {
           .where({ id: args.screenshotId, is_active: false })
           .update({ is_active: true })
         if (updated > 0) reactivated = true
-        // Also drop the reports so a single 3-report wave doesn't immediately
-        // re-trip the threshold; leaving the audit trail in place would be
-        // nicer but we'd need a separate `resolved_at` column for that.
         await trx('screenshot_reports').where({ screenshot_id: args.screenshotId }).del()
       }
 
@@ -262,7 +240,6 @@ export interface AdminReportSummary {
   imageUrl?: string
   thumbnailUrl?: string
   gameName?: string
-  // Partial map: only reasons that have at least one report appear as keys.
   reasons: Partial<Record<ScreenshotReportReason, number>>
 }
 
@@ -285,10 +262,6 @@ interface ReasonBreakdownRow {
   count: number
 }
 
-// Deactivate both the geo candidate (if applicable) and any linked main
-// screenshot row, so the capture is filtered out of every selection path.
-// Returns whether any row was actually flipped from active → inactive on
-// this call (idempotent for re-runs past the threshold).
 async function deactivateTarget(
   trx: Knex.Transaction,
   args: SubmitReportArgs,
@@ -314,8 +287,6 @@ async function deactivateTarget(
           .update({ is_active: false })
         flipped = true
       }
-      // Cascade: if this candidate references a main screenshot, take that
-      // out of rotation too so the daily-game picker honors the report.
       if (candidate.screenshot_id != null) {
         const updated = await trx('screenshots')
           .where({ id: candidate.screenshot_id, is_active: true })

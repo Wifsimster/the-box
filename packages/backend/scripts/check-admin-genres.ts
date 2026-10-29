@@ -1,11 +1,6 @@
-/**
- * Check admin user's genre progress
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 
 async function checkAdminGenres() {
-    // Find admin user
     const admin = await db('user')
         .where('username', 'admin')
         .orWhere('email', 'like', '%admin%')
@@ -20,7 +15,6 @@ async function checkAdminGenres() {
     console.log(`Admin user found: ${admin.username} (${admin.email})`)
     console.log(`User ID: ${admin.id}\n`)
 
-    // Get all genres from the database
     const allGenres = await db('games')
         .select(db.raw('DISTINCT unnest(genres) as genre'))
         .whereNotNull('genres')
@@ -48,10 +42,8 @@ async function checkAdminGenres() {
         }
     }
 
-    // Sort by count descending
     results.sort((a, b) => b.total - a.total)
 
-    // Display results
     results.forEach(({ genre, total }) => {
         const status = total >= 10 ? '✓' : ' '
         console.log(`${status} ${genre.padEnd(25)} : ${total.toString().padStart(3)} guesses ${total >= 10 ? '(UNLOCKED)' : ''}`)

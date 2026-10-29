@@ -29,14 +29,6 @@ function buildPayload(error: Error, errorInfo?: ErrorInfo): ErrorReportPayload {
   }
 }
 
-/**
- * Report an unhandled error caught by an ErrorBoundary.
- *
- * In development the error is logged to the console. In production, if
- * `VITE_ERROR_REPORTING_URL` is configured, the payload is forwarded via
- * `navigator.sendBeacon` (with a `fetch` fallback). Failures are swallowed so
- * reporting can never trigger a secondary crash.
- */
 export function reportError(error: Error, errorInfo?: ErrorInfo): void {
   const payload = buildPayload(error, errorInfo)
 
@@ -67,9 +59,7 @@ export function reportError(error: Error, errorInfo?: ErrorInfo): void {
       keepalive: true,
       credentials: 'omit',
     }).catch(() => {
-      /* ignore — reporting must never throw */
     })
   } catch {
-    /* ignore — reporting must never throw */
   }
 }

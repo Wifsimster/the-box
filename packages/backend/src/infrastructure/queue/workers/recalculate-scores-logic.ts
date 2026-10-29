@@ -1,14 +1,3 @@
-/**
- * Recalculate Scores Logic
- *
- * This module handles recalculating scores for all completed game sessions with:
- * - Batch processing with configurable batch size
- * - Pause/Resume capability
- * - Progress persistence to database
- * - Optional date range filtering
- * - Dry-run mode for validation
- */
-
 import { Job as BullJob } from 'bullmq'
 import type { Knex } from 'knex'
 import { queueLogger } from '../../logger/logger.js'
@@ -20,11 +9,9 @@ import type { ImportState, JobData } from '@the-box/types'
 
 const log = queueLogger.child({ module: 'recalculate-scores' })
 
-// Constants from game.service.ts
 const BASE_SCORE = 100
 const HINT_PENALTY_MULTIPLIER = 0.20
 
-// Progress callback type
 export type RecalculateProgressCallback = (
     current: number,
     total: number,
@@ -32,7 +19,6 @@ export type RecalculateProgressCallback = (
     state: ImportState
 ) => void
 
-// Job result type
 export interface RecalculateScoresResult {
     sessionsProcessed: number
     sessionsUpdated: number
@@ -46,7 +32,6 @@ export interface RecalculateScoresResult {
     dryRun: boolean
 }
 
-// Timing utilities
 function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`
     const seconds = Math.floor(ms / 1000)
@@ -71,29 +56,22 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-/**
- * Calculate speed multiplier based on time taken
- * From game.service.ts calculateSpeedMultiplier function
- */
 function calculateSpeedMultiplier(timeTakenMs: number): number {
     const timeTakenSeconds = timeTakenMs / 1000
 
     if (timeTakenSeconds < 3) {
-        return 2.0 // 200 points
+        return 2.0
     } else if (timeTakenSeconds < 5) {
-        return 1.75 // 175 points
+        return 1.75
     } else if (timeTakenSeconds < 10) {
-        return 1.5 // 150 points
+        return 1.5
     } else if (timeTakenSeconds < 20) {
-        return 1.25 // 125 points
+        return 1.25
     } else {
-        return 1.0 // 100 points
+        return 1.0
     }
 }
 
-/**
- * Calculate score for a single guess
- */
 function calculateGuessScore(
     isCorrect: boolean,
     timeTakenMs: number,
@@ -106,14 +84,8 @@ function calculateGuessScore(
 
     const speedMultiplier = calculateSpeedMultiplier(timeTakenMs)
     let scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
-    // Cap max score per screenshot at 200 points
     scoreEarned = Math.min(scoreEarned, 200)
 
-    // LEGACY — historical rows only, do not remove. The four metadata
-    // hints were retired 2026-06 (new guesses persist power_up_used =
-    // null), but recalculation must keep reproducing the 20% penalty on
-    // historical rows; hints paid from inventory (or free premium
-    // catch-up hints) carried none.
     const isHint =
         powerUpUsed === 'hint_year' ||
         powerUpUsed === 'hint_publisher' ||
@@ -124,18 +96,13 @@ function calculateGuessScore(
         scoreEarned -= hintPenalty
     }
 
-    // Ensure non-negative
     return Math.max(0, scoreEarned)
 }
 
-/**
- * Recalculate score for a single session
- */
 async function recalculateSessionScore(
     sessionId: string,
     dryRun: boolean
 ): Promise<{ oldScore: number; newScore: number; changed: boolean }> {
-    // Get current session score
     const session = await db('game_sessions')
         .where('id', sessionId)
         .select('total_score')
@@ -147,7 +114,6 @@ async function recalculateSessionScore(
 
     const oldScore = session.total_score || 0
 
-    // Get all guesses for this session with timing data
     const guesses = await db('guesses')
         .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
         .where('tier_sessions.game_session_id', sessionId)
@@ -162,8 +128,6 @@ async function recalculateSessionScore(
         )
         .orderBy('guesses.created_at', 'asc')
 
-    // Recalculate total score based ONLY on actual guesses
-    // This removes any unfound penalties that were applied when ending early
     let newScore = 0
     const guessUpdates: Array<{ id: number; oldScore: number; newScore: number }> = []
 
@@ -174,9 +138,6 @@ async function recalculateSessionScore(
             guess.power_up_used,
             !!guess.hint_from_inventory
         ) + (guess.is_correct ? guess.streak_bonus || 0 : 0)
-        // The in-game streak bonus is stored per guess and re-added as is:
-        // recalculation must never strip it (nor grant it to old sessions,
-        // whose rows are 0).
         newScore += guessScore
 
         if (guessScore !== (guess.old_guess_score || 0)) {
@@ -190,15 +151,12 @@ async function recalculateSessionScore(
 
     const changed = oldScore !== newScore
 
-    // Update database if not dry run and score changed
     if (!dryRun && changed) {
         await db.transaction(async (trx: Knex.Transaction) => {
-            // Update session total score
             await trx('game_sessions').where('id', sessionId).update({
                 total_score: newScore,
             })
 
-            // Update individual guess scores
             for (const update of guessUpdates) {
                 await trx('guesses').where('id', update.id).update({
                     score_earned: update.newScore,
@@ -218,9 +176,6 @@ async function recalculateSessionScore(
     return { oldScore, newScore, changed }
 }
 
-/**
- * Process recalculate scores job
- */
 export async function processRecalculateScoresJob(
     job: BullJob<JobData>,
     progressCallback?: RecalculateProgressCallback
@@ -235,19 +190,15 @@ export async function processRecalculateScoresJob(
         `Starting score recalculation job ${job.id} (batchSize: ${batchSize}, dryRun: ${dryRun}, dateRange: ${startDate ? startDate.toISOString() : 'all'} to ${endDate ? endDate.toISOString() : 'now'})`
     )
 
-    // Check for existing state (resume scenario)
     let state = await importStateRepository.findActiveByType('recalculate-scores')
 
     if (!state) {
-        // Create new state
         state = await importStateRepository.create({
             importType: 'recalculate-scores',
             batchSize,
         })
-        // Manually set status to in_progress after creation
         await importStateRepository.setStatus(state.id, 'in_progress')
     } else {
-        // Resume existing state
         await importStateRepository.setStatus(state.id, 'in_progress')
         log.info(`Resuming recalculation from batch ${state.currentBatch}`)
     }
@@ -260,7 +211,6 @@ export async function processRecalculateScoresJob(
     let currentBatch = state.currentBatch || 0
 
     try {
-        // Build query for completed sessions
         let query = db('game_sessions').where('is_completed', true)
 
         if (startDate) {
@@ -270,7 +220,6 @@ export async function processRecalculateScoresJob(
             query = query.where('started_at', '<=', endDate)
         }
 
-        // Get total count
         const countResult = await query.clone().count('* as count').first()
         const totalSessions = Number(countResult?.count || 0)
 
@@ -292,16 +241,13 @@ export async function processRecalculateScoresJob(
             }
         }
 
-        // Update total items in state
         if (!state.totalGamesAvailable || state.totalGamesAvailable === 0) {
             await importStateRepository.update(state.id, { totalGamesAvailable: totalSessions })
         }
 
         const totalBatches = Math.ceil(totalSessions / batchSize)
 
-        // Process in batches
         while (currentBatch < totalBatches) {
-            // Check for pause signal
             const freshState = await importStateRepository.findById(state.id)
             if (freshState?.status === 'paused') {
                 log.info(`Recalculation paused at batch ${currentBatch}`)
@@ -331,7 +277,6 @@ export async function processRecalculateScoresJob(
                 `Processing batch ${currentBatch + 1}/${totalBatches} (${sessions.length} sessions)`
             )
 
-            // Process each session
             for (const session of sessions) {
                 try {
                     const result = await recalculateSessionScore(session.id, dryRun)
@@ -345,7 +290,6 @@ export async function processRecalculateScoresJob(
 
                     sessionsProcessed++
 
-                    // Update progress
                     const elapsedMs = Date.now() - startTime
                     const eta = calculateETA(sessionsProcessed, totalSessions, elapsedMs)
                     const progressMessage = dryRun
@@ -368,20 +312,16 @@ export async function processRecalculateScoresJob(
                         })
                     }
 
-                    // Small delay to avoid overwhelming the database
                     await sleep(10)
                 } catch (error) {
                     log.error({ err: error, sessionId: session.id }, `Error recalculating session ${session.id}`)
-                    // Continue with next session
                 }
             }
 
             currentBatch++
 
-            // Update current batch in state
             await importStateRepository.updateProgress(state.id, { currentBatch })
 
-            // Broadcast progress via WebSocket
             const updatedState = await importStateRepository.findById(state.id)
             if (updatedState) {
                 const progress = totalSessions > 0 ? Math.round((sessionsProcessed / totalSessions) * 100) : 0
@@ -400,14 +340,11 @@ export async function processRecalculateScoresJob(
                 })
             }
 
-            // Delay between batches
             await sleep(100)
         }
 
-        // Mark as completed
         await importStateRepository.setStatus(state.id, 'completed')
 
-        // Broadcast final progress
         const finalState = await importStateRepository.findById(state.id)
         if (finalState) {
             broadcastRecalculateScoresProgress({
@@ -453,22 +390,17 @@ export async function processRecalculateScoresJob(
     }
 }
 
-/**
- * Start a new score recalculation job
- */
 export async function startRecalculateScores(config: {
     batchSize?: number
     dryRun?: boolean
     startDate?: string
     endDate?: string
 }): Promise<{ recalculateState: ImportState; job: { id: string; name: string } }> {
-    // Create new import state
     const recalculateState = await importStateRepository.create({
         importType: 'recalculate-scores',
         batchSize: config.batchSize || 100,
     })
 
-    // Create and start the job
     const job = await importQueue.add(
         'recalculate-scores',
         {
@@ -481,7 +413,7 @@ export async function startRecalculateScores(config: {
         },
         {
             jobId: `recalculate-scores-${recalculateState.id}-${Date.now()}`,
-            priority: 5, // Medium priority
+            priority: 5,
         }
     )
 
@@ -490,23 +422,14 @@ export async function startRecalculateScores(config: {
     return { recalculateState, job: { id: job.id!, name: job.name! } }
 }
 
-/**
- * Get active recalculation state (if any)
- */
 export async function getActiveRecalculateScores(): Promise<ImportState | null> {
     return importStateRepository.findActiveByType('recalculate-scores')
 }
 
-/**
- * Get recalculation state by ID
- */
 export async function getRecalculateScoresState(id: number): Promise<ImportState | null> {
     return importStateRepository.findById(id)
 }
 
-/**
- * Pause ongoing recalculation
- */
 export async function pauseRecalculateScores(id: number): Promise<ImportState> {
     const state = await importStateRepository.findById(id)
     if (!state) {
@@ -526,9 +449,6 @@ export async function pauseRecalculateScores(id: number): Promise<ImportState> {
     return updated
 }
 
-/**
- * Resume paused recalculation
- */
 export async function resumeRecalculateScores(id: number): Promise<{ recalculateState: ImportState; job: { id: string; name: string } }> {
     const state = await importStateRepository.findById(id)
     if (!state) {
@@ -539,10 +459,8 @@ export async function resumeRecalculateScores(id: number): Promise<{ recalculate
         throw new Error(`Cannot resume recalculation in status: ${state.status}`)
     }
 
-    // Resume the state
     await importStateRepository.setStatus(id, 'in_progress')
 
-    // Create a new job to continue
     const job = await importQueue.add(
         'recalculate-scores',
         {

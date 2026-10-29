@@ -20,8 +20,6 @@ const log = routeLogger.child({ route: 'geogamers' })
 
 const router = Router()
 
-// ---------- Schemas ----------
-
 const pointSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
@@ -44,10 +42,6 @@ const guessLocationBody = z.object({
 
 const runTokenParam = z.object({ runToken: z.string().uuid() })
 
-// ---------- Identity helper ----------
-// Ranked play requires a non-anonymous account. Better-auth anonymous sessions
-// (isGuest) and fully logged-out callers are treated as guests: unranked, keyed
-// by the run token the client persists.
 function identity(req: { userId?: string; isGuest?: boolean }): {
   userId: string | null
   anonymousSessionId: string | null
@@ -59,7 +53,6 @@ function identity(req: { userId?: string; isGuest?: boolean }): {
   }
 }
 
-// Map a GeoGamersError code to an HTTP status.
 function statusForCode(code: GeoGamersError['code']): number {
   switch (code) {
     case 'RUN_NOT_FOUND':
@@ -98,9 +91,6 @@ function handleError(err: unknown, res: import('express').Response, next: import
 
 const writeLimiter = createRateLimiter({ windowMs: 60_000, max: 30 })
 
-// Award recognition-only GeoGamers achievements on a completed RANKED run.
-// Idempotent: guarded by hasAchievement + the user_achievements unique, so a
-// re-award is a no-op. Best-effort — never blocks the guess response.
 async function awardCompletionAchievements(
   userId: string,
   totalPoints: number,
@@ -125,16 +115,12 @@ async function awardCompletionAchievements(
         tier: ach.tier,
       })
     } catch (err) {
-      // Unique race (already earned) or missing row — non-fatal.
       log.debug({ err, userId, key }, 'geogamers achievement award skipped')
     }
   }
   return earned
 }
 
-// ---------- Routes ----------
-
-// Start or resume today's run.
 router.post('/run', optionalAuthMiddleware, async (req, res, next) => {
   try {
     const view = await geoGamersService.startOrResumeRun(identity(req))
@@ -144,7 +130,6 @@ router.post('/run', optionalAuthMiddleware, async (req, res, next) => {
   }
 })
 
-// Fetch a run by its token (page reload).
 router.get(
   '/run/:runToken',
   optionalAuthMiddleware,
@@ -160,7 +145,6 @@ router.get(
   },
 )
 
-// Phase 1: name the game.
 router.post(
   '/run/guess-game',
   optionalAuthMiddleware,
@@ -177,7 +161,6 @@ router.post(
   },
 )
 
-// Phase 2: pin the location.
 router.post(
   '/run/guess-location',
   optionalAuthMiddleware,
@@ -187,9 +170,6 @@ router.post(
     try {
       const body = req.body as z.infer<typeof guessLocationBody>
       const result = await geoGamersService.guessLocation(body)
-      // Ranked completion (result.rank set for account runs) → evaluate the
-      // recognition-only achievements and push a toast. Guests (ghostRank)
-      // earn nothing until they claim.
       if (req.userId && !req.isGuest && result.rank != null) {
         const earned = await awardCompletionAchievements(req.userId, result.totalPoints)
         if (earned.length > 0) emitAchievementUnlocked(req.userId, earned)
@@ -201,7 +181,6 @@ router.post(
   },
 )
 
-// Joker re-roll — account only.
 router.post(
   '/run/joker',
   authMiddleware,
@@ -218,7 +197,6 @@ router.post(
   },
 )
 
-// Claim a completed guest run into the signed-in account.
 router.post(
   '/run/claim',
   authMiddleware,
@@ -235,9 +213,6 @@ router.post(
   },
 )
 
-// ---------- Season standings ----------
-
-// Public season leaderboard (top N + player count).
 router.get('/season', optionalAuthMiddleware, async (_req, res, next) => {
   try {
     const month = geoGamersSeasonService.currentMonth()
@@ -251,7 +226,6 @@ router.get('/season', optionalAuthMiddleware, async (_req, res, next) => {
   }
 })
 
-// The signed-in user's own standing + per-day breakdown (dropped-days flagged).
 router.get('/season/me', authMiddleware, async (req, res, next) => {
   try {
     const me = await geoGamersSeasonService.myStanding(req.userId!)
@@ -261,10 +235,6 @@ router.get('/season/me', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Opaque screenshot proxy. The client only ever sees /api/geogamers/image/:token,
-// never the underlying asset URL (which can carry a game slug). We fetch the
-// source server-side and stream it back. Non-http(s) sources fall back to a
-// redirect (documented minor leak) — ingested content is overwhelmingly http(s).
 router.get(
   '/image/:runToken',
   optionalAuthMiddleware,
@@ -289,8 +259,6 @@ router.get(
         res.end(buf)
         return
       }
-      // Same-origin relative uploads (e.g. /uploads/..): safe to redirect, the
-      // path itself is not identity-revealing.
       res.redirect(src.imageUrl)
     } catch (err) {
       log.error({ err }, 'image proxy error')
@@ -299,9 +267,6 @@ router.get(
   },
 )
 
-// Party image proxy. Streams a party round's screenshot server-side so the
-// client never sees the asset path (same anti-leak posture as the daily
-// proxy). Guests allowed. Only the current or a revealed round is fetchable.
 router.get('/party/:code/round/:index/image', optionalAuthMiddleware, async (req, res, next) => {
   try {
     const { code } = req.params as { code: string; index: string }
@@ -312,8 +277,6 @@ router.get('/party/:code/round/:index/image', optionalAuthMiddleware, async (req
       return
     }
     const round = party.rounds[index]
-    // Only expose the active round (or an already-revealed one) — never a
-    // future round's screenshot.
     const exposable = round && (index === party.currentRound || round.revealed)
     if (!round || !exposable) {
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'round not available' } })

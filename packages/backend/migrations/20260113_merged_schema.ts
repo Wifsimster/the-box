@@ -3,11 +3,6 @@ import { randomBytes } from 'crypto'
 // @ts-ignore - from better-auth's dependency
 import { scryptAsync } from '@noble/hashes/scrypt.js'
 
-/**
- * Hash password using the same algorithm as better-auth.
- * Matches: N=16384, r=16, p=1, dkLen=64
- * Format: salt:key (both hex encoded)
- */
 async function hashPassword(password: string): Promise<string> {
     const saltBytes = randomBytes(16)
     const salt = saltBytes.toString('hex')
@@ -16,41 +11,29 @@ async function hashPassword(password: string): Promise<string> {
         r: 16,
         p: 1,
         dkLen: 64,
-        maxmem: 128 * 16384 * 16 * 2, // 64 MB
+        maxmem: 128 * 16384 * 16 * 2,
     })
     return `${salt}:${Buffer.from(key).toString('hex')}`
 }
 
 export async function up(knex: Knex): Promise<void> {
-    // Enable UUID extension
     await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
 
-    // ===== Better-Auth Tables =====
-    // Authentication tables for better-auth with custom game fields
-
-    // Users table (singular 'user' as required by better-auth)
-    // Using camelCase for Better Auth standard columns (requires double quotes in PostgreSQL)
     await knex.schema.createTable('user', (table) => {
         table.text('id').primary()
         table.text('email').notNullable().unique()
         table.text('name')
         table.text('image')
 
-        // Plugin: username
         table.text('username').unique()
         table.text('display_username').unique()
         table.timestamp('username_updated_at', { useTz: true })
 
-        // Plugin: admin
         table.text('role').notNullable().defaultTo('user')
         table.boolean('banned').notNullable().defaultTo(false)
         table.text('ban_reason')
         table.timestamp('ban_expires', { useTz: true })
 
-        // Plugin: anonymous - using camelCase to match better-auth expectations
-        // Note: PostgreSQL requires double quotes for camelCase column names
-
-        // Additional fields from auth config
         table.text('display_name')
         table.text('avatar_url')
         table.integer('total_score').notNullable().defaultTo(0)
@@ -59,7 +42,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('last_played_at', { useTz: true })
     })
 
-    // Add Better Auth standard columns with camelCase (requires double quotes)
     await knex.raw(`
         DO $$ 
         BEGIN
@@ -81,17 +63,13 @@ export async function up(knex: Knex): Promise<void> {
         END $$;
     `)
 
-    // Sessions table
-    // Using camelCase for Better Auth standard columns
     await knex.schema.createTable('session', (table) => {
         table.text('id').primary()
         table.text('token').notNullable().unique()
 
-        // Plugin: anonymous
         table.text('anonymous_id')
     })
 
-    // Add Better Auth standard columns with camelCase (requires double quotes)
     await knex.raw(`
         DO $$ 
         BEGIN
@@ -116,15 +94,12 @@ export async function up(knex: Knex): Promise<void> {
         END $$;
     `)
 
-    // Accounts table
-    // Using camelCase for Better Auth standard columns
     await knex.schema.createTable('account', (table) => {
         table.text('id').primary()
         table.text('scope')
         table.text('password')
     })
 
-    // Add Better Auth standard columns with camelCase (requires double quotes)
     await knex.raw(`
         DO $$ 
         BEGIN
@@ -158,15 +133,12 @@ export async function up(knex: Knex): Promise<void> {
         END $$;
     `)
 
-    // Verification table
-    // Using camelCase for Better Auth standard columns
     await knex.schema.createTable('verification', (table) => {
         table.text('id').primary()
         table.text('identifier').notNullable()
         table.text('value').notNullable()
     })
 
-    // Add Better Auth standard columns with camelCase (requires double quotes)
     await knex.raw(`
         DO $$ 
         BEGIN
@@ -182,12 +154,8 @@ export async function up(knex: Knex): Promise<void> {
         END $$;
     `)
 
-    // Create a view to alias 'user' table as 'users' for foreign key compatibility
     await knex.raw('CREATE VIEW users AS SELECT * FROM "user"')
 
-    // ===== Initial Schema =====
-
-    // Games table
     await knex.schema.createTable('games', (table) => {
         table.increments('id').primary()
         table.string('name', 255).notNullable()
@@ -209,7 +177,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index(['last_synced_at'], 'idx_games_last_synced')
     })
 
-    // Screenshots table
     await knex.schema.createTable('screenshots', (table) => {
         table.increments('id').primary()
         table.integer('game_id').notNullable().references('id').inTable('games').onDelete('CASCADE')
@@ -225,7 +192,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
-    // Daily challenges table
     await knex.schema.createTable('daily_challenges', (table) => {
         table.increments('id').primary()
         table.date('challenge_date').unique().notNullable()
@@ -233,7 +199,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
-    // Tiers table
     await knex.schema.createTable('tiers', (table) => {
         table.increments('id').primary()
         table.integer('daily_challenge_id').notNullable().references('id').inTable('daily_challenges').onDelete('CASCADE')
@@ -245,7 +210,6 @@ export async function up(knex: Knex): Promise<void> {
         table.unique(['daily_challenge_id', 'tier_number'], { indexName: 'unique_tier' })
     })
 
-    // Tier screenshots table
     await knex.schema.createTable('tier_screenshots', (table) => {
         table.increments('id').primary()
         table.integer('tier_id').notNullable().references('id').inTable('tiers').onDelete('CASCADE')
@@ -257,7 +221,6 @@ export async function up(knex: Knex): Promise<void> {
         table.unique(['tier_id', 'position'], { indexName: 'unique_tier_position' })
     })
 
-    // Game sessions table - using TEXT for user_id to match better-auth
     await knex.schema.createTable('game_sessions', (table) => {
         table.uuid('id').primary().defaultTo(knex.fn.uuid())
         table.text('user_id').notNullable().references('id').inTable('user').onDelete('CASCADE')
@@ -274,7 +237,6 @@ export async function up(knex: Knex): Promise<void> {
         table.unique(['user_id', 'daily_challenge_id'], { indexName: 'unique_user_challenge' })
     })
 
-    // Tier sessions table
     await knex.schema.createTable('tier_sessions', (table) => {
         table.uuid('id').primary().defaultTo(knex.fn.uuid())
         table.uuid('game_session_id').notNullable().references('id').inTable('game_sessions').onDelete('CASCADE')
@@ -286,7 +248,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('completed_at', { useTz: true })
     })
 
-    // Guesses table
     await knex.schema.createTable('guesses', (table) => {
         table.increments('id').primary()
         table.uuid('tier_session_id').notNullable().references('id').inTable('tier_sessions').onDelete('CASCADE')
@@ -302,7 +263,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
-    // Power-ups table
     await knex.schema.createTable('power_ups', (table) => {
         table.increments('id').primary()
         table.uuid('tier_session_id').notNullable().references('id').inTable('tier_sessions').onDelete('CASCADE')
@@ -313,7 +273,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
-    // Bonus rounds table
     await knex.schema.createTable('bonus_rounds', (table) => {
         table.increments('id').primary()
         table.uuid('tier_session_id').notNullable().references('id').inTable('tier_sessions').onDelete('CASCADE')
@@ -323,7 +282,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
-    // Live events table
     await knex.schema.createTable('live_events', (table) => {
         table.increments('id').primary()
         table.integer('daily_challenge_id').notNullable().references('id').inTable('daily_challenges').onDelete('CASCADE')
@@ -334,7 +292,6 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     })
 
-    // Live event participants table - using TEXT for user_id to match better-auth
     await knex.schema.createTable('live_event_participants', (table) => {
         table.increments('id').primary()
         table.integer('live_event_id').notNullable().references('id').inTable('live_events').onDelete('CASCADE')
@@ -345,19 +302,15 @@ export async function up(knex: Knex): Promise<void> {
         table.unique(['live_event_id', 'user_id'], { indexName: 'unique_event_participant' })
     })
 
-    // ===== Import States =====
-
     await knex.schema.createTable('import_states', (table) => {
         table.increments('id').primary()
         table.string('import_type', 50).notNullable().defaultTo('full-import')
         table.string('status', 50).notNullable().defaultTo('pending')
 
-        // Configuration
         table.integer('batch_size').notNullable().defaultTo(100)
         table.integer('min_metacritic').notNullable().defaultTo(70)
         table.integer('screenshots_per_game').notNullable().defaultTo(3)
 
-        // Progress tracking
         table.integer('total_games_available').nullable()
         table.integer('current_page').notNullable().defaultTo(1)
         table.integer('last_processed_offset').notNullable().defaultTo(0)
@@ -367,11 +320,9 @@ export async function up(knex: Knex): Promise<void> {
         table.integer('screenshots_downloaded').notNullable().defaultTo(0)
         table.integer('failed_count').notNullable().defaultTo(0)
 
-        // Batch tracking
         table.integer('current_batch').notNullable().defaultTo(0)
         table.integer('total_batches_estimated').nullable()
 
-        // Timestamps
         table.timestamp('started_at').nullable()
         table.timestamp('paused_at').nullable()
         table.timestamp('resumed_at').nullable()
@@ -379,12 +330,9 @@ export async function up(knex: Knex): Promise<void> {
         table.timestamp('created_at').notNullable().defaultTo(knex.fn.now())
         table.timestamp('updated_at').notNullable().defaultTo(knex.fn.now())
 
-        // Index for quick lookup of active imports
         table.index(['status'], 'idx_import_states_status')
     })
 
-    // ===== Seed Initial Admin User =====
-    // Create admin user if it doesn't exist
     const existingUser = await knex('user')
         .where('email', 'admin@thebox.local')
         .first()
@@ -395,7 +343,6 @@ export async function up(knex: Knex): Promise<void> {
             const hashedPassword = await hashPassword('admin123')
             const now = new Date()
 
-            // Insert user into better-auth's user table (using camelCase for Better Auth columns)
             await knex('user').insert({
                 id: userId,
                 email: 'admin@thebox.local',
@@ -404,7 +351,6 @@ export async function up(knex: Knex): Promise<void> {
                 role: 'admin',
                 createdAt: now,
                 updatedAt: now,
-                // Custom fields (snake_case as defined in schema)
                 username: 'admin',
                 display_username: 'admin',
                 display_name: 'Administrator',
@@ -413,7 +359,6 @@ export async function up(knex: Knex): Promise<void> {
                 longest_streak: 0,
             })
 
-            // Insert account for credential-based auth (password stored here, using camelCase)
             await knex('account').insert({
                 id: randomBytes(16).toString('hex'),
                 userId: userId,
@@ -437,7 +382,6 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-    // Drop tables in reverse order of creation
     await knex.schema.dropTableIfExists('import_states')
     await knex.schema.dropTableIfExists('live_event_participants')
     await knex.schema.dropTableIfExists('live_events')
@@ -452,10 +396,8 @@ export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('screenshots')
     await knex.schema.dropTableIfExists('games')
 
-    // Drop the users view first
     await knex.raw('DROP VIEW IF EXISTS users')
 
-    // Drop better-auth tables
     await knex.schema.dropTableIfExists('verification')
     await knex.schema.dropTableIfExists('account')
     await knex.schema.dropTableIfExists('session')

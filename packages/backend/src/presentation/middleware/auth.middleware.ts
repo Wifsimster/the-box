@@ -64,7 +64,6 @@ export async function optionalAuthMiddleware(
       req.isGuest = session.user.isAnonymous ?? false
     }
   } catch {
-    // Silently ignore auth errors for optional middleware
   }
 
   next()
@@ -88,7 +87,6 @@ export async function adminMiddleware(
       return
     }
 
-    // Check if user has admin role
     if (session.user.role !== 'admin') {
       log.warn({ userId: session.user.id, url: req.url }, 'admin access denied')
       res.status(403).json({

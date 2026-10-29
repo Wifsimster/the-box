@@ -93,23 +93,15 @@ export default function RegisterPage() {
         return
       }
 
-      // Better-auth automatically signs users in after registration
-
-      // Wait for the session cookie to be set by better-auth
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Refetch the session to ensure React state is updated
-      // refetch() may not return a value, so we just call it and then reload
       try {
         await refetchSession()
-        // Wait a bit more for state to update
         await new Promise(resolve => setTimeout(resolve, 300))
       } catch (sessionError) {
         console.error('Error refetching session:', sessionError)
       }
 
-      // Claim any stored referral code now that the user is authenticated.
-      // Failures here are non-fatal — don't block the signup completion.
       const pendingReferral = readStoredReferral()
       if (pendingReferral) {
         try {
@@ -120,8 +112,6 @@ export default function RegisterPage() {
         clearStoredReferral()
       }
 
-      // Persist the explicit marketing consent choice. Default is opt-out,
-      // so only POST when the user ticked the box — keeps audit logs clean.
       if (marketingConsent) {
         try {
           await userApi.updateEmailConsent(true)
@@ -132,8 +122,6 @@ export default function RegisterPage() {
 
       markWelcomePending()
 
-      // Force a page reload to ensure cookies are picked up and session state is refreshed
-      // This is more reliable than relying on React state updates
       // eslint-disable-next-line react-hooks/immutability -- Intentional page redirect after registration
       window.location.href = requestedRedirect || localizedPath('/')
     } catch (err) {

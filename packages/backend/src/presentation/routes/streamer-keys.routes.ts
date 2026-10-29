@@ -17,17 +17,6 @@ import type {
   WebhookSummary,
 } from '@the-box/types'
 
-// Private-session routes for the Streamer Kit settings page. Owners:
-//   - flip their public_profile_enabled toggle
-//   - claim a public_slug
-//   - mint / list / revoke their own API keys
-//   - register / list / revoke webhooks
-//
-// Lives under /api/streamer-keys/* — NOT under /api/public/v1, because these
-// are session-authenticated, not key-authenticated. Behind the same Better
-// Auth wall as the rest of the private surface. The webhook endpoints here
-// and the key-authed ones under /api/public/v1/webhooks share one repository.
-
 const router = Router()
 
 router.use(authMiddleware)
@@ -36,9 +25,6 @@ const log = logger.child({ router: 'streamer-keys' })
 
 const SLUG_RE = /^[a-z0-9_-]{3,32}$/
 
-// ─────────────────────────────────────────────────────────────────────
-// GET /api/streamer-keys/me — current settings + key list
-// ─────────────────────────────────────────────────────────────────────
 router.get('/me', async (req, res, next) => {
   try {
     const userId = req.userId!
@@ -58,9 +44,6 @@ router.get('/me', async (req, res, next) => {
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────
-// PUT /api/streamer-keys/settings — toggle profile + claim slug
-// ─────────────────────────────────────────────────────────────────────
 const settingsSchema = z.object({
   publicProfileEnabled: z.boolean(),
   publicSlug: z
@@ -75,9 +58,6 @@ router.put('/settings', validateBody(settingsSchema), async (req, res, next) => 
     const userId = req.userId!
     const body = req.body as z.infer<typeof settingsSchema>
 
-    // Reserved slugs (`boxbot` and friends) can't be claimed — the public
-    // routes short-circuit `boxbot` to the sandbox simulation, so a real
-    // user owning it would be permanently shadowed.
     const requestedSlug = body.publicSlug?.toLowerCase() ?? null
     if (requestedSlug && isReservedSlug(requestedSlug)) {
       res.status(409).json({
@@ -87,10 +67,6 @@ router.put('/settings', validateBody(settingsSchema), async (req, res, next) => 
       return
     }
 
-    // Empty slug while opting in is allowed: the user can flip the toggle on,
-    // pick a slug later. But opting in WITHOUT a slug means nobody can find
-    // them via the public API — that's fine, it's an opt-in to the model,
-    // not a commitment to a handle.
     const update: Record<string, unknown> = {
       public_profile_enabled: body.publicProfileEnabled,
     }
@@ -101,7 +77,6 @@ router.put('/settings', validateBody(settingsSchema), async (req, res, next) => 
     try {
       await userRepository.updatePublicProfileSettings(userId, update)
     } catch (err) {
-      // Postgres unique-violation on public_slug — surface a clean 409.
       const code = (err as { code?: string })?.code
       if (code === '23505') {
         res.status(409).json({
@@ -119,9 +94,6 @@ router.put('/settings', validateBody(settingsSchema), async (req, res, next) => 
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────
-// POST /api/streamer-keys — mint a new key
-// ─────────────────────────────────────────────────────────────────────
 const createKeySchema = z.object({
   label: z.string().trim().min(1).max(64),
   mode: z.enum(['live', 'test']).default('live'),
@@ -132,9 +104,6 @@ router.post('/', validateBody(createKeySchema), async (req, res, next) => {
     const userId = req.userId!
     const body = req.body as z.infer<typeof createKeySchema>
 
-    // Cap the number of live keys per user. 10 is generous for the
-    // "OBS + Streamer.bot + Nightbot + spare" use case and stops a
-    // compromised session from minting an effectively unlimited fleet.
     const existing = await apiKeyRepository.findByUser(userId)
     const liveCount = existing.filter((k) => k.is_active && k.mode === 'live').length
     if (body.mode === 'live' && liveCount >= 10) {
@@ -162,9 +131,6 @@ router.post('/', validateBody(createKeySchema), async (req, res, next) => {
   }
 })
 
-// ─────────────────────────────────────────────────────────────────────
-// DELETE /api/streamer-keys/:id — revoke
-// ─────────────────────────────────────────────────────────────────────
 const idParamsSchema = z.object({ id: z.coerce.number().int().positive() })
 
 router.delete('/:id', validateParams(idParamsSchema), async (req, res, next) => {
@@ -187,13 +153,6 @@ router.delete('/:id', validateParams(idParamsSchema), async (req, res, next) => 
     next(err)
   }
 })
-
-// ─────────────────────────────────────────────────────────────────────
-// Webhooks — session-authed CRUD for the settings page. Same repository
-// and SSRF guard as the key-authed /api/public/v1/webhooks endpoints;
-// the only difference is the auth method (session cookie here, bearer
-// key there).
-// ─────────────────────────────────────────────────────────────────────
 
 const WEBHOOK_EVENTS: PublicEventType[] = [
   'session.started',

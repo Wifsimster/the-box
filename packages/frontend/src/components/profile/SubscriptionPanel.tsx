@@ -15,12 +15,6 @@ import { Badge } from '@/components/ui/badge'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useBillingStore } from '@/stores/billingStore'
 
-/**
- * SubscriptionPanel — the account-side view of the user's plan, shown in the
- * profile hub's "Subscription" tab. Premium members manage their plan via the
- * Stripe Billing Portal here; free members get a compact upsell that links to
- * the public `/premium` page (which stays the canonical marketing surface).
- */
 export function SubscriptionPanel() {
   const { t, i18n } = useTranslation()
   const { localizedPath } = useLocalizedPath()

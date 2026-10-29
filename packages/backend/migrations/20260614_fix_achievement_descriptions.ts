@@ -1,19 +1,5 @@
 import type { Knex } from 'knex'
 
-// Align achievement descriptions with what the evaluator actually rewards.
-// No criteria/threshold changes — wording only — so already-earned rows stay
-// valid. Three classes of mismatch were corrected:
-//
-//   1. game_collector_10/50/100 advertised "<n> jeux différents" (distinct
-//      games) but the criteria is `total_correct_guesses` — a cumulative
-//      count of correct guesses that does NOT de-duplicate by game. Reworded
-//      to "<n> bonnes réponses au total".
-//   2. high_roller said "plus de 1800 points" (strictly more than) but
-//      `min_score` fires at score >= 1800, so 1800 itself qualifies.
-//   3. acharne said "plus de 10 fois" (strictly more than) but
-//      `attempts_in_game` fires at attempts >= 10. Brought in line with its
-//      sibling tete_de_mule, which already reads "20 fois ou plus".
-
 interface DescriptionEdit {
   key: string
   to: string

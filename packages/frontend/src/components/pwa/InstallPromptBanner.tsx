@@ -36,7 +36,6 @@ function persistDismiss() {
   try {
     localStorage.setItem(DISMISS_KEY, String(Date.now()))
   } catch {
-    // localStorage unavailable (private mode) — accept the loss.
   }
 }
 
@@ -51,10 +50,8 @@ export function InstallPromptBanner() {
     if (isStandalone() || isRecentlyDismissed()) return
 
     const handler = (event: Event) => {
-      // Stop the browser's mini-infobar so we control when the prompt appears.
       event.preventDefault()
       setDeferredPrompt(event as BeforeInstallPromptEvent)
-      // Brief delay so we don't pop the banner the instant the page loads.
       window.clearTimeout(showTimer.current)
       showTimer.current = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
     }
@@ -98,8 +95,6 @@ export function InstallPromptBanner() {
       aria-labelledby="pwa-install-banner-title"
       aria-describedby="pwa-install-banner-desc"
       className={cn(
-        // Sit just above the mobile BottomNav; drop to the corner at md where
-        // the BottomNav is hidden.
         'fixed inset-x-3 top-auto bottom-[var(--bottom-nav-space)] z-50 m-0 w-auto max-h-none max-w-none rounded-xl border bg-card/95 shadow-lg backdrop-blur md:bottom-3',
         'border-border py-3 pl-4 pr-1 flex gap-2 items-start sm:max-w-md sm:left-auto sm:right-3',
         'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4',

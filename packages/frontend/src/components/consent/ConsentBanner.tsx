@@ -10,13 +10,6 @@ import {
   selectShouldShowConsentBanner,
 } from '@/stores/consentStore'
 
-/**
- * Fixed bottom cookie/consent banner (GDPR / RGPD). Shown until the user makes
- * an explicit choice. "Manage preferences" expands per-category toggles
- * (Essential always-on, Analytics, Support) with a Save button.
- *
- * Mounted once globally in the language layout so it appears on every page.
- */
 const wrapButtonClass = 'h-auto min-h-(--control-h) whitespace-normal py-2 leading-tight'
 
 const checkboxClass =
@@ -60,15 +53,8 @@ export function ConsentBanner() {
       aria-labelledby="consent-banner-title"
       aria-describedby="consent-banner-desc"
       className={cn(
-        // Sits *above* the mobile BottomNav rather than on top of it: anchored
-        // at bottom-0 the banner covered all four tabs until the visitor made a
-        // consent choice, so a first-time phone visitor had no navigation.
-        // z-45: above the BottomNav (z-40) but under modal dialogs (z-50), so
-        // an auto-opened dialog's bottom sheet is never hidden behind it.
         'fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-[45] border-t border-border bg-card/95 backdrop-blur-md',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom motion-safe:duration-300',
-        // `--bottom-nav-space` already carries the home-indicator inset, so only
-        // pad for it from `md` up where the bar is hidden and bottom is 0.
         'md:bottom-0 md:pb-[env(safe-area-inset-bottom)]',
       )}
     >

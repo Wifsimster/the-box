@@ -10,14 +10,6 @@ import {
 import { Button } from './button'
 import { Loader2 } from 'lucide-react'
 
-// Reusable confirmation dialog — drop-in replacement for window.confirm()
-// when the action is destructive enough to warrant a styled prompt
-// (revoke key, delete account, etc.). Built on top of the existing
-// ResponsiveDialog primitive (bottom sheet on phones, so the confirm
-// button sits under the thumb) so the visual treatment matches everything else
-// in the settings page; the alternative was @radix-ui/react-alert-dialog
-// which we don't depend on yet and don't need just for this one shape.
-
 export interface ConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -25,15 +17,9 @@ export interface ConfirmDialogProps {
   description?: ReactNode
   confirmLabel: string
   cancelLabel: string
-  // Marks the confirm action as destructive — flips the button to the
-  // `destructive` variant. Use for revoke / delete flows.
   destructive?: boolean
-  // Caller-controlled busy state. When true, the confirm button shows a
-  // spinner and both buttons disable so a slow request can't be double-fired.
   busy?: boolean
   onConfirm: () => void | Promise<void>
-  // Test hook so Playwright can target a specific dialog when multiple
-  // ConfirmDialogs live on the same page.
   testId?: string
 }
 

@@ -34,7 +34,6 @@ describe('resolveToolPath', () => {
       resolveToolPath('geo_ingest_game', { gameId: 7, sources: ['fandom', 'wand'] }),
       { path: '/api/agent/v1/geo/games/7/ingest', method: 'POST', body: { sources: ['fandom', 'wand'] } },
     )
-    // Sources omitted → POST with an empty body (server defaults to all tiers).
     assert.deepEqual(resolveToolPath('geo_ingest_game', { gameId: 7 }), {
       path: '/api/agent/v1/geo/games/7/ingest',
       method: 'POST',
@@ -65,8 +64,8 @@ describe('resolveToolPath', () => {
   })
 
   it('rejects geo_propose_pin missing required fields', () => {
-    assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, source: 'agent_vision' })) // no rationale
-    assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, rationale: 'x', source: 'human' })) // bad source
+    assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, source: 'agent_vision' }))
+    assert.ok('error' in resolveToolPath('geo_propose_pin', { candidateId: 1, x: 0.5, y: 0.5, rationale: 'x', source: 'human' }))
   })
 
   it('maps geo_upload_map to a POST maps path with the map body', () => {
@@ -94,9 +93,9 @@ describe('resolveToolPath', () => {
   })
 
   it('rejects geo_upload_map missing required fields', () => {
-    assert.ok('error' in resolveToolPath('geo_upload_map', { gameId: 1, imageUrl: 'https://x/1.png', widthPx: 10, heightPx: 10 })) // no license
-    assert.ok('error' in resolveToolPath('geo_upload_map', { gameId: 1, imageUrl: 'https://x/1.png', license: 'CC0', heightPx: 10 })) // no widthPx
-    assert.ok('error' in resolveToolPath('geo_upload_map', { imageUrl: 'https://x/1.png', widthPx: 10, heightPx: 10, license: 'CC0' })) // no gameId
+    assert.ok('error' in resolveToolPath('geo_upload_map', { gameId: 1, imageUrl: 'https://x/1.png', widthPx: 10, heightPx: 10 }))
+    assert.ok('error' in resolveToolPath('geo_upload_map', { gameId: 1, imageUrl: 'https://x/1.png', license: 'CC0', heightPx: 10 }))
+    assert.ok('error' in resolveToolPath('geo_upload_map', { imageUrl: 'https://x/1.png', widthPx: 10, heightPx: 10, license: 'CC0' }))
   })
 
   it('maps geo_promote_candidate to a POST promote path', () => {
@@ -123,8 +122,8 @@ describe('resolveToolPath', () => {
   })
 
   it('rejects geo_promote_override missing coordinates or candidateId', () => {
-    assert.ok('error' in resolveToolPath('geo_promote_override', { candidateId: 1, canonicalX: 0.5 })) // no y
-    assert.ok('error' in resolveToolPath('geo_promote_override', { canonicalX: 0.5, canonicalY: 0.5 })) // no candidateId
+    assert.ok('error' in resolveToolPath('geo_promote_override', { candidateId: 1, canonicalX: 0.5 }))
+    assert.ok('error' in resolveToolPath('geo_promote_override', { canonicalX: 0.5, canonicalY: 0.5 }))
   })
 
   it('maps geo_repoint_captures to a POST repoint path', () => {

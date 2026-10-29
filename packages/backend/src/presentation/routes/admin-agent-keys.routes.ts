@@ -7,26 +7,11 @@ import { recordAdminGeoAudit } from '../middleware/admin-audit.js'
 import { apiKeyRepository } from '../../infrastructure/repositories/api-key.repository.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 
-// Admin-only management of geo-agent API keys (issue #331, phase 2). Distinct
-// from the streamer self-service key surface (streamer-keys.routes.ts): those
-// keys are user-minted and reach a streamer's own public data; these are minted
-// by an admin, carry ONLY geo-agent:* scopes, and reach the agent content-
-// sourcing surface (/api/agent/v1/geo). The two scope families are mutually
-// exclusive on a single key — enforced here at mint time and re-checked by
-// requireScope on every agent route.
-//
-// Mounted at /api/admin/agent-keys behind adminMiddleware. Every mint/revoke is
-// written to admin_audit_log.
-
 const router = Router()
 router.use(adminMiddleware)
 
 const log = logger.child({ router: 'admin-agent-keys' })
 
-// A mint may request any non-empty subset of the geo-agent scopes. Default to
-// read-only: ingest/propose are granted deliberately per key as phases 3–4
-// ship, so a freshly minted key can never write until an admin opts it in.
-// admin:settings (settings MCP tools) is minted from the same panel.
 const scopeEnum = z.enum(AGENT_KEY_SCOPES)
 const createSchema = z.object({
   label: z.string().trim().min(1).max(64),
@@ -34,9 +19,6 @@ const createSchema = z.object({
   scopes: z.array(scopeEnum).nonempty().max(AGENT_KEY_SCOPES.length).optional(),
 })
 
-// Cap active agent keys so a mistake or a compromised admin session can't mint
-// an unbounded fleet. Generous for the "one exploration key + one steady-state
-// key + spare" shape.
 const MAX_ACTIVE_AGENT_KEYS = 10
 
 router.get('/', async (_req, res, next) => {
@@ -66,9 +48,6 @@ router.post('/', validateBody(createSchema), async (req, res, next) => {
       return
     }
 
-    // De-dupe requested scopes; default to read-only. Zod already guarantees
-    // every entry is a geo-agent scope, so mutual exclusion with streamer
-    // scopes holds by construction.
     const scopes = body.scopes ? [...new Set(body.scopes)] : ['geo-agent:read' as const]
 
     const { row, plaintext } = await apiKeyRepository.create({
@@ -99,8 +78,6 @@ router.delete('/:id', validateParams(idParams), async (req, res, next) => {
     const { id } = req.params as unknown as z.infer<typeof idParams>
     const ok = await apiKeyRepository.revokeGeoAgentKey(id)
     if (!ok) {
-      // Either no such geo-agent key, or it was already revoked. A uniform
-      // 404 keeps this admin path from probing non-agent key ids.
       res.status(404).json({ success: false, error: { code: 'KEY_NOT_FOUND' } })
       return
     }

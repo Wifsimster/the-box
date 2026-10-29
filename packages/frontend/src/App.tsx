@@ -37,7 +37,6 @@ import {
   type SupportedLanguage,
 } from '@/lib/i18n'
 
-// Lazy load pages for better performance
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const TodayPage = lazy(() => import('@/pages/TodayPage'))
 const GamePage = lazy(() => import('@/pages/GamePage'))
@@ -78,25 +77,11 @@ function LanguageRedirect() {
   return <Navigate to={`/${browserLang}`} replace />
 }
 
-/**
- * Redirects a former standalone account route (e.g. `/history`,
- * `/settings/security`) to its tab inside the consolidated profile hub, so old
- * links, the mobile bottom-nav and in-app navigation keep working after the
- * account pages were merged into one place.
- */
 function ProfileTabRedirect({ tab }: { tab: string }) {
   const { localizedPath } = useLocalizedPath()
   return <Navigate to={localizedPath(`/profile?tab=${tab}`)} replace />
 }
 
-/**
- * Mirrors "is the mobile BottomNav rendered?" onto `<html data-bottom-nav>` so
- * `--bottom-nav-space` collapses to 0 on the routes that drop the bar.
- *
- * The consent banner and the PWA install prompts are `position: fixed` and sit
- * outside this layout's subtree, so they can't read the flag from a React
- * prop — a root-level data attribute is the one place all of them can see.
- */
 function BottomNavSpaceSync({ hidden }: { hidden: boolean }) {
   useEffect(() => {
     const root = document.documentElement
@@ -120,8 +105,6 @@ function LanguageLayout() {
   const { fetchStatus, reset } = useDailyLoginStore()
   const gamePhase = useGameStore((state) => state.gamePhase)
 
-  // Sync i18n language with URL (must be before any early returns).
-  // Also sync `<html lang>` so screen readers pick the right pronunciation.
   useEffect(() => {
     if (lang && SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {
       if (i18n.language !== lang) {
@@ -133,19 +116,14 @@ function LanguageLayout() {
     }
   }, [lang, i18n])
 
-  // Fetch daily login status when user is authenticated
   useEffect(() => {
     if (session?.user?.id) {
       fetchStatus(session.user.role ?? undefined)
     } else {
-      // Reset store when user logs out
       reset()
     }
   }, [session?.user?.id, session?.user?.role, fetchStatus, reset])
 
-  // Subscribe the authenticated user to the `/notifications` socket so account
-  // events (Premium grants, achievement unlocks, future alerts) reach them on
-  // any page.
   useEffect(() => {
     const userId = session?.user?.id
     if (!userId) {
@@ -155,9 +133,6 @@ function LanguageLayout() {
     connectNotificationsSocket(userId)
   }, [session?.user?.id])
 
-  // The /notifications socket toasts achievement unlocks itself; this also
-  // refreshes the cached achievements grid so it reflects a socket-delivered
-  // unlock (e.g. a background account-age milestone) without a reload.
   useEffect(() => {
     if (!session?.user?.id) return
     const onAchievementUnlocked = (): void => {
@@ -168,38 +143,24 @@ function LanguageLayout() {
       window.removeEventListener('achievement:unlocked', onAchievementUnlocked)
   }, [session?.user?.id])
 
-  // Apply the user's chosen UI theme on every session change. Free users
-  // are pinned to default; premium users see their selected theme as
-  // soon as /api/user/me resolves.
   useApplyUserTheme(session?.user?.id)
 
-  // Validate language parameter
   if (!lang || !SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {
     const browserLang = getBrowserLanguage()
     return <Navigate to={`/${browserLang}`} replace />
   }
 
-  // Geo play takes the full viewport (no header, no footer). The daily-game
-  // page keeps the global Header so the hamburger stays reachable, but hides
-  // the footer to preserve an immersive in-game feel.
   const isFullscreen = /\/geo\/?$/.test(location.pathname)
-  // The home route *is* the daily game now (TodayPage): while a screenshot is
-  // on screen it behaves exactly like /play.
   const isTodayRoute = isTodayPath(location.pathname)
   const isTodayInGame = isTodayRoute && (gamePhase === 'playing' || gamePhase === 'result')
   const isInGame = location.pathname.endsWith('/play') || isTodayInGame
   const hideFooter = isFullscreen || isInGame
-  // The BottomNav is mobile chrome — drop it on the fullscreen Geo route and
-  // the in-game /play route, where it would collide with the keyboard-aware
-  // guess input.
   const hideBottomNav = isFullscreen || isInGame
 
   return (
     <div
       className={cn(
         'flex min-h-dvh flex-col bg-background',
-        // Reserve space so page content and the footer clear the fixed
-        // BottomNav. border-box keeps this padding inside min-h-dvh.
         !hideBottomNav && 'pb-[var(--bottom-nav-space)] md:pb-0',
       )}
     >
@@ -222,11 +183,8 @@ function LanguageLayout() {
       {!hideFooter && <Footer />}
       {!hideBottomNav && <BottomNav />}
 
-      {/* Daily Login Reward Modal */}
       <DailyRewardModal />
 
-      {/* GDPR / RGPD cookie consent banner — shown on every page until the
-          user makes a choice; gates analytics + support tracking. */}
       <ConsentBanner />
     </div>
   )
@@ -240,13 +198,9 @@ function App() {
       <LazyMotion features={domAnimation} strict>
       <MotionConfig reducedMotion="user">
       <Routes>
-        {/* Redirect root to browser language */}
         <Route path="/" element={<LanguageRedirect />} />
 
-        {/* Language-prefixed routes */}
         <Route path="/:lang" element={<LanguageLayout />}>
-          {/* Daily-first IA: the home is today's box. The former landing page
-              (hero, modes, premium and achievement teasers) moves to /about. */}
           <Route index element={<TodayPage />} />
           <Route path="about" element={<HomePage />} />
           <Route path="play" element={<GamePage />} />
@@ -264,45 +218,27 @@ function App() {
           <Route path="contact" element={<ContactPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="history/:sessionId" element={<GameHistoryDetailsPage />} />
-          {/* The game-history list now lives in the profile hub's Activity tab.
-              Keep the route as a redirect so deep links and in-app navigation
-              still resolve. The per-session detail route above is unaffected. */}
           <Route path="history" element={<ProfileTabRedirect tab="activity" />} />
           <Route path="profile" element={<ProfilePage />} />
-          {/* Security settings moved into the profile hub's Security tab. */}
           <Route path="settings/security" element={<ProfileTabRedirect tab="security" />} />
           <Route path="two-factor" element={<TwoFactorChallengePage />} />
           <Route path="u/:username" element={<PublicProfilePage />} />
 
           <Route path="geo" element={<GeoPlayPage />} />
           <Route path="geo/play" element={<GeoPlayPage />} />
-          {/* Public path is /panorama — the mode was called "GeoGamers",
-              one word away from the separate "Géo" mode. Renamed while
-              GEOGAMERS_ENABLED is still false, so no live link breaks.
-              Internal identifiers stay `geogamers` (tables, workers, sockets,
-              API routes): renaming those is churn with no identity gain.
-              See docs/brand.md §6. */}
           <Route path="panorama" element={<GeoGamersPlayPage />} />
           <Route path="panorama/party" element={<GeoGamersPartyPage />} />
           <Route path="geo/contribute" element={<GeoContributePage />} />
 
           <Route path="premium" element={<PricingPage />} />
-          {/* French-friendly alias resolves to the same component so links from
-              older marketing copy still land. The page itself renders identically; SEO
-              gets a single canonical via the language-prefixed /premium URL. */}
           <Route path="abonnement" element={<PricingPage />} />
         </Route>
 
-        {/* Catch-all redirect to browser language */}
         <Route path="*" element={<LanguageRedirect />} />
       </Routes>
 
-      {/* Global toast notifications (sonner) */}
       <Toaster />
 
-      {/* PWA: offline banner + silent service-worker lifecycle + install prompts.
-          New builds auto-update and reload in the background; the ChangelogDialog
-          is the single "what's new" surface once the new bundle loads. */}
       <OfflineIndicator />
       <PWALifecycle />
       <ChangelogDialog />

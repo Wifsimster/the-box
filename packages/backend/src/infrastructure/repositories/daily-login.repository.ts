@@ -4,14 +4,12 @@ import type { DailyReward, RewardRarity } from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'daily-login' })
 
-// PostgreSQL unique-violation SQLSTATE
 const PG_UNIQUE_VIOLATION = '23505'
 
 function todayUtc(): string {
     return new Date().toISOString().slice(0, 10)
 }
 
-// Database row types
 export interface DailyLoginRewardRow {
     id: number
     day_number: number
@@ -70,9 +68,6 @@ function mapRewardRowToDailyReward(row: DailyLoginRewardRow): DailyReward {
 }
 
 export const dailyLoginRepository = {
-    /**
-     * Get all reward definitions
-     */
     async getAllRewards(): Promise<DailyReward[]> {
         log.debug('getAllRewards')
         const rows = await db('daily_login_rewards')
@@ -81,9 +76,6 @@ export const dailyLoginRepository = {
         return rows.map(mapRewardRowToDailyReward)
     },
 
-    /**
-     * Get reward for a specific day
-     */
     async getRewardForDay(dayNumber: number): Promise<DailyReward | null> {
         log.debug({ dayNumber }, 'getRewardForDay')
         const row = await db('daily_login_rewards')
@@ -92,19 +84,14 @@ export const dailyLoginRepository = {
         return row ? mapRewardRowToDailyReward(row) : null
     },
 
-    /**
-     * Get or create user login streak record
-     */
     async getOrCreateUserStreak(userId: string): Promise<UserLoginStreakRow> {
         log.debug({ userId }, 'getOrCreateUserStreak')
 
-        // Try to get existing record
         let row = await db('user_login_streaks')
             .where('user_id', userId)
             .first<UserLoginStreakRow>()
 
         if (!row) {
-            // Create new record
             const [inserted] = await db('user_login_streaks')
                 .insert({
                     user_id: userId,
@@ -120,9 +107,6 @@ export const dailyLoginRepository = {
         return row
     },
 
-    /**
-     * Get user login streak record (without creating)
-     */
     async getUserStreak(userId: string): Promise<UserLoginStreakRow | null> {
         log.debug({ userId }, 'getUserStreak')
         return await db('user_login_streaks')
@@ -130,11 +114,6 @@ export const dailyLoginRepository = {
             .first<UserLoginStreakRow>()
     },
 
-    /**
-     * Update user streak for a new login. Conditional on last_login_date
-     * actually changing — concurrent /status calls from the same tab pair
-     * become harmless no-ops instead of redundant writes.
-     */
     async updateUserStreak(
         userId: string,
         data: {
@@ -157,15 +136,6 @@ export const dailyLoginRepository = {
             })
     },
 
-    // Atomic streak-freeze consumption + streak update. Closes the race
-    // where two concurrent /status calls on the first day after a missed
-    // day could both observe a freeze in inventory and both decrement it.
-    // The inventory UPDATE has the same `quantity >= 1` predicate as
-    // `useItems`, so only one transaction can win the decrement — the
-    // other one returns ok=false and the service falls back to "streak
-    // resets normally". Bundling the streak update in the same
-    // transaction means we never end up with "freeze consumed but
-    // streak not updated" or vice versa.
     async consumeFreezeAndUpdateStreak(
         userId: string,
         opts: {
@@ -181,11 +151,6 @@ export const dailyLoginRepository = {
     ): Promise<{ ok: true; freezesRemaining: number } | { ok: false }> {
         const noFreeze = Symbol('no-freeze')
         return db.transaction(async (trx) => {
-            // Streak update FIRST: it row-locks the streak and is guarded on
-            // today's date, so of two concurrent /status calls only one
-            // matches. The loser must not decrement — previously the
-            // decrement ran first and committed even when the guarded
-            // update matched 0 rows, burning 2 freezes for 1 missed day.
             const streakUpdated = await trx('user_login_streaks')
                 .where('user_id', userId)
                 .whereRaw('last_login_date IS DISTINCT FROM ?', [opts.streak.lastLoginDate])
@@ -209,8 +174,6 @@ export const dailyLoginRepository = {
                 .decrement('quantity', 1)
             const affected = decrement as unknown as number
             if (!affected) {
-                // No freeze left: roll back the streak write so the caller's
-                // normal (reset) path applies.
                 throw noFreeze
             }
             const remaining = await trx('user_inventory')
@@ -227,15 +190,6 @@ export const dailyLoginRepository = {
         })
     },
 
-    /**
-     * Atomically claim today's reward: insert claim row, bump
-     * `last_claimed_date`, upsert powerups, increment user score — all in
-     * one transaction. The unique index on
-     * (user_id, (claimed_at AT TIME ZONE 'UTC')::date) is the source of
-     * truth for "one claim per UTC day"; on conflict we surface
-     * { ok: false, reason: 'ALREADY_CLAIMED' } so the caller can map it
-     * to a domain error without inspecting SQLSTATE.
-     */
     async claimDailyReward(input: {
         userId: string
         rewardId: number
@@ -292,9 +246,6 @@ export const dailyLoginRepository = {
         }
     },
 
-    /**
-     * Check if user has claimed reward today (UTC).
-     */
     async hasClaimedToday(userId: string): Promise<boolean> {
         const today = todayUtc()
 
@@ -308,9 +259,6 @@ export const dailyLoginRepository = {
         return hasClaimed
     },
 
-    /**
-     * Get user's claim history
-     */
     async getClaimHistory(userId: string, limit: number = 30): Promise<LoginRewardClaimRow[]> {
         log.debug({ userId, limit }, 'getClaimHistory')
         return await db('login_reward_claims')
@@ -320,7 +268,6 @@ export const dailyLoginRepository = {
     },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { DailyLoginRepository as DailyLoginRepositoryPort } from '../../domain/ports/repositories.js'
 export const _dailyLoginRepositoryTypeCheck: DailyLoginRepositoryPort = dailyLoginRepository

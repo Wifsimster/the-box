@@ -1,10 +1,5 @@
 import type { Knex } from 'knex'
 
-// Source registry: priority, kind (map vs candidates), and rate limits live in
-// the database, not hardcoded enums. Per-game source overrides go on
-// `geo_game_pipeline_state.active_source`. Changing priority becomes one UPDATE
-// instead of a deploy.
-
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('geo_source_config', (table) => {
     table.string('source', 30).primary()

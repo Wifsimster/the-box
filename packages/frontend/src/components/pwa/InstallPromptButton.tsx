@@ -27,7 +27,6 @@ export function InstallPromptButton({ variant = 'desktop', onInstalled }: Instal
       const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
       if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) return
     } catch {
-      // storage blocked — offer the install button anyway
     }
 
     const handler = (event: Event) => {
@@ -56,7 +55,6 @@ export function InstallPromptButton({ variant = 'desktop', onInstalled }: Instal
         try {
           localStorage.setItem(DISMISS_KEY, String(Date.now()))
         } catch {
-          // storage blocked — accept the loss
         }
       }
     } finally {

@@ -4,7 +4,6 @@ import type { UserInventory, UserInventoryItem } from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'inventory' })
 
-// Database row type
 export interface UserInventoryRow {
     id: number
     user_id: string
@@ -26,9 +25,6 @@ function mapRowToItem(row: UserInventoryRow): UserInventoryItem {
 }
 
 export const inventoryRepository = {
-    /**
-     * Get user's full inventory
-     */
     async getUserInventory(userId: string): Promise<UserInventory> {
         log.debug({ userId }, 'getUserInventory')
 
@@ -49,9 +45,6 @@ export const inventoryRepository = {
         return { powerups, totalItems }
     },
 
-    /**
-     * Get specific inventory item
-     */
     async getItem(userId: string, itemType: string, itemKey: string): Promise<UserInventoryItem | null> {
         log.debug({ userId, itemType, itemKey }, 'getItem')
 
@@ -66,13 +59,9 @@ export const inventoryRepository = {
         return row ? mapRowToItem(row) : null
     },
 
-    /**
-     * Add items to inventory (creates if not exists)
-     */
     async addItems(userId: string, itemType: string, itemKey: string, quantity: number): Promise<void> {
         log.info({ userId, itemType, itemKey, quantity }, 'addItems')
 
-        // Upsert: insert or update if exists
         await db.raw(`
             INSERT INTO user_inventory (user_id, item_type, item_key, quantity, updated_at)
             VALUES (?, ?, ?, ?, NOW())
@@ -81,10 +70,6 @@ export const inventoryRepository = {
         `, [userId, itemType, itemKey, quantity, quantity])
     },
 
-    /**
-     * Use items from inventory (decrements quantity)
-     * Returns true if successful, false if not enough items
-     */
     async useItems(userId: string, itemType: string, itemKey: string, quantity: number = 1): Promise<boolean> {
         log.info({ userId, itemType, itemKey, quantity }, 'useItems')
 
@@ -106,19 +91,11 @@ export const inventoryRepository = {
         return true
     },
 
-    /**
-     * Get quantity of a specific item
-     */
     async getItemQuantity(userId: string, itemType: string, itemKey: string): Promise<number> {
         const item = await this.getItem(userId, itemType, itemKey)
         return item?.quantity ?? 0
     },
 
-    /**
-     * List every owned item of a given `itemType` for a user (qty > 0).
-     * Used by cosmetics where `getUserInventory` is powerup-shaped and
-     * skips non-powerup item_types.
-     */
     async listByType(
         userId: string,
         itemType: string
@@ -130,9 +107,6 @@ export const inventoryRepository = {
         return rows.map((r) => ({ itemKey: r.item_key, quantity: r.quantity }))
     },
 
-    /**
-     * Add multiple items in a single transaction
-     */
     async addMultipleItems(
         userId: string,
         items: Array<{ itemType: string; itemKey: string; quantity: number }>
@@ -152,7 +126,6 @@ export const inventoryRepository = {
     },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { InventoryRepository as InventoryRepositoryPort } from '../../domain/ports/repositories.js'
 export const _inventoryRepositoryTypeCheck: InventoryRepositoryPort = inventoryRepository

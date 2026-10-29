@@ -30,22 +30,12 @@ interface GamePickerProps {
     games: GeoPlayableGame[]
     isLoading: boolean
     selectedGameId: number | null
-    // How many screenshots the user has already played per game id, used
-    // to flag games whose catalog has grown since their last visit.
     playedCountByGame?: Record<string, number>
-    // Game ids the player has opted out of — kept visible (so they can
-    // un-ignore) but visually de-emphasized and excluded from completion.
     ignoredGameIds?: number[]
     onSelect: (gameId: number) => void
     onToggleIgnore?: (gameId: number) => void
 }
 
-/**
- * Bottom-drawer picker on mobile, right-side sheet on desktop. Searchable,
- * keyboard-navigable (radiogroup pattern, see Geo a11y notes), and renders
- * cover art with map / screenshot count badges so the player can scan the
- * catalog at a glance.
- */
 export function GamePicker({
     open,
     onOpenChange,
@@ -65,11 +55,6 @@ export function GamePicker({
         [ignoredGameIds],
     )
 
-    // Clear the search field on close — keeping a stale query across opens
-    // reads as a bug ("why am I still seeing my last search?") more often
-    // than as a convenience. Doing it on close (rather than on open in an
-    // effect) avoids the open→stale-query→cleared-query paint flash and
-    // means the input is already empty by the time the sheet animates in.
     const handleOpenChange = useCallback(
         (next: boolean) => {
             if (!next) setQuery('')
@@ -84,10 +69,6 @@ export function GamePicker({
         return games.filter((g) => g.name.toLowerCase().includes(q))
     }, [games, query])
 
-    // Roving tabindex for the radiogroup — Tab moves into the group at
-    // the currently-selected (or first) card, arrow keys cycle focus
-    // inside without firing onSelect, Space/Enter on a focused card
-    // commits via the button's native click semantics.
     const initialIndex = Math.max(
         0,
         filtered.findIndex((g) => g.id === selectedGameId),
@@ -172,12 +153,7 @@ export function GamePicker({
                         >
                             {filtered.map((g, index) => {
                                 const played = playedCountByGame?.[String(g.id)] ?? 0
-                                // Clamp to ≥0 in case the catalog count
-                                // shrank (e.g. an admin demoted a meta).
                                 const newCount = Math.max(0, g.screenshotCount - played)
-                                // Only flag "new" once the player has
-                                // actually started this game — otherwise
-                                // every entry would scream "NEW".
                                 const hasNew = played > 0 && newCount > 0
                                 const completed =
                                     g.screenshotCount > 0 && played >= g.screenshotCount
@@ -216,8 +192,6 @@ export function GamePicker({
 interface GameCardProps {
     game: GeoPlayableGame
     selected: boolean
-    // Screenshots the player has already guessed in this game — drives
-    // the completion bar under the count badges.
     played: number
     newCount: number
     completed: boolean
@@ -325,9 +299,6 @@ function GameCard({
                             })}
                         </span>
                     </div>
-                    {/* Completion bar — only once the player has started
-                        the game, so untouched catalog entries stay clean.
-                        Full bar flips to the success color. */}
                     {game.screenshotCount > 0 && played > 0 && (
                         <div
                             role="img"

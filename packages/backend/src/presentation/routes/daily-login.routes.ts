@@ -9,10 +9,6 @@ import { authMiddleware } from '../middleware/auth.middleware.js'
 
 const router = Router()
 
-/**
- * GET /api/daily-login/status
- * Get current user's daily login status, streak, and today's reward
- */
 router.get('/status', authMiddleware, async (req, res, next) => {
     try {
         const userId = req.userId!
@@ -28,10 +24,6 @@ router.get('/status', authMiddleware, async (req, res, next) => {
     }
 })
 
-/**
- * POST /api/daily-login/claim
- * Claim today's reward
- */
 router.post('/claim', authMiddleware, async (req, res, next) => {
     try {
         const userId = req.userId!
@@ -53,10 +45,6 @@ router.post('/claim', authMiddleware, async (req, res, next) => {
     }
 })
 
-/**
- * GET /api/daily-login/rewards
- * Get all reward definitions (public)
- */
 router.get('/rewards', async (_req, res, next) => {
     try {
         const rewards = await dailyLoginService.getAllRewards()
@@ -70,10 +58,6 @@ router.get('/rewards', async (_req, res, next) => {
     }
 })
 
-/**
- * GET /api/daily-login/inventory (or /api/inventory when mounted separately)
- * Get current user's inventory
- */
 router.get('/', authMiddleware, async (req, res, next) => {
     try {
         const userId = req.userId!

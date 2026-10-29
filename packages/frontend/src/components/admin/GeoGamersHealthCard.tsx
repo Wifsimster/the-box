@@ -36,12 +36,8 @@ export function GeoGamersHealthCard() {
     const [error, setError] = useState<string | null>(null)
     const [creating, setCreating] = useState(false)
     const [notice, setNotice] = useState<string | null>(null)
-    // Guards against setState after unmount (the fetches outlive a quick tab switch).
     const mounted = useRef(true)
 
-    // Promise callbacks rather than `await` so the state writes are visibly
-    // asynchronous to the effect that calls this on mount (React Compiler's
-    // set-state-in-effect treats writes after `await` as synchronous).
     function load() {
         return fetchAdminJson<GeoGamersHealth>('/api/admin/geogamers/health')
             .then(
@@ -187,8 +183,6 @@ export function GeoGamersHealthCard() {
                     })}
                 </p>
 
-                {/* Manual first-challenge creation — avoids waiting for the
-                    00:05 UTC cron right after enabling the feature. */}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <Button
                         variant="outline"

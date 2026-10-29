@@ -6,9 +6,6 @@ import {
 
 const router = Router()
 
-// === Jobs ===
-
-// List all jobs
 router.get('/jobs', async (_req, res, next) => {
   try {
     const jobs = await jobService.listJobs()
@@ -22,7 +19,6 @@ router.get('/jobs', async (_req, res, next) => {
   }
 })
 
-// Get job stats
 router.get('/jobs/stats', async (_req, res, next) => {
   try {
     const stats = await jobService.getQueueStats()
@@ -36,7 +32,6 @@ router.get('/jobs/stats', async (_req, res, next) => {
   }
 })
 
-// Get recurring jobs info (scheduled jobs)
 router.get('/jobs/recurring', async (_req, res, next) => {
   try {
     const recurringJobs = await jobService.getRecurringJobs()
@@ -50,7 +45,6 @@ router.get('/jobs/recurring', async (_req, res, next) => {
   }
 })
 
-// Get specific job
 router.get('/jobs/:id', async (req, res, next) => {
   try {
     const job = await jobService.getJob(req.params['id']!)
@@ -72,7 +66,6 @@ router.get('/jobs/:id', async (req, res, next) => {
   }
 })
 
-// Create import job
 const createJobSchema = z.object({
   type: z.enum(['import-games', 'import-screenshots', 'create-daily-challenge']),
   data: z
@@ -105,7 +98,6 @@ router.post('/jobs', async (req, res, next) => {
   }
 })
 
-// Clear completed jobs (must be before /jobs/:id to avoid matching "completed" as an id)
 router.delete('/jobs/completed', async (_req, res, next) => {
   try {
     const count = await jobService.clearCompleted()
@@ -119,7 +111,6 @@ router.delete('/jobs/completed', async (_req, res, next) => {
   }
 })
 
-// Remove recurring job (must be before /jobs/:id to handle repeat: prefix)
 router.delete('/jobs/repeat\\::key', async (req, res, next) => {
   try {
     const key = `repeat:${req.params[':key']!}`
@@ -142,7 +133,6 @@ router.delete('/jobs/repeat\\::key', async (req, res, next) => {
   }
 })
 
-// Cancel a job
 router.delete('/jobs/:id', async (req, res, next) => {
   try {
     const cancelled = await jobService.cancelJob(req.params['id']!)
@@ -164,7 +154,6 @@ router.delete('/jobs/:id', async (req, res, next) => {
   }
 })
 
-// Shortcut: Start import-games job
 router.post('/jobs/import-games', async (req, res, next) => {
   try {
     const data = {
@@ -183,7 +172,6 @@ router.post('/jobs/import-games', async (req, res, next) => {
   }
 })
 
-// Shortcut: Start import-screenshots job
 router.post('/jobs/import-screenshots', async (_req, res, next) => {
   try {
     const job = await jobService.createJob('import-screenshots', {})
@@ -197,7 +185,6 @@ router.post('/jobs/import-screenshots', async (_req, res, next) => {
   }
 })
 
-// Shortcut: Start create-daily-challenge job
 router.post('/jobs/create-daily-challenge', async (_req, res, next) => {
   try {
     const job = await jobService.createJob('create-daily-challenge', {})
@@ -211,7 +198,6 @@ router.post('/jobs/create-daily-challenge', async (_req, res, next) => {
   }
 })
 
-// Shortcut: Start cleanup-anonymous-users job
 router.post('/jobs/cleanup-anonymous-users', async (_req, res, next) => {
   try {
     const job = await jobService.createJob('cleanup-anonymous-users', {})
@@ -225,8 +211,6 @@ router.post('/jobs/cleanup-anonymous-users', async (_req, res, next) => {
   }
 })
 
-// Shortcut: Start refresh-game-aliases job (RAWG alternative names -> aliases,
-// existing games only — imports nothing)
 router.post('/jobs/refresh-game-aliases', async (_req, res, next) => {
   try {
     const job = await jobService.createJob('refresh-game-aliases', {})
@@ -240,7 +224,6 @@ router.post('/jobs/refresh-game-aliases', async (_req, res, next) => {
   }
 })
 
-// Shortcut: Start clear-daily-data job
 router.post('/jobs/clear-daily-data', async (_req, res, next) => {
   try {
     const job = await jobService.createJob('clear-daily-data', {})
@@ -254,7 +237,6 @@ router.post('/jobs/clear-daily-data', async (_req, res, next) => {
   }
 })
 
-// Manual trigger: Import games
 router.post('/jobs/import-games/trigger', async (req, res, next) => {
   try {
     const data = {
@@ -273,7 +255,6 @@ router.post('/jobs/import-games/trigger', async (req, res, next) => {
   }
 })
 
-// Manual trigger: Import screenshots
 router.post('/jobs/import-screenshots/trigger', async (_req, res, next) => {
   try {
     const job = await jobService.createJob('import-screenshots', {})

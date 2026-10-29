@@ -1,15 +1,5 @@
 import type { Knex } from 'knex'
 
-// Long-tail mastery milestones that require new criteria_type handlers
-// in achievement.service:
-//   - `perfect_score_count`: cumulative count of perfect (2000-pt) sessions
-//   - `account_age_days`:    days since `users."createdAt"`
-//
-// Account-age milestones do NOT trigger from a game completion — they
-// fire from a daily BullMQ worker that scans active users. Sphinx
-// triggers naturally post-game-completion via the existing checker
-// pipeline.
-
 export async function up(knex: Knex): Promise<void> {
   const milestones = [
     {

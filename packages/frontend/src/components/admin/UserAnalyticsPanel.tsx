@@ -66,10 +66,6 @@ interface MiniBarChartProps {
   secondaryLabel: string
 }
 
-// Pure-CSS dual bar chart. Avoids pulling a charting lib for what is
-// essentially a 14-point sparkline; primary (active users) renders on
-// top in the gaming purple, secondary (signups) in cyan underneath so
-// both stay readable when one dwarfs the other.
 function MiniBarChart({ data, primaryLabel, secondaryLabel }: MiniBarChartProps) {
   const max = Math.max(1, ...data.flatMap((d) => [d.primary, d.secondary]))
   return (
@@ -160,9 +156,6 @@ interface FunnelStepsProps {
   lang: string
 }
 
-// Vertical funnel: each row is a horizontal bar sized to that step's
-// share of the first step. Lets the admin see drop-off between signup,
-// first play, and week-1 retention in one glance without a charting lib.
 function FunnelSteps({ steps, lang }: FunnelStepsProps) {
   return (
     <div className="space-y-2">
@@ -204,8 +197,6 @@ export function UserAnalyticsPanel() {
     setReloadKey((k) => k + 1)
   }
 
-  // `loading`/`error` start at their initial values (true / null) so the mount
-  // fetch only needs to write the settled outcome, no re-initialization here.
   useEffect(() => {
     let cancelled = false
     adminApi
@@ -272,7 +263,6 @@ export function UserAnalyticsPanel() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Headline metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           icon={<Users className="size-4" />}
@@ -316,7 +306,6 @@ export function UserAnalyticsPanel() {
         />
       </div>
 
-      {/* Retention + streak metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <StatCard
           icon={<CalendarClock className="size-4" />}
@@ -349,7 +338,6 @@ export function UserAnalyticsPanel() {
         />
       </div>
 
-      {/* 14-day timeline */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">
@@ -378,7 +366,6 @@ export function UserAnalyticsPanel() {
         </CardContent>
       </Card>
 
-      {/* Engagement distribution */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">
@@ -421,7 +408,6 @@ export function UserAnalyticsPanel() {
         </CardContent>
       </Card>
 
-      {/* === Churn metrics === */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           icon={<TrendingDown className="size-4" />}
@@ -465,7 +451,6 @@ export function UserAnalyticsPanel() {
         />
       </div>
 
-      {/* Dormancy lifecycle distribution */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">
@@ -513,7 +498,6 @@ export function UserAnalyticsPanel() {
         </CardContent>
       </Card>
 
-      {/* Signup → first-play funnel */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">
@@ -556,7 +540,6 @@ export function UserAnalyticsPanel() {
         </CardContent>
       </Card>
 
-      {/* At-risk power users (streak ≥3, idle 36h–7d) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -605,7 +588,6 @@ export function UserAnalyticsPanel() {
         </CardContent>
       </Card>
 
-      {/* Top players + recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <TopPlayersList
           title={t('admin.analytics.topBySessionsTitle')}
@@ -626,7 +608,6 @@ export function UserAnalyticsPanel() {
         />
       </div>
 
-      {/* Recently active users */}
       <RecentlyActiveTable rows={data.recentlyActive} lang={lang} never={never} />
     </div>
   )

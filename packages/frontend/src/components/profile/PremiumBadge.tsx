@@ -4,14 +4,9 @@ import { cn } from '@/lib/utils'
 
 interface PremiumBadgeProps {
   className?: string
-  // Compact: just the crown, no label. Used inline next to a name.
   compact?: boolean
 }
 
-// Entitlement-derived cosmetic. The component itself is dumb — render
-// it conditionally on `billingEntitlement?.isPremium` from the store.
-// Visual styling lives on `.premium-badge` in index.css so a future
-// theme tweak doesn't require touching this file.
 export function PremiumBadge({ className, compact = false }: PremiumBadgeProps) {
   const { t } = useTranslation()
   return (

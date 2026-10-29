@@ -19,12 +19,6 @@ const TIER_BG_CLASS = {
     low: 'bg-score-low',
 } as const
 
-/**
- * End-of-run recap: total count-up colored by the run's average tier,
- * one tier dot per round, and share / replay / back-to-browse actions.
- * Sharing is client-only (Web Share API with a clipboard fallback) —
- * an OG-image unfurl variant is a follow-up, not part of this slice.
- */
 export function RunRecap({
     scores,
     language,
@@ -40,15 +34,11 @@ export function RunRecap({
     const total = scores.reduce((sum, s) => sum + s, 0)
     const max = RUN_LENGTH * GEO_ROUND_MAX
     const tier = geoScoreTier(total / Math.max(1, scores.length))
-    // Index of the best round — starred in the bar chart. Only
-    // meaningful when at least one round actually scored points.
     const bestScore = Math.max(...scores)
     const bestIndex = bestScore > 0 ? scores.indexOf(bestScore) : -1
     const animatedTotal = useCountUp(total, 700)
     const [copied, setCopied] = useState(false)
 
-    // Basic dialog behavior: focus lands on the primary action, Escape
-    // closes back to free browse.
     const primaryRef = useRef<HTMLButtonElement>(null)
     useEffect(() => {
         primaryRef.current?.focus()
@@ -62,10 +52,6 @@ export function RunRecap({
     }, [onClose])
 
     const share = async () => {
-        // The share link carries the per-round scores — runs are
-        // client-side only, so the URL is the storage. The backend's
-        // /share/geo-run serves the SPA shell with OG meta pointing at
-        // the matching /api/og/geo-run.png card.
         const lang = language.toLowerCase().startsWith('fr') ? 'fr' : 'en'
         const shareUrl = `${window.location.origin}/share/geo-run?scores=${scores.join(',')}&lang=${lang}`
         const text = t('geo.play.run.shareText', {
@@ -84,7 +70,6 @@ export function RunRecap({
             await navigator.clipboard.writeText(text)
             setCopied(true)
         } catch {
-            /* user cancelled the share sheet — nothing to do */
         }
     }
 
@@ -105,7 +90,6 @@ export function RunRecap({
                     {t('geo.play.run.recapTitle', 'Run complete!')}
                 </h2>
 
-                {/* Static sentence for AT; the count-up below is aria-hidden. */}
                 <p className="sr-only">
                     {t('geo.play.run.recapAria', {
                         defaultValue: 'Total score {{score}} out of {{max}}',
@@ -127,10 +111,6 @@ export function RunRecap({
                     </span>
                 </p>
 
-                {/* One bar per round — height scales with the score,
-                    color follows the round's tier, and the best round
-                    gets a star. Reads round-by-round at a glance where
-                    the old 3px dots only encoded the tier. */}
                 <ul className="mt-5 flex items-end justify-center gap-2.5">
                     {scores.map((score, i) => {
                         const isBest = i === bestIndex

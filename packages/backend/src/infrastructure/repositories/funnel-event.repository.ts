@@ -18,10 +18,6 @@ export interface FunnelEventInput {
 }
 
 export const funnelEventRepository = {
-  /**
-   * Fire-and-forget event write. Never throws — analytics must not
-   * interfere with the core request.
-   */
   async record(event: FunnelEventInput): Promise<void> {
     try {
       await db('funnel_events').insert({
@@ -36,6 +32,5 @@ export const funnelEventRepository = {
   },
 }
 
-// Port conformance check — keep this in sync with FunnelEventRepository port.
 import type { FunnelEventRepository as FunnelEventRepositoryPort } from '../../domain/ports/repositories.js'
 export const _funnelEventRepositoryTypeCheck: FunnelEventRepositoryPort = funnelEventRepository

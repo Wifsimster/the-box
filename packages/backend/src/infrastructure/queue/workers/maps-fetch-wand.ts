@@ -8,12 +8,6 @@ import {
   type FetchOutcomeReport,
 } from './maps-fetch-runtime.js'
 
-/**
- * Pipeline-aware Wand.com map fetcher. Synthesises the wand.com URL from the
- * game's slug — wand.com/fr/maps/<slug> — and lets the existing scraper
- * extract the og:image. If the page 404s the orchestrator advances to the
- * next provider.
- */
 export async function runMapsFetchWand(input: {
   gameId: number
   correlationId?: string

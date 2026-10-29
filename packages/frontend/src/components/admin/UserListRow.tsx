@@ -51,7 +51,6 @@ function useFormatters() {
   return { formatDate, formatDateTime }
 }
 
-/** Premium / ban / delete action buttons shared by the card and table layouts. */
 function RowActions({
   user,
   entitlement,
@@ -61,7 +60,6 @@ function RowActions({
   user: User
   entitlement: BillingEntitlement | undefined
   onAction: (kind: UserActionKind, user: User) => void
-  /** Optional wrapper (e.g. a motion div) applied around each button. */
   wrap?: (children: React.ReactNode) => React.ReactNode
 }) {
   const { t } = useTranslation()

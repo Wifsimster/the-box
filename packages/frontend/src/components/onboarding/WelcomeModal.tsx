@@ -16,7 +16,6 @@ const STEP_KEYS = ['onboarding.step1', 'onboarding.step2', 'onboarding.step3', '
 
 export function WelcomeModal() {
   const { t } = useTranslation()
-  // Consume the flag lazily on mount so we never setState inside an effect.
   const [isOpen, setIsOpen] = useState(() => consumeWelcomeFlag())
 
   useEffect(() => {
@@ -24,8 +23,6 @@ export function WelcomeModal() {
     return () => setWelcomeActive(false)
   }, [isOpen])
 
-  // The guided tour is gone (daily-first, D8): both buttons just close the
-  // dialog. This modal is only mounted on /about.
   const handleClose = () => setIsOpen(false)
 
   return (

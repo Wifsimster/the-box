@@ -20,29 +20,23 @@ function Pagination({
     const pages: (number | "ellipsis")[] = []
     const delta = 1
 
-    // Always show first page
     pages.push(1)
 
-    // Calculate range around current page
     const rangeStart = Math.max(2, currentPage - delta)
     const rangeEnd = Math.min(totalPages - 1, currentPage + delta)
 
-    // Add ellipsis after first page if needed
     if (rangeStart > 2) {
       pages.push("ellipsis")
     }
 
-    // Add pages in range
     for (let i = rangeStart; i <= rangeEnd; i++) {
       pages.push(i)
     }
 
-    // Add ellipsis before last page if needed
     if (rangeEnd < totalPages - 1) {
       pages.push("ellipsis")
     }
 
-    // Always show last page if more than 1 page
     if (totalPages > 1) {
       pages.push(totalPages)
     }

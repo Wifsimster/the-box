@@ -1,10 +1,5 @@
 import type { Knex } from 'knex'
 
-/**
- * Adds referral tracking columns to the user table so a newly-registered
- * user can claim a referral code from another player. Each user may only
- * claim a referral once, enforced at the service layer.
- */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('user', (table) => {
     table.string('referred_by').nullable()

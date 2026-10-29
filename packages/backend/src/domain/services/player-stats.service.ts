@@ -1,10 +1,3 @@
-/**
- * Advanced player statistics.
- *
- * Pure shaping of the aggregates behind the premium profile panel. Kept out
- * of the route so the rounding and null-handling rules are testable without
- * a database, and out of the repository so the SQL has one job.
- */
 import type { AdvancedStats, PublicProfile, User } from '@the-box/types'
 import type { LogWriter } from '../ports/logger.js'
 import type {
@@ -14,10 +7,8 @@ import type {
 } from '../ports/player-stats.js'
 import type { Counter } from '../ports/analytics.js'
 
-/** Calendar months of progression the panel charts, including this one. */
 export const ADVANCED_STATS_MONTHS = 6
 
-/** Finished dailies listed on a public profile. */
 export const PUBLIC_PROFILE_RECENT_SESSIONS = 5
 
 function count(value: Counter): number {
@@ -29,23 +20,11 @@ function rounded(value: Counter): number {
   return Math.round(count(value))
 }
 
-/**
- * The streak fields, as the user record actually carries them — both are
- * optional there, and a user who has never played has neither.
- */
 export interface PlayerStreakSnapshot {
   currentStreak?: number | undefined
   longestStreak?: number | undefined
 }
 
-/**
- * Assemble the advanced-stats payload.
- *
- * Every aggregate is optional at the source — a brand-new premium user has
- * completed no sessions, so Postgres returns nulls for the percentiles and
- * no monthly rows at all. Each is coerced to 0 rather than propagating null,
- * because the panel renders numbers.
- */
 export function buildAdvancedStats(
   aggregates: AdvancedStatsAggregates,
   streaks: PlayerStreakSnapshot
@@ -77,23 +56,11 @@ export function buildAdvancedStats(
   }
 }
 
-/**
- * The user fields a public profile renders — a structural subset of `User`,
- * so the caller can pass the record it already fetched. Nothing sensitive
- * appears here: no email, no id in the output, and deliberately no session
- * id (it would let a visitor pivot to today's answers).
- */
 export type PublicProfileIdentity = Pick<
   User,
   'username' | 'displayName' | 'avatarUrl' | 'createdAt' | 'totalScore' | 'currentStreak' | 'longestStreak'
 >
 
-/**
- * Assemble a shareable public profile.
- *
- * Pure: the caller has already resolved the user and confirmed they are
- * not a guest. This only decides how the numbers are presented.
- */
 export function buildPublicProfile(
   identity: PublicProfileIdentity,
   aggregates: PublicProfileAggregates
@@ -119,7 +86,6 @@ export function buildPublicProfile(
 export interface PlayerStatsServiceDeps {
   logger: LogWriter
   playerStatsRepository: PlayerStatsRepository
-  /** Reads the streak columns; narrowed to the one method needed. */
   streakLookup: { findById(id: string): Promise<PlayerStreakSnapshot | null> }
 }
 
