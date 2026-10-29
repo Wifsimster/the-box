@@ -451,5 +451,8 @@ Seules exceptions, les directives d'outils qui changent un comportement et les e
 - shebang (`#!/usr/bin/env …`), `# syntax=` (Dockerfile), `# shellcheck …`, `# noqa`
 - commentaires magiques de bundler (`webpackChunkName`, `@vite-ignore`, …)
 - en-têtes de licence
+- `@deprecated` (une ligne, `/** @deprecated … */`)
 
-Fichiers générés (lockfiles, `*.gen.ts`, migrations et leur `meta/`, fichiers marqués générés) et Markdown : laissés tels quels.
+Fichiers générés (lockfiles, `*.gen.ts`, `meta/` des migrations, fichiers marqués générés) et Markdown : laissés tels quels. Les migrations SQL sont écrites à la main : elles sont nettoyées comme le reste du code.
+
+Sont aussi exemptés : les fichiers vendus (`.claude/hooks`, `.claude/config`, qui gardent leurs en-têtes Apache-2.0) et les documents HTML de `docs/` et `tasks/` (en-tête `SUMMARY` et commentaires inclus).

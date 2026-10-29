@@ -1,20 +1,59 @@
 #!/usr/bin/env bash
+#
+# File: .claude/hooks/bmad-tts-injector.sh
+#
+# AgentVibes - Finally, your AI Agents can Talk Back! Text-to-Speech WITH personality for AI Assistants!
+# Website: https://agentvibes.org
+# Repository: https://github.com/paulpreibisch/AgentVibes
+#
+# Co-created by Paul Preibisch with Claude AI
+# Copyright (c) 2025 Paul Preibisch
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# DISCLAIMER: This software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# express or implied. Use at your own risk. See the Apache License for details.
+#
+# ---
+#
+# @fileoverview BMAD TTS Injection Manager - Patches BMAD agents for TTS integration
+# @context Automatically modifies BMAD agent YAML files to include AgentVibes TTS capabilities
+# @architecture Injects TTS hooks into activation-instructions and core_principles sections
+# @dependencies bmad-core/agents/*.md files, play-tts.sh, bmad-voice-manager.sh
+# @entrypoints Called via bmad-tts-injector.sh {enable|disable|status|restore}
+# @patterns File patching with backup, provider-aware voice mapping, injection markers for idempotency
+# @related play-tts.sh, bmad-voice-manager.sh, .bmad-core/agents/*.md
+#
 
-set -e
+set -e  # Exit on error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
 GRAY='\033[0;90m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
+# Detect BMAD installation and version
+# Supports both v4 (.bmad-core/) and v6-alpha (.bmad/) installations
 detect_bmad() {
   local bmad_core_dir=""
 
+  # Check for v6-alpha first (newer version with dot prefix)
   if [[ -d ".bmad" ]]; then
     bmad_core_dir=".bmad"
   elif [[ -d "../.bmad" ]]; then
@@ -43,10 +82,12 @@ detect_bmad() {
   echo "$bmad_core_dir"
 }
 
+# Find all BMAD agents
 find_agents() {
   local bmad_core="$1"
   local agents_dir=""
 
+  # Check for v6-alpha structure (bmad/bmm/agents/)
   if [[ -d "$bmad_core/bmm/agents" ]]; then
     agents_dir="$bmad_core/bmm/agents"
   # Check for v4 structure (.bmad-core/agents/)
@@ -61,13 +102,16 @@ find_agents() {
   find "$agents_dir" -name "*.md" -type f
 }
 
+# Check if agent has TTS injection
 has_tts_injection() {
   local agent_file="$1"
 
+  # Check for v4 marker (YAML comment)
   if grep -q "# AGENTVIBES-TTS-INJECTION" "$agent_file" 2>/dev/null; then
     return 0
   fi
 
+  # Check for v6 marker (XML attribute or text)
   if grep -q "AGENTVIBES TTS INJECTION" "$agent_file" 2>/dev/null; then
     return 0
   fi
@@ -79,41 +123,51 @@ has_tts_injection() {
   return 1
 }
 
+# Extract agent ID from file
 get_agent_id() {
   local agent_file="$1"
 
+  # Look for "id: <agent-id>" in YAML block
   local agent_id=$(grep -E "^  id:" "$agent_file" | head -1 | awk '{print $2}' | tr -d '"' | tr -d "'")
 
   if [[ -z "$agent_id" ]]; then
+    # Fallback: use filename without extension
     agent_id=$(basename "$agent_file" .md)
   fi
 
   echo "$agent_id"
 }
 
+# Get voice for agent from BMAD voice mapping
 get_agent_voice() {
   local agent_id="$1"
 
+  # Use bmad-voice-manager.sh to get voice
   if [[ -f "$SCRIPT_DIR/bmad-voice-manager.sh" ]]; then
     local voice=$("$SCRIPT_DIR/bmad-voice-manager.sh" get-voice "$agent_id" 2>/dev/null || echo "")
     echo "$voice"
   fi
 }
 
+# Map voice name to provider-specific equivalent
 map_voice_to_provider() {
   local voice="$1"
   local provider="$2"
 
+  # Return as-is for macOS
   if [[ "$provider" == "macos" ]]; then
     echo "$voice"
     return
   fi
 
+  # For Piper, ensure we're using valid Piper voice format
+  # If already in Piper format (contains underscores), return as-is
   if [[ "$voice" == *"_"* ]]; then
     echo "$voice"
     return
   fi
 
+  # Map legacy voice names to Piper equivalents
   case "$voice" in
     "Jessica Anne Bogart"|"Aria")
       echo "en_US-lessac-medium"
@@ -131,12 +185,15 @@ map_voice_to_provider() {
       echo "en_US-libritts-high"
       ;;
     *)
+      # Default to amy for unknown voices
       echo "en_US-amy-medium"
       ;;
   esac
 }
 
+# Get current TTS provider
 get_current_provider() {
+  # Check project-local first, then global
   if [[ -f ".claude/tts-provider.txt" ]]; then
     cat ".claude/tts-provider.txt" 2>/dev/null || echo "piper"
   elif [[ -f "$HOME/.claude/tts-provider.txt" ]]; then
@@ -146,6 +203,7 @@ get_current_provider() {
   fi
 }
 
+# Inject TTS hook into agent activation instructions
 inject_tts() {
   local agent_file="$1"
   local agent_id=$(get_agent_id "$agent_file")
@@ -153,22 +211,27 @@ inject_tts() {
   local current_provider=$(get_current_provider)
   local agent_voice=$(map_voice_to_provider "$configured_voice" "$current_provider")
 
+  # Check if already injected
   if has_tts_injection "$agent_file"; then
     echo -e "${YELLOW}⚠️  TTS already injected in: $(basename "$agent_file")${NC}"
     return 0
   fi
 
+  # Create backup directory for centralized timestamped backups
   local backup_dir=".agentvibes/backups/agents"
   mkdir -p "$backup_dir"
 
+  # Create timestamped backup in central location (for permanent archive)
   local timestamp=$(date +%Y%m%d_%H%M%S)
   local backup_name="$(basename "$agent_file" .md)_${timestamp}.md"
   cp "$agent_file" "$backup_dir/$backup_name"
 
+  # Also create quick-restore backup next to original file
   cp "$agent_file" "$agent_file.backup-pre-tts"
 
   echo -e "${GRAY}   📦 Backup saved: $backup_dir/$backup_name${NC}"
 
+  # Detect v4 vs v6 structure
   local is_v6=false
   if grep -q "<activation" "$agent_file"; then
     is_v6=true
@@ -177,7 +240,9 @@ inject_tts() {
     return 1
   fi
 
+  # Create TTS injection script based on version
   if [[ "$is_v6" == "true" ]]; then
+    # v6 format: XML-style with <step n="4.5">
     local tts_step=""
     if [[ -n "$agent_voice" ]]; then
       tts_step="  <step n=\"4.5\" tts=\"agentvibes\">🎤 AGENTVIBES TTS INJECTION:
@@ -191,6 +256,8 @@ inject_tts() {
       - CRITICAL: Before EVERY response, scan for questions/prompts and speak them using Bash tool</step>"
     fi
 
+    # Insert after step 4 - only first match
+    # Note: Greeting is in step 5, but we inject after step 4 for proper ordering
     awk -v tts="$tts_step" '
       !done && /<step n="4">/ {
         print
@@ -201,6 +268,7 @@ inject_tts() {
       { print }
     ' "$agent_file" > "$agent_file.tmp"
 
+    # SAFETY CHECK: Verify the tmp file is not empty before comparing
     local tmp_size=$(stat -c%s "$agent_file.tmp" 2>/dev/null || stat -f%z "$agent_file.tmp" 2>/dev/null || echo "0")
     if [[ "$tmp_size" -eq 0 ]]; then
       echo -e "${RED}❌ SAFETY: Refusing to overwrite - tmp file is empty: $(basename "$agent_file")${NC}" >&2
@@ -209,9 +277,11 @@ inject_tts() {
       return 1
     fi
 
+    # If no change (step 4 didn't match), restore backup and report
     if ! diff -q "$agent_file.backup-pre-tts" "$agent_file.tmp" > /dev/null 2>&1; then
-      :
+      : # Changes were made, continue
     else
+      # No changes - step 4 pattern didn't match
       rm "$agent_file.tmp"
       mv "$agent_file.backup-pre-tts" "$agent_file"
       echo -e "${RED}❌ Could not find step 4 in: $(basename "$agent_file")${NC}"
@@ -219,6 +289,7 @@ inject_tts() {
     fi
 
   else
+    # v4 format: YAML-style with STEP 4:
     local activation_injection=""
     if [[ -n "$agent_voice" ]]; then
       activation_injection="  - # AGENTVIBES-TTS-INJECTION: STEP 3.5 - Announce activation with TTS
@@ -232,6 +303,7 @@ inject_tts() {
   - AGENTVIBES-TTS-INJECTION: Before every response, scan for questions and speak them using Bash tool"
     fi
 
+    # Insert after STEP 4: Greet
     awk -v activation="$activation_injection" '
       /STEP 4:.*[Gg]reet/ {
         print
@@ -241,6 +313,8 @@ inject_tts() {
       { print }
     ' "$agent_file" > "$agent_file.tmp"
 
+    # SAFETY CHECK: Verify the tmp file is not empty and has similar size to original
+    # This prevents data loss if awk fails or produces empty output
     local original_size=$(stat -c%s "$agent_file" 2>/dev/null || stat -f%z "$agent_file" 2>/dev/null || echo "0")
     local tmp_size=$(stat -c%s "$agent_file.tmp" 2>/dev/null || stat -f%z "$agent_file.tmp" 2>/dev/null || echo "0")
 
@@ -251,6 +325,8 @@ inject_tts() {
       return 1
     fi
 
+    # Tmp file should be at least 80% of original size (protects against truncation)
+    # No upper limit since injection adds substantial content (typically 300-500 bytes)
     local min_size=$((original_size * 80 / 100))
 
     if [[ "$tmp_size" -lt "$min_size" ]]; then
@@ -270,22 +346,27 @@ inject_tts() {
   fi
 }
 
+# Remove TTS injection from agent
 remove_tts() {
   local agent_file="$1"
 
+  # Check if has injection
   if ! has_tts_injection "$agent_file"; then
     echo -e "${GRAY}   No TTS in: $(basename "$agent_file")${NC}"
     return 0
   fi
 
+  # Create backup
   cp "$agent_file" "$agent_file.backup-tts-removal"
 
+  # Remove TTS injection lines
   sed -i.bak '/# AGENTVIBES-TTS-INJECTION/,+1d' "$agent_file"
   rm -f "$agent_file.bak"
 
   echo -e "${GREEN}✅ Removed TTS from: $(basename "$agent_file")${NC}"
 }
 
+# Show status of TTS injections
 show_status() {
   local bmad_core=$(detect_bmad)
   if [[ -z "$bmad_core" ]]; then
@@ -317,6 +398,7 @@ show_status() {
   echo -e "${CYAN}Summary:${NC} $enabled_count enabled, $disabled_count disabled"
 }
 
+# Enable TTS for all agents
 enable_all() {
   local bmad_core=$(detect_bmad)
   if [[ -z "$bmad_core" ]]; then
@@ -331,6 +413,7 @@ enable_all() {
   local skip_count=0
   local fail_count=0
 
+  # Track modified files and backups for summary
   local modified_files=()
   local backup_files=()
 
@@ -343,6 +426,7 @@ enable_all() {
     if inject_tts "$agent_file"; then
       success_count=$((success_count + 1))
       modified_files+=("$agent_file")
+      # Track the backup file that was created
       local timestamp=$(date +%Y%m%d_%H%M%S)
       local backup_name="$(basename "$agent_file" .md)_${timestamp}.md"
       backup_files+=(".agentvibes/backups/agents/$backup_name")
@@ -357,11 +441,13 @@ enable_all() {
   echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
   echo ""
 
+  # Show results
   echo -e "${GREEN}✅ Successfully modified: $success_count agents${NC}"
   [[ $skip_count -gt 0 ]] && echo -e "${YELLOW}⏭️  Skipped (already enabled): $skip_count agents${NC}"
   [[ $fail_count -gt 0 ]] && echo -e "${RED}❌ Failed: $fail_count agents${NC}"
   echo ""
 
+  # List modified files
   if [[ ${#modified_files[@]} -gt 0 ]]; then
     echo -e "${CYAN}📝 Modified Files:${NC}"
     for file in "${modified_files[@]}"; do
@@ -370,6 +456,7 @@ enable_all() {
     echo ""
   fi
 
+  # Show backup location
   if [[ ${#modified_files[@]} -gt 0 ]]; then
     echo -e "${CYAN}📦 Backups saved to:${NC}"
     echo -e "   .agentvibes/backups/agents/"
@@ -384,6 +471,7 @@ enable_all() {
   echo -e "${CYAN}💡 BMAD agents will now speak when activated!${NC}"
 }
 
+# Disable TTS for all agents
 disable_all() {
   local bmad_core=$(detect_bmad)
   if [[ -z "$bmad_core" ]]; then
@@ -406,6 +494,7 @@ disable_all() {
   echo -e "${GREEN}✅ TTS disabled for $success_count agents${NC}"
 }
 
+# Restore from backup
 restore_backup() {
   local bmad_core=$(detect_bmad)
   if [[ -z "$bmad_core" ]]; then
@@ -415,6 +504,7 @@ restore_backup() {
   echo -e "${CYAN}🔄 Restoring agents from backup...${NC}"
   echo ""
 
+  # Determine agents directory (v6 vs v4)
   local agents_dir=""
   if [[ -d "$bmad_core/bmm/agents" ]]; then
     agents_dir="$bmad_core/bmm/agents"
@@ -444,6 +534,7 @@ restore_backup() {
   fi
 }
 
+# Main command dispatcher
 case "${1:-help}" in
   enable)
     enable_all

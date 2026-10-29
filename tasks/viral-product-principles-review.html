@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>The Box — 31 Viral-Product Principles Review</title>
+<!-- SUMMARY:
+Scores The Box's landing/pricing/marketing surfaces against Marc Lou's "31 Principles of a Viral Product".
+Verdict: 6 PASS, 15 PARTIAL, 10 FAIL (after wiring the lifetime tier in this branch). Biggest gaps: no testimonials/social proof, no founder presence,
+no problem/empathy framing, hero leads with brand name not value, multiple competing CTAs, "does one thing" violated.
+Code finding (now fixed in this branch): supporter_lifetime was wired in types/docs/webhook/DB but missing from BILLING_CATALOG + checkout — now added as a one-time tier with a pricing card.
+Caveat: principles target paid SaaS landing pages; The Box is a freemium daily game, so "no free plan / hard paywall / no subscription" are intentionally off-strategy, not bugs.
+-->
 <style>
   :root {
     --bg: #0a0a0f;
@@ -44,6 +51,7 @@
 
   .meta { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
 
+  /* scoreboard */
   .board { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0; }
   .stat { flex: 1 1 120px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; }
   .stat .n { font-size: 1.8rem; font-weight: 700; font-family: "JetBrains Mono", monospace; }
@@ -105,6 +113,7 @@
   <h2>Per-principle scorecard</h2>
   <p class="meta">Click any row to expand evidence + recommendation.</p>
 
+  <!-- 1 -->
   <details class="principle">
     <summary><span class="num">01</span><span class="ptitle">No free plan</span><span class="badge fail">FAIL*</span></summary>
     <div class="body">
@@ -115,6 +124,7 @@
     </div>
   </details>
 
+  <!-- 2 -->
   <details class="principle">
     <summary><span class="num">02</span><span class="ptitle">Three colors</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -125,6 +135,7 @@
     </div>
   </details>
 
+  <!-- 3 -->
   <details class="principle">
     <summary><span class="num">03</span><span class="ptitle">Numbers instead of adjectives</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -137,6 +148,7 @@
     </div>
   </details>
 
+  <!-- 4 -->
   <details class="principle">
     <summary><span class="num">04</span><span class="ptitle">A footer people want to share</span><span class="badge fail">FAIL</span></summary>
     <div class="body">
@@ -147,6 +159,7 @@
     </div>
   </details>
 
+  <!-- 5 -->
   <details class="principle">
     <summary><span class="num">05</span><span class="ptitle">OG image = YouTube thumbnail</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -157,6 +170,7 @@
     </div>
   </details>
 
+  <!-- 6 -->
   <details class="principle">
     <summary><span class="num">06</span><span class="ptitle">One idea per screen</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -167,6 +181,7 @@
     </div>
   </details>
 
+  <!-- 7 -->
   <details class="principle">
     <summary><span class="num">07</span><span class="ptitle">Headline a fifth grader understands</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -177,6 +192,7 @@
     </div>
   </details>
 
+  <!-- 8 -->
   <details class="principle">
     <summary><span class="num">08</span><span class="ptitle">Hard paywall</span><span class="badge fail">FAIL*</span></summary>
     <div class="body">
@@ -185,6 +201,7 @@
     </div>
   </details>
 
+  <!-- 9 -->
   <details class="principle">
     <summary><span class="num">09</span><span class="ptitle">Copy only you could write</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -195,6 +212,7 @@
     </div>
   </details>
 
+  <!-- 10 -->
   <details class="principle">
     <summary><span class="num">10</span><span class="ptitle">Show the product before explaining it</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -205,6 +223,7 @@
     </div>
   </details>
 
+  <!-- 11 -->
   <details class="principle">
     <summary><span class="num">11</span><span class="ptitle">Does one thing</span><span class="badge fail">FAIL</span></summary>
     <div class="body">
@@ -215,6 +234,7 @@
     </div>
   </details>
 
+  <!-- 12 -->
   <details class="principle">
     <summary><span class="num">12</span><span class="ptitle">Popcorn pricing (Good / Better / Best)</span><span class="badge pass">PASS</span></summary>
     <div class="body">
@@ -225,6 +245,7 @@
     </div>
   </details>
 
+  <!-- 13 -->
   <details class="principle">
     <summary><span class="num">13</span><span class="ptitle">Rides a wave</span><span class="badge pass">PASS</span></summary>
     <div class="body">
@@ -233,6 +254,7 @@
     </div>
   </details>
 
+  <!-- 14 -->
   <details class="principle">
     <summary><span class="num">14</span><span class="ptitle">Steal your best copy from customers</span><span class="badge fail">FAIL</span></summary>
     <div class="body">
@@ -243,6 +265,7 @@
     </div>
   </details>
 
+  <!-- 15 -->
   <details class="principle">
     <summary><span class="num">15</span><span class="ptitle">A founder people can see and hear</span><span class="badge fail">FAIL</span></summary>
     <div class="body">
@@ -253,6 +276,7 @@
     </div>
   </details>
 
+  <!-- 16 -->
   <details class="principle">
     <summary><span class="num">16</span><span class="ptitle">Pricing impossible to miss</span><span class="badge pass">PASS</span></summary>
     <div class="body">
@@ -263,6 +287,7 @@
     </div>
   </details>
 
+  <!-- 17 -->
   <details class="principle">
     <summary><span class="num">17</span><span class="ptitle">Headline people remember next day</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -271,6 +296,7 @@
     </div>
   </details>
 
+  <!-- 18 -->
   <details class="principle">
     <summary><span class="num">18</span><span class="ptitle">An emotional headline</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -279,6 +305,7 @@
     </div>
   </details>
 
+  <!-- 19 -->
   <details class="principle">
     <summary><span class="num">19</span><span class="ptitle">Something people have never seen</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -287,6 +314,7 @@
     </div>
   </details>
 
+  <!-- 20 -->
   <details class="principle">
     <summary><span class="num">20</span><span class="ptitle">Sellable from the hero alone</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -297,6 +325,7 @@
     </div>
   </details>
 
+  <!-- 21 -->
   <details class="principle">
     <summary><span class="num">21</span><span class="ptitle">Empathy before selling</span><span class="badge fail">FAIL</span></summary>
     <div class="body">
@@ -305,6 +334,7 @@
     </div>
   </details>
 
+  <!-- 22 -->
   <details class="principle">
     <summary><span class="num">22</span><span class="ptitle">One call to action</span><span class="badge fail">FAIL</span></summary>
     <div class="body">
@@ -315,6 +345,7 @@
     </div>
   </details>
 
+  <!-- 23 -->
   <details class="principle">
     <summary><span class="num">23</span><span class="ptitle">A name people remember</span><span class="badge pass">PASS</span></summary>
     <div class="body">
@@ -323,6 +354,7 @@
     </div>
   </details>
 
+  <!-- 24 -->
   <details class="principle">
     <summary><span class="num">24</span><span class="ptitle">Sell a human desire, not a feature</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -331,6 +363,7 @@
     </div>
   </details>
 
+  <!-- 25 -->
   <details class="principle">
     <summary><span class="num">25</span><span class="ptitle">Let people try before buying</span><span class="badge pass">PASS</span></summary>
     <div class="body">
@@ -341,6 +374,7 @@
     </div>
   </details>
 
+  <!-- 26 -->
   <details class="principle">
     <summary><span class="num">26</span><span class="ptitle">No weak words</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">
@@ -351,6 +385,7 @@
     </div>
   </details>
 
+  <!-- 27 -->
   <details class="principle">
     <summary><span class="num">27</span><span class="ptitle">No subscription</span><span class="badge partial">PARTIAL ↑</span></summary>
     <div class="body">
@@ -361,6 +396,7 @@
     </div>
   </details>
 
+  <!-- 28 -->
   <details class="principle">
     <summary><span class="num">28</span><span class="ptitle">CTA says what happens next</span><span class="badge pass">PASS</span></summary>
     <div class="body">
@@ -371,6 +407,7 @@
     </div>
   </details>
 
+  <!-- 29 -->
   <details class="principle">
     <summary><span class="num">29</span><span class="ptitle">Don't launch without testimonials</span><span class="badge fail">FAIL</span></summary>
     <div class="body">
@@ -381,6 +418,7 @@
     </div>
   </details>
 
+  <!-- 30 -->
   <details class="principle">
     <summary><span class="num">30</span><span class="ptitle">Describable in under 10 words</span><span class="badge pass">PASS</span></summary>
     <div class="body">
@@ -391,6 +429,7 @@
     </div>
   </details>
 
+  <!-- 31 -->
   <details class="principle">
     <summary><span class="num">31</span><span class="ptitle">More expensive than competitors</span><span class="badge partial">PARTIAL</span></summary>
     <div class="body">

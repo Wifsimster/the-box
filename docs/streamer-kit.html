@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!--
+  SUMMARY: Streamer Kit — visual landing for the public API (2026-05-14).
+  Walks a streamer through the 3-step opt-in, then gives copy-paste recipes
+  for the three integration paths: Nightbot chat command, OBS browser-source
+  overlay (SSE), and webhook → chat. Grep-friendly reference lives in
+  docs/public-api.md; machine contract in docs/public-api.openapi.yaml.
+  Local-open / GitHub-rendered only — never served by Express.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -396,6 +404,7 @@ function verify(rawBody, header, secret) {
 </footer>
 
 <script>
+  // Active TOC highlight on scroll.
   (function () {
     const links = Array.from(document.querySelectorAll('aside.toc a'));
     const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
@@ -407,6 +416,7 @@ function verify(rawBody, header, secret) {
       }, { rootMargin: '-20% 0px -70% 0px' });
       targets.forEach(t => obs.observe(t));
     }
+    // Copy buttons on every code block.
     document.querySelectorAll('pre').forEach(pre => {
       const btn = document.createElement('button');
       btn.className = 'copy-btn';

@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!-- SUMMARY: Security review of the 4 GitHub Actions workflows (ci, release, deploy, pages) as of 2026-06-09,
+with remediations applied in the same PR. Fixed: npm lifecycle scripts with write token (F2), prod logs in
+public Actions logs (F3), SHA-pinning + Dependabot (F4), expression injection via env vars + semver guard (F5).
+Remaining manual action: F1 — repo setting "Require approval for all outside collaborators" plus an ephemeral
+or pull-based deploy runner for the self-hosted homelab box. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">

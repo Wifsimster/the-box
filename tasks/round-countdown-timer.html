@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+<!-- SUMMARY:
+  Per-screenshot 45s countdown for the daily game. Circular ring top-left (mirrors score panel),
+  purple→yellow→red bands, "Temps écoulé !" on expiry. Timeout = permanent miss (new 'timed_out'
+  status, non-revisitable, revealed as unfound at end). Client-only (no server enforcement v1).
+  timeLimitSeconds plumbed through ScreenshotResponse (default 45). Tested via page.clock e2e +
+  pure-helper unit tests. Outcome of the UX/architect/QA sub-agent design meeting.
+  v2: per-position active-time budget (timeSpentMs) so navigating away and back RESUMES the
+  countdown instead of resetting it — closes the skip-and-return exploit (incl. the speed multiplier).
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8" />

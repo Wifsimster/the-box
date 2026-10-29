@@ -137,9 +137,13 @@ export interface Guess {
 export type PowerUpType =
   | 'x2_timer'
   | 'hint'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — appears on historical `guesses.power_up_used` values only, never on new guesses. */
   | 'hint_year'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_publisher'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_developer'
+  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_genre'
   | 'hint_letter'
 
@@ -896,6 +900,7 @@ export interface GeoMap {
   zoneSlug?: string
   provider?: string
   isSelected?: boolean
+  /** @deprecated Kept for one release; mirrors `isSelected`. */
   isCaptureDefault?: boolean
 }
 

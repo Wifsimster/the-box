@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<!--
+  SUMMARY: Hint rework — subagents meeting record (2026-06-10).
+  Users say the metadata hints (year/publisher/developer/genre) don't help you
+  name the game. Four agents (Game Design, UX, Backend, Economy) agreed: the
+  complaint is valid — metadata answers the wrong question. Outcome: ADD a
+  server-authoritative masked-title "letter reveal" as a new scarce top-tier
+  power-up; do NOT delete the four metadata hints (keeps the login economy,
+  inventory, and historical stats intact). Convex per-letter penalty, hard cap
+  so the prefix can never satisfy the fuzzy matcher, premium gated off the ranked
+  daily. One open decision: keep or drop the "first wrong guess" gate.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -459,6 +470,7 @@
 </footer>
 
 <script>
+  // Active TOC highlight on scroll. Inline, vanilla, ~25 lines.
   (function () {
     const links = Array.from(document.querySelectorAll('aside.toc a'));
     const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
