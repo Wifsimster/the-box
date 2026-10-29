@@ -21,12 +21,6 @@ interface RewardsInboxBellProps {
     className?: string
 }
 
-/**
- * Bell icon + drawer that surfaces async reward grants (reactivation,
- * milestones, payouts, …). The drawer reuses the `Sheet` primitive used by
- * the mobile menu so the visual language stays consistent. No toast on
- * arrival — the badge counter is the only signal, by design.
- */
 export function RewardsInboxBell({ className }: RewardsInboxBellProps) {
     const { t } = useTranslation()
     const { session } = useAuth()
@@ -39,13 +33,10 @@ export function RewardsInboxBell({ className }: RewardsInboxBellProps) {
     const unclaimed = useRewardsStore((s) => s.unclaimed)
     const isLoading = useRewardsStore((s) => s.isLoading)
 
-    // Wire the cross-cutting `reward:granted` window listener once.
     useEffect(() => {
         wireRewardsSocketListener()
     }, [])
 
-    // Fetch on session boundary changes. Reset on sign-out so a different
-    // user doesn't briefly see the previous user's inbox.
     useEffect(() => {
         if (!userId) {
             reset()
@@ -60,8 +51,6 @@ export function RewardsInboxBell({ className }: RewardsInboxBellProps) {
     const handleOpenChange = (open: boolean) => {
         if (open) {
             openInbox()
-            // Reconcile: pull authoritative list whenever the user opens the
-            // drawer. Cheap, and protects against missed socket emits.
             void fetchUnclaimed()
         } else {
             closeInbox()

@@ -24,16 +24,11 @@ describe('scoreMapTitle', () => {
   })
 
   it('rejects a title with zero game-specific evidence (-Infinity gate)', () => {
-    // Regression: a franchise-wide wiki (one subdomain covering every
-    // installment) must never let an unrelated title win just because it's
-    // "the least bad" of a bad batch.
     const score = scoreMapTitle('Western Ghats', 'Uncharted 2: Among Thieves', 'uncharted-2-among-thieves')
     assert.equal(score, Number.NEGATIVE_INFINITY)
   })
 
   it('rejects a generic title that shares no distinguishing token with the game', () => {
-    // Regression: "Overworld" alone carries no evidence it's Ocarina of Time
-    // rather than the 1986 original hosted on the same legendofzelda wiki.
     const score = scoreMapTitle(
       'Overworld',
       'The Legend of Zelda: Ocarina of Time',
@@ -45,8 +40,6 @@ describe('scoreMapTitle', () => {
 
 describe('pickBestMapTitle', () => {
   it('picks the canonical map for Uncharted 2, never a Lost Legacy page', () => {
-    // Uncharted 2: Among Thieves must never bind to Lost Legacy content even
-    // when both live under the same franchise-wide Fandom subdomain.
     const titles = ['Western Ghats', 'Shambhala', 'Nepal']
     const best = pickBestMapTitle(titles, 'Uncharted 2: Among Thieves', 'uncharted-2-among-thieves')
     assert.equal(best, null)
@@ -59,8 +52,6 @@ describe('pickBestMapTitle', () => {
   })
 
   it('picks the Ocarina of Time map, never the 1986 original', () => {
-    // Ocarina of Time must never bind to the 1986 The Legend of Zelda dungeon
-    // map even though both live under legendofzelda.fandom.com.
     const titles = ['Overworld', 'Dungeon 1', 'Ocarina of Time World Map']
     const best = pickBestMapTitle(
       titles,
@@ -118,8 +109,6 @@ describe('fandomMapTitleAcceptable', () => {
   })
 
   it('REJECTS a sibling map that shares only franchise tokens (OoT regression)', () => {
-    // The gap #338's scoreMapTitle misses: this scores 16 (shares legend/zelda)
-    // and would otherwise be picked as Ocarina of Time's map.
     assert.equal(
       fandomMapTitleAcceptable(
         'Level 1 (First Quest) (The Legend of Zelda)',

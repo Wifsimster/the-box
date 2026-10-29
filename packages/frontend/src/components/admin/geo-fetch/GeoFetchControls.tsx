@@ -27,9 +27,6 @@ export function GeoFetchControls() {
     hydrate,
     games,
   } = useGeoFetchStore()
-  // Confirm dialogs for the two destructive actions: "Lancer tout" can
-  // enqueue jobs against every curated game, and "Annuler" stops every
-  // in-flight ingestion. A stray click on either is a real outage.
   const [startConfirmOpen, setStartConfirmOpen] = useState(false)
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
   const visibleCount = Object.keys(games).length

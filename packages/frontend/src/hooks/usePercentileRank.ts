@@ -4,23 +4,11 @@ import type { PercentileResult } from '@/services/types'
 import { displayableStanding } from '@/lib/standing'
 
 interface PercentileRankInput {
-  /**
-   * The session to place. When set, the standing comes from the server's
-   * stored session score (`/leaderboard/session/:id/standing`), never from a
-   * locally cached score that another device may have outdated.
-   */
   sessionId: string | null
-  /** Fallback only, used when there is no session id. */
   score: number
   enabled: boolean
 }
 
-/**
- * Fetches the player's leaderboard standing for the results page.
- *
- * Whatever the source, the returned numbers pass {@link displayableStanding},
- * so `rank <= totalPlayers` holds or the banner is hidden.
- */
 export function usePercentileRank({ sessionId, score, enabled }: PercentileRankInput) {
   const [data, setData] = useState<{ key: string; result: PercentileResult | null } | null>(null)
   const [error, setError] = useState<Error | null>(null)
@@ -46,7 +34,6 @@ export function usePercentileRank({ sessionId, score, enabled }: PercentileRankI
         if (!cancelled) {
           const error = err instanceof Error ? err : new Error('Unknown error')
           setError(error)
-          // No rank beats a rank computed from a score we cannot trust.
           setData({ key, result: null })
           console.warn('Failed to fetch standing:', error)
         }
@@ -60,7 +47,6 @@ export function usePercentileRank({ sessionId, score, enabled }: PercentileRankI
     }
   }, [leaderboardService, active, key, sessionId, score])
 
-  // Only trust a payload fetched for the current session/score.
   const current = data?.key === key ? data.result : null
   const standing = displayableStanding(current ?? {})
 

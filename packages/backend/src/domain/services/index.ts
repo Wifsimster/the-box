@@ -1,16 +1,3 @@
-/**
- * Domain service barrel — factories and types ONLY.
- *
- * This module must never import from `infrastructure/`. The dependency rule
- * is presentation -> domain -> (ports), with the domain depending outward on
- * nothing; a composition root that lives inside the layer it is supposed to
- * keep pure inverts that rule and makes the whole domain un-importable
- * without booting Redis, Postgres and a Socket.io server.
- *
- * The pre-wired singletons built from these factories live one level up, in
- * `src/composition/services.ts`. Import factories and types from here;
- * import ready-to-use instances from there.
- */
 export { AuthError } from './auth.service.js'
 export { createGameService, type GameService, GameError } from './game.service.js'
 export { createLeaderboardService, type LeaderboardService } from './leaderboard.service.js'

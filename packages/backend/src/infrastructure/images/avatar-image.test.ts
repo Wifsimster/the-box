@@ -23,7 +23,6 @@ describe('normalizeAvatarImage', () => {
 
   it('turns a wide JPEG with EXIF into a 512x512 WebP without metadata', async () => {
     const input = path.join(tmp, 'wide.jpg')
-    // Left half red, right half blue, plus EXIF that must not survive.
     await sharp({
       create: { width: 1200, height: 600, channels: 3, background: { r: 255, g: 0, b: 0 } },
     })
@@ -57,7 +56,6 @@ describe('normalizeAvatarImage', () => {
     assert.equal(meta.orientation, undefined)
     assert.ok(!fs.readFileSync(output).includes('secret-owner'))
 
-    // Centre crop: the left edge comes from the red half, the right edge from the blue half.
     const { data, info } = await sharp(output).raw().toBuffer({ resolveWithObject: true })
     const px = (x: number, y: number): [number, number, number] => {
       const i = (y * info.width + x) * info.channels
@@ -70,14 +68,12 @@ describe('normalizeAvatarImage', () => {
   })
 
   it('applies the EXIF orientation before cropping', async () => {
-    // Stored 600x300 (landscape) with orientation 6 (rotate 90° CW): displayed portrait.
     const input = path.join(tmp, 'rotated.jpg')
     await sharp({
       create: { width: 600, height: 300, channels: 3, background: { r: 0, g: 255, b: 0 } },
     })
       .composite([
         {
-          // Top band of the stored image; after a 90° CW rotation it becomes the right band.
           input: await sharp({
             create: { width: 600, height: 60, channels: 3, background: { r: 255, g: 0, b: 0 } },
           })
@@ -109,7 +105,6 @@ describe('normalizeAvatarImage', () => {
       sharp({ create: { width: 64, height: 64, channels: 3, background: { r, g: 0, b } } })
         .raw()
         .toBuffer()
-    // Two 64x64 frames: red, then blue.
     const frames = Buffer.concat([await frame(255, 0), await frame(0, 255)])
     await sharp(frames, { raw: { width: 64, height: 128, channels: 3, pageHeight: 64 } })
       .gif({ delay: [100, 100], loop: 0 })

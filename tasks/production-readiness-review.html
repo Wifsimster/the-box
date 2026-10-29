@@ -1,12 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SUMMARY: Pre-launch review of The Box (2026-05-11). Verdict: NOT ready to ship.
-  11 BLOCKERs across security, game-correctness, queues, and deploy. Top risks:
-  Socket.io namespaces accept any client (IDOR + admin leak), BETTER_AUTH_SECRET
-  has a known dev default, client-supplied timer enables score abuse, game/daily
-  submissions are not transactional, no SIGTERM handling, importQueue grows
-  Redis forever. Fix the 11 BLOCKERs before any production deploy.
--->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -235,7 +227,6 @@
   </tbody>
 </table>
 
-<!-- ======================= BLOCKERS ======================= -->
 <h2 id="blockers">Blockers</h2>
 
 <div class="issue blocker">
@@ -468,7 +459,6 @@ export const importQueue = new Queue('import', {
   </p>
 </div>
 
-<!-- ======================= HIGH ======================= -->
 <h2 id="high">High severity</h2>
 
 <div class="issue high">
@@ -596,7 +586,6 @@ process.on('uncaughtException',  (err) =&gt; { logger.fatal({ err }, 'uncaughtEx
   </p>
 </div>
 
-<!-- ======================= MEDIUM ======================= -->
 <h2 id="medium">Medium severity</h2>
 
 <div class="issue medium">
@@ -700,7 +689,6 @@ pg_dump ... | gzip &gt; "$F.tmp" &amp;&amp; mv "$F.tmp" "$F" || { logger 'backup
   </p>
 </div>
 
-<!-- ======================= CHECKLIST ======================= -->
 <h2 id="nogo">Pre-ship checklist</h2>
 <p>Minimum bar to unblock launch:</p>
 <ul class="checklist">
@@ -719,7 +707,6 @@ pg_dump ... | gzip &gt; "$F.tmp" &amp;&amp; mv "$F.tmp" "$F" || { logger 'backup
   <li>Manual smoke: register two users, play a daily, claim a daily-login, hit the admin panel, force a worker restart, confirm graceful shutdown logs.</li>
 </ul>
 
-<!-- ======================= CLEAN ======================= -->
 <h2 id="noissue">Areas verified clean</h2>
 <p>
   Surfaces examined during the audits where no blocking or high-severity

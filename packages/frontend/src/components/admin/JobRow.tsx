@@ -39,7 +39,6 @@ function formatInterval(ms: number): string {
 }
 
 function formatCronPattern(pattern: string, t: (key: string) => string): string {
-  // Common cron patterns
   if (pattern === '0 0 * * *') {
     return t('admin.jobs.atMidnight')
   }
@@ -266,10 +265,8 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
           </Button>
         </div>
 
-        {/* Collapsible Content */}
         <CollapsibleContent className="px-3 sm:px-4 pb-3 sm:pb-4">
           <div className="mt-2 pt-3 border-t border-border/50 space-y-3">
-            {/* Description */}
             <div className="flex gap-2">
               <Info className="size-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
@@ -277,9 +274,7 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
               </p>
             </div>
 
-            {/* Periodicity & Schedule */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Interval */}
               {job.every && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
                   <Timer className="size-3.5 text-neon-purple shrink-0" />
@@ -294,7 +289,6 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 </div>
               )}
 
-              {/* Cron Pattern */}
               {job.pattern && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
                   <Clock className="size-3.5 text-neon-purple shrink-0" />
@@ -309,7 +303,6 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 </div>
               )}
 
-              {/* Next Run */}
               {job.nextRun && !job.isActive && !job.isManual && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-background/50">
                   <Calendar className="size-3.5 text-neon-purple shrink-0" />
@@ -324,7 +317,6 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 </div>
               )}
 
-              {/* Manual Job Indicator */}
               {job.isManual && !job.isActive && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-score-low/10">
                   <Play className="size-3.5 text-score-low shrink-0" />
@@ -339,7 +331,6 @@ export function JobRow({ job, isExpanded, isJobLoading, onToggle, onTrigger }: J
                 </div>
               )}
 
-              {/* Status */}
               {job.isActive && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-neon-blue/10">
                   <Loader2 className="size-3.5 text-neon-blue shrink-0 animate-spin" />

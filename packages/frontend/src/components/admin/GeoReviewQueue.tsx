@@ -47,8 +47,6 @@ interface CandidateGroup {
     candidates: GeoScreenshotCandidate[]
 }
 
-// Bucket candidates by their owning game so the Pins list renders one
-// section per game instead of a flat #id list.
 function groupCandidatesByGame(candidates: GeoScreenshotCandidate[]): CandidateGroup[] {
     const groups = new Map<number, CandidateGroup>()
     for (const c of candidates) {
@@ -125,8 +123,6 @@ async function rejectCandidate(id: number): Promise<void> {
     }
 }
 
-// Returns the candidate the moderator should triage *after* `currentId`, using
-// the same flat (group-aware) ordering the UI renders.
 function pickNextAfter(
     rows: GeoScreenshotCandidate[],
     currentId: number,
@@ -144,7 +140,6 @@ function pickNextAfter(
     return flat[0]
 }
 
-// Map each candidate status to a Badge variant.
 function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 'outline' {
     switch (status) {
         case 'promoted':
@@ -158,7 +153,6 @@ function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 
     }
 }
 
-// Days between `iso` and now, rounded down to whole days.
 function daysSince(iso: string | null): number | null {
     if (!iso) return null
     const ts = Date.parse(iso)
@@ -181,9 +175,6 @@ function summaryCountFor(s: GeoCandidateGameSummary, statusFilter: StatusFilter)
     }
 }
 
-// The candidate list / detail / dialog flags are one cohesive review slice that
-// must update atomically (e.g. promoting advances to the next candidate while
-// clearing the pin and error), so they live in a single reducer.
 type ReviewDialog = 'reject' | 'demote' | 'intro' | null
 
 interface QueueState {
@@ -410,7 +401,6 @@ export function GeoReviewQueue({
     return (
         <>
             <p className="text-sm text-muted-foreground">{t('admin.geo.tabs.queueDescription')}</p>
-            {/* Status filter */}
             <fieldset
                 className="m-0 flex flex-wrap items-center gap-2 border-0 p-0"
                 aria-label={t('admin.geo.statusFilter.label')}

@@ -26,9 +26,6 @@ import { routeLogger } from '../../infrastructure/logger/logger.js'
 import { geoQueue } from '../../infrastructure/queue/queues.js'
 import { emitGeoRewarded } from '../../infrastructure/socket/socket.js'
 
-// Granted to the user who places the very first pin on a candidate. Sized
-// to match the smallest accuracy reward (1σ hit) so discovery is encouraged
-// without dwarfing the consensus-based grants that follow.
 const FIRST_PIN_REWARD = {
   itemType: 'powerup' as const,
   itemKey: 'hint_letter' as const,
@@ -39,16 +36,11 @@ const log = routeLogger.child({ route: 'geo' })
 
 const router = Router()
 
-// ---------- Schemas ----------
-
 const pointSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
 })
 
-// Self-reported confidence on a pin: 1 = sure, 2 = approximate,
-// 3 = pure guess. Optional — an unspecified value is treated as
-// "sure" by the consensus weighter (defined in a follow-up).
 const confidenceSchema = z
   .union([z.literal(1), z.literal(2), z.literal(3)])
   .optional()
@@ -63,8 +55,6 @@ const contributePickBodySchema = z.object({
   gameId: z.number().int().positive(),
 })
 
-// ---- Free-play schemas (unranked, all-games-all-maps browser) ----
-
 const gameIdParamSchema = z.object({
   gameId: z.coerce.number().int().positive(),
 })
@@ -72,9 +62,6 @@ const gameIdParamSchema = z.object({
 const freePlayPickBodySchema = z.object({
   gameId: z.number().int().positive(),
   geoMapId: z.number().int().positive().optional(),
-  // Client-tracked list of meta IDs the user has already played. The
-  // server filters them out so a single session never sees the same
-  // screenshot twice. Capped to keep the WHERE NOT IN payload bounded.
   excludeMetaIds: z.array(z.number().int().positive()).max(1000).optional(),
 })
 
@@ -84,18 +71,12 @@ const freePlayGuessBodySchema = z.object({
   guess: pointSchema,
 })
 
-// ---------- Crowdsourced contribution ----------
-
 router.post(
   '/contribute/pick',
   authMiddleware,
   validateBody(contributePickBodySchema),
   async (req, res, next) => {
     try {
-      // Anonymous (guest) sessions are accepted: skipping the days-played
-      // unlock gate, but their pins are flagged `is_anonymous` and
-      // downweighted by the consensus pipeline. Per-user hourly rate
-      // limit still applies via geo-game.service.
       const userId = req.userId!
       const isAnonymous = req.isGuest === true
       const { gameId } = req.body as z.infer<typeof contributePickBodySchema>
@@ -152,7 +133,6 @@ router.post(
 
       const stats = await geoContributorRepository.getStats(userId)
       if (stats?.shadowBanned) {
-        // Silently accept to deny feedback to bad actors; don't store/bump stats.
         log.warn({ userId }, 'shadow-banned pin — silently dropped')
         res.json({ success: true, data: { received: true } })
         return
@@ -170,8 +150,6 @@ router.post(
         const newPinCount =
           await geoScreenshotRepository.incrementPinCount(geoScreenshotCandidateId)
 
-        // First-pin reward: the increment is atomic, so exactly one
-        // submitter ever sees newPinCount === 1 per candidate.
         if (newPinCount === 1) {
           try {
             await inventoryRepository.addItems(
@@ -190,11 +168,6 @@ router.post(
           }
         }
 
-        // Enqueue consensus evaluation; carry the post-increment pin count
-        // in the payload so the worker can gate threshold checks on the
-        // value at submit-time. Without this, two near-simultaneous pins
-        // can both step past a threshold (e.g. 9 → 10 → 11) and the worker
-        // re-reads pin_count = 11 for both, never evaluating at 10.
         try {
           await geoQueue.add('evaluate-consensus', {
             kind: 'evaluate-consensus',
@@ -212,8 +185,6 @@ router.post(
     }
   },
 )
-
-// ---------- Contributor stats ----------
 
 router.get('/contributor/me', authMiddleware, async (req, res, next) => {
   try {
@@ -236,8 +207,6 @@ router.get('/contributor/me', authMiddleware, async (req, res, next) => {
           shadowBanned: false,
         },
         thresholds,
-        // Stateless convenience: what tier *would* this user have right now?
-        // Useful for showing a "one more accepted pin to Silver!" hint client-side.
         computedTier: stats
           ? geoContributorService.pickTier(
               { totalAccepted: stats.totalAccepted, accuracy: stats.accuracy },
@@ -256,14 +225,6 @@ router.get('/contributor/me', authMiddleware, async (req, res, next) => {
   }
 })
 
-// ---------- Free-play (unranked, all-games-all-maps browser) ----------
-
-// Rate limits for the free-play endpoints. Without these, an unauthenticated
-// scraper can systematically extract every promoted answer (canonical
-// coordinates) by submitting one fake guess per screenshot. Per-IP keying
-// because these routes use optionalAuthMiddleware (anon access is allowed
-// for browsing but bounded). Numbers chosen to be generous for legit play
-// but tight enough that bulk extraction is impractical.
 const freePlayPickLimiter = createRateLimiter({ windowMs: 60_000, max: 60 })
 const freePlayGuessLimiter = createRateLimiter({ windowMs: 60_000, max: 30 })
 const freePlayCatalogLimiter = createRateLimiter({ windowMs: 60_000, max: 120 })
@@ -283,10 +244,6 @@ router.get(
   },
 )
 
-// Public dataset social-proof counter: total pins submitted today
-// (UTC). Surfaced on the empty/first-run state so a cold visitor
-// immediately sees they're joining an active community. Cached for
-// 30 s so a paged hit doesn't translate to a per-request COUNT(*).
 router.get(
   '/stats/today',
   optionalAuthMiddleware,
@@ -319,11 +276,6 @@ router.get(
   },
 )
 
-// Free-play is open to every authenticated user — the immediate goal
-// is dataset growth (screenshot ↔ map-coordinate pairs). The future
-// "guess the location" gameplay layered on top of this dataset will be
-// premium, but the contribution surface stays free. Anonymous callers
-// still get 401 so the UI can prompt for sign-in.
 router.post(
   '/free-play/random',
   authMiddleware,
@@ -340,9 +292,6 @@ router.post(
         excludeMetaIds,
       })
       if (!view) {
-        // If the exclusion list ate the only remaining candidates,
-        // surface a distinct code so the UI can offer "reset history"
-        // instead of the generic empty-catalog message.
         if (excludeMetaIds && excludeMetaIds.length > 0) {
           const fallback = await geoGameService.pickFreePlayScreenshot({
             gameId,

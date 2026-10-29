@@ -37,7 +37,6 @@ describe('refreshAliasesForGames', () => {
     })
 
     assert.deepEqual(lookups, [100, 'the-sims-4', 300, 400])
-    // Sims: the only RAWG name duplicates the curated alias -> no write.
     assert.deepEqual(saved, [[1, ['Pokémon Épée']]])
     assert.deepEqual(progress, [1, 2, 3, 4])
     assert.equal(result.gamesProcessed, 4)

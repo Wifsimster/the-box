@@ -8,15 +8,12 @@ export function useLocalizedPath() {
   const currentLang = lang || i18n.language
 
   const localizedPath = (path: string) => {
-    // If path already starts with language prefix, return as-is
     if (path.startsWith(`/${currentLang}`)) {
       return path
     }
-    // Handle root path
     if (path === '/') {
       return `/${currentLang}`
     }
-    // Add language prefix
     return `/${currentLang}${path.startsWith('/') ? path : `/${path}`}`
   }
 

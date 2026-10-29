@@ -24,11 +24,6 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { tabContent, pageTransition, fadeInLeft } from '@/lib/animations'
 import { Settings, ListTodo, Gamepad2, Users, Mail, MailCheck, TrendingUp, Compass, BarChart3, MessageSquareText } from 'lucide-react'
 
-// Two old tabs were folded into the unified `geo` hub:
-//   - `reports`  → sub-tab `reports`
-//   - `geoFetch` → sub-tab `acquisition` (the standalone "Cartes" surface
-//                  duplicated triggers exposed under Géo › Catalogue)
-// Bookmarks for either land on the right sub-tab via REDIRECT_TABS.
 const VALID_TABS = ['jobs', 'games', 'users', 'analytics', 'email', 'emailLog', 'growth', 'geo', 'describeGuess', 'settings']
 const REDIRECT_TABS: Record<string, { tab: string; sub?: string }> = {
   reports: { tab: 'geo', sub: 'reports' },
@@ -45,8 +40,6 @@ export default function AdminPage() {
   const isMobile = useIsMobile()
   const [isPanelMinimized, setIsPanelMinimized] = useState(true)
   const tabsRef = useRef<HTMLDivElement>(null)
-  // On mobile the JobQueuePanel overlays the page instead of pushing it,
-  // so only reserve right padding on viewports where the panel docks.
   const sidebarOffset = !isMobile && !isPanelMinimized ? '480px' : '0'
 
   const {
@@ -67,12 +60,9 @@ export default function AdminPage() {
     { id: 'settings', label: t('admin.tabs.settings'), icon: <Settings className="size-4" /> },
   ]
 
-  // Get active tab from URL, default to 'jobs' if not present or invalid
   const tabFromUrl = searchParams.get('tab')
   const activeTab = tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : DEFAULT_TAB
 
-  // Handle tab change - update URL. Drop the `sub` param when switching
-  // away so a stale Géo sub-tab marker doesn't ride along into other tabs.
   const handleTabChange = (tabId: string) => {
     if (VALID_TABS.includes(tabId)) {
       const newSearchParams = new URLSearchParams(searchParams)
@@ -86,9 +76,6 @@ export default function AdminPage() {
     }
   }
 
-  // Clean up invalid tab parameters from URL. Old tab ids that have been
-  // folded into the Géo hub (`reports`, `geoFetch`) get rewritten so
-  // bookmarks land on the right sub-tab.
   useEffect(() => {
     const currentTab = searchParams.get('tab')
     if (!currentTab) return
@@ -108,22 +95,18 @@ export default function AdminPage() {
     setSearchParams(newSearchParams, { replace: true })
   }, [searchParams, setSearchParams])
 
-  // The tab strip scrolls sideways on phones; keep the active tab in view
-  // when it is restored from the URL or picked near an edge.
   useEffect(() => {
     const active = tabsRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     active?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduceMotion ? 'auto' : 'smooth' })
   }, [activeTab, isPending])
 
-  // Redirect non-admins
   useEffect(() => {
     if (!isPending && (!session || session.user?.role !== 'admin')) {
       navigate(`/${lang || 'en'}`)
     }
   }, [session, isPending, navigate, lang])
 
-  // Fetch initial data
   useEffect(() => {
     if (session?.user?.role === 'admin') {
       fetchRecurringJobs()
@@ -144,7 +127,7 @@ export default function AdminPage() {
   }
 
   if (!session || session.user?.role !== 'admin') {
-    return null // Will redirect
+    return null
   }
 
   return (
@@ -155,7 +138,6 @@ export default function AdminPage() {
       exit="exit"
       className="flex min-h-[var(--page-h)]"
     >
-      {/* Main Content Area */}
       <div className="flex-1 min-w-0 transition-all duration-300" style={{ paddingRight: sidebarOffset }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <m.div
@@ -207,7 +189,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Permanent Job Queue Panel */}
       <JobQueuePanel onMinimizedChange={setIsPanelMinimized} />
     </m.div>
   )

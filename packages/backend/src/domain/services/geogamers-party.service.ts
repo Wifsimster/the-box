@@ -12,12 +12,6 @@ import {
   GEOGAMERS_ATTEMPTS_MAX,
 } from './geogamers-scoring.service.js'
 
-// Pure state machine for GeoGamers party mode. All functions take a Party
-// snapshot and return a NEW snapshot (never mutate) so the Redis-backed store
-// can persist deterministically and the whole thing is unit-testable without
-// Redis or sockets. Content (which screenshot/game/canonical each round uses)
-// is injected by the caller — the domain stays infra-free.
-
 export const PARTY_MAX_PLAYERS = 4
 export const PARTY_MIN_PLAYERS = 1
 export const PARTY_ALLOWED_ROUNDS = [3, 5, 10] as const
@@ -44,7 +38,6 @@ export class PartyError extends Error {
   }
 }
 
-// Content for one round, resolved by the infra layer (retired/free-play pool).
 export interface PartyRoundContent {
   geoScreenshotMetaId: number
   gameId: number
@@ -111,8 +104,6 @@ export function joinParty(
   party: GeoGamersParty,
   player: { id: string; name: string },
 ): GeoGamersParty {
-  // Reconnect: an existing player id just flips back to connected (allowed in
-  // any status so a dropped player can rejoin mid-game).
   const existing = party.players.find((p) => p.id === player.id)
   if (existing) {
     return {
@@ -133,9 +124,6 @@ export function joinParty(
   return { ...party, players: [...party.players, newPlayer] }
 }
 
-// Mark a player disconnected. In the lobby they're removed outright; mid-game
-// they stay (so their scores persist) but flip to disconnected. Host migrates
-// to the oldest remaining connected player.
 export function leaveParty(party: GeoGamersParty, playerId: string): GeoGamersParty {
   const leaving = party.players.find((p) => p.id === playerId)
   if (!leaving) return party
@@ -147,7 +135,6 @@ export function leaveParty(party: GeoGamersParty, playerId: string): GeoGamersPa
     players = party.players.map((p) => (p.id === playerId ? { ...p, connected: false } : p))
   }
 
-  // Host migration.
   let hostId = party.hostId
   if (leaving.isHost) {
     const nextHost = players.find((p) => p.connected) ?? players[0]
@@ -168,8 +155,6 @@ export function startParty(party: GeoGamersParty, contents: PartyRoundContent[])
   }
   const rounds = contents.map((c, i) => {
     const round = roundFromContent(i, c)
-    // Seed results only for round 0; later rounds seed on advance so late
-    // reconnects still get an entry via ensureResult.
     return round
   })
   const first = seedResults(rounds[0]!, party.players)
@@ -197,8 +182,6 @@ function withRound(party: GeoGamersParty, round: GeoGamersPartyRound): GeoGamers
   return { ...party, rounds }
 }
 
-// Phase 1: a player names the game. `correct` is decided by the caller (fuzzy
-// match). Returns the updated party.
 export function submitGameGuess(
   party: GeoGamersParty,
   playerId: string,
@@ -218,14 +201,12 @@ export function submitGameGuess(
     solvedGame = true
     gamePoints = gamePointsForAttempt(attemptsUsed)
   } else if (attemptsUsed >= GEOGAMERS_ATTEMPTS_MAX) {
-    gamePoints = 0 // exhausted; still must place a pin
+    gamePoints = 0
   }
   const updated: GeoGamersPartyRoundResult = { ...result, attemptsUsed, gamePoints, solvedGame }
   return withRound(party, { ...round, results: { ...round.results, [playerId]: updated } })
 }
 
-// Phase 2: a player places a pin. Requires phase 1 to have resolved (solved or
-// 3 attempts spent). Completes the player's round.
 export function submitLocation(
   party: GeoGamersParty,
   playerId: string,
@@ -253,8 +234,6 @@ export function submitLocation(
   return withRound(party, { ...round, results: { ...round.results, [playerId]: updated } })
 }
 
-// Force-complete a player's round (timer lapse): whatever they have becomes
-// final; unreached phases score 0.
 export function timeoutPlayer(party: GeoGamersParty, playerId: string): GeoGamersParty {
   const round = currentRound(party)
   const result = round.results[playerId]
@@ -271,7 +250,6 @@ export function timeoutPlayer(party: GeoGamersParty, playerId: string): GeoGamer
   return withRound(party, { ...round, results: { ...round.results, [playerId]: updated } })
 }
 
-// True when every CONNECTED player has finished the current round.
 export function allConnectedDone(party: GeoGamersParty): boolean {
   if (party.status !== 'in_round') return false
   const round = party.rounds[party.currentRound]
@@ -281,8 +259,6 @@ export function allConnectedDone(party: GeoGamersParty): boolean {
   return connected.every((p) => round.results[p.id]?.done)
 }
 
-// Close the current round: force-timeout any stragglers, mark revealed, move to
-// the reveal screen.
 export function revealRound(party: GeoGamersParty): GeoGamersParty {
   if (party.status !== 'in_round') throw new PartyError('not in a round', 'NOT_IN_ROUND')
   let next = party
@@ -296,7 +272,6 @@ export function revealRound(party: GeoGamersParty): GeoGamersParty {
   return { ...next, rounds: closed, status: 'reveal' }
 }
 
-// From the reveal screen, advance: load the next round (in_round) or finish.
 export function advanceRound(party: GeoGamersParty): GeoGamersParty {
   if (party.status !== 'reveal') throw new PartyError('not on the reveal screen', 'NOT_REVEAL')
   const nextIndex = party.currentRound + 1
@@ -308,7 +283,6 @@ export function advanceRound(party: GeoGamersParty): GeoGamersParty {
   return { ...party, status: 'in_round', currentRound: nextIndex, rounds }
 }
 
-// Cumulative total per player across all revealed rounds.
 export function scoreboard(
   party: GeoGamersParty,
 ): Array<{ playerId: string; name: string; total: number }> {

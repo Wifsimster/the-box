@@ -7,43 +7,33 @@ import {
 } from "better-auth/client/plugins";
 import { passkeyClient } from "@better-auth/passkey/client";
 
-// Better Auth requires a full URL (with protocol and host)
-// If VITE_API_URL is set, use it directly and append /auth
-// Otherwise, use current origin + /api/auth to leverage Vite proxy in development
 const getBaseURL = (): string => {
   if (import.meta.env.VITE_API_URL) {
-    // If VITE_API_URL is set, ensure it includes /auth
     const baseUrl = import.meta.env.VITE_API_URL
     return baseUrl.endsWith('/auth') ? baseUrl : `${baseUrl}/auth`
   }
-  // Use current origin + /api/auth (works with Vite proxy in dev, and production)
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/api/auth`
   }
-  // Fallback for SSR (shouldn't happen in this app, but just in case)
   return 'http://localhost:5173/api/auth'
 }
 
 export const authClient = createAuthClient({
   baseURL: getBaseURL(),
   fetchOptions: {
-    credentials: 'include', // Required for cookies to be sent with requests
+    credentials: 'include',
   },
   plugins: [
     usernameClient(),
     anonymousClient(),
     adminClient(),
     twoFactorClient({
-      // When the server detects 2FA is enabled, the client redirects here
-      // instead of completing the sign-in. The page reads `?redirect=` and
-      // forwards it after the second factor succeeds.
       onTwoFactorRedirect: () => {
         const params = new URLSearchParams(window.location.search);
         const next = params.get("redirect") ?? "";
         const url = next
           ? `/two-factor?redirect=${encodeURIComponent(next)}`
           : "/two-factor";
-        // Preserve the URL language prefix (e.g. /fr/...) if present.
         const langMatch = window.location.pathname.match(/^\/([a-z]{2})\//);
         const lang = langMatch ? `/${langMatch[1]}` : "";
         window.location.href = `${lang}${url}`;
@@ -53,13 +43,11 @@ export const authClient = createAuthClient({
   ],
 });
 
-// Export individual methods and hooks for convenience
 export const {
   signIn,
   signOut,
   useSession,
 } = authClient;
 
-// Password reset functions
 export const requestPasswordReset = authClient.requestPasswordReset;
 export const resetPassword = authClient.resetPassword;

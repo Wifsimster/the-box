@@ -7,13 +7,6 @@ import {
   type FetchOutcomeReport,
 } from './maps-fetch-runtime.js'
 
-// MapGenie publishes a landing page per game at `mapgenie.io/<slug>` whose
-// og:image is the canonical world map for the game (most of the time). For
-// games with multiple zones, the page also lists region links — a phase-2
-// crawler could iterate those. For MVP we ingest the landing og:image and
-// let the admin compare against other providers' offerings in the curation
-// drawer.
-
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 const MAPGENIE_LICENSE = 'MapGenie (proprietary, fair-use attribution)'
@@ -33,7 +26,6 @@ export async function runMapsFetchMapgenie(input: {
         return { outcome: 'not_found', errorCode: 'NO_GAME_SLUG' }
       }
 
-      // Idempotent: if a mapgenie map already exists, advance.
       const existing = await geoMapRepository.findBySourceAndGameId(
         input.gameId,
         'mapgenie',
@@ -66,15 +58,12 @@ export async function runMapsFetchMapgenie(input: {
         return { outcome: 'parse_error', errorCode: 'NO_OG_IMAGE' }
       }
 
-      // Pull the bytes so we can fingerprint and dimension it.
       const image = await fetchImageBytes(ogImage)
       if (!image) {
         return { outcome: 'parse_error', errorCode: 'IMAGE_FETCH_FAILED' }
       }
       const sha = sha256OfBuffer(image.bytes)
 
-      // Cross-provider dedup: if another source already gave us the exact
-      // same image, skip the insert.
       const dupe = await geoMapRepository.findByContentHash(input.gameId, sha)
       if (dupe) {
         return { outcome: 'empty', errorCode: 'DUPLICATE_CONTENT' }
@@ -93,7 +82,7 @@ export async function runMapsFetchMapgenie(input: {
         contentSha256: sha,
         zoneName: identity.name,
         zoneSlug: identity.slug,
-        isActive: false, // Awaits admin curation.
+        isActive: false,
       })
       return { outcome: 'success', itemsIngested: 1 }
     },

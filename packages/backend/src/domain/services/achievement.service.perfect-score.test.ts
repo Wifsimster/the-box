@@ -30,10 +30,6 @@ const PERFECT_ACHIEVEMENT: AchievementRow = {
   created_at: new Date('2026-01-01T00:00:00Z'),
 }
 
-/**
- * The in-game streak bonus lifts a perfect run above 2000 (up to 2175), so
- * "perfect" is judged on the speed score: totalScore minus the streak bonus.
- */
 async function awardedFor(totalScore: number, streakBonusTotal?: number): Promise<string[]> {
   const awarded: string[] = []
   const achievementRepository = {

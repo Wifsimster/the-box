@@ -17,14 +17,11 @@ export default function PricingPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { entitlement, fetchEntitlement, openPortal, isOpeningPortal } = useBillingStore()
 
-  // Surface the result of a Stripe-hosted checkout redirect, then strip the
-  // query param so a refresh doesn't re-toast.
   useEffect(() => {
     const checkout = searchParams.get('checkout')
     if (!checkout) return
     if (checkout === 'success') {
       toast.success(t('pricing.checkoutSuccess'))
-      // Refetch entitlement; the webhook may have already arrived.
       void fetchEntitlement()
     } else if (checkout === 'cancel') {
       toast.info(t('pricing.checkoutCancel'))

@@ -18,21 +18,10 @@ interface Props {
   onClose: () => void
 }
 
-// Per-game curation drawer. Loads /maps for the open gameId, groups by zone,
-// shows side-by-side candidates from all providers. One click "Choisir" sets
-// is_selected. Closing the drawer clears state — re-opening refetches.
-
-// Loads /maps for the open gameId. Encapsulating the fetch in a hook keeps the
-// data lifecycle (load, cancel-on-switch, manual reload) out of the component
-// body. Guard against fast gameId switches: a slower earlier promise resolving
-// last would otherwise stomp the newer game's data.
 function useGameMaps(gameId: number | null) {
   const [data, setData] = useState<GeoFetchMapsResponse | null>(null)
   const [isLoading, setIsLoading] = useState(() => gameId != null)
 
-  // Reset the cached data / loading flag the instant the gameId changes,
-  // during render, so the drawer never shows the previous game's maps. The
-  // effect below only performs the async work and the (async) state writes.
   const [prevGameId, setPrevGameId] = useState(gameId)
   if (gameId !== prevGameId) {
     setPrevGameId(gameId)
@@ -178,12 +167,6 @@ export function GameMapsDrawer({ gameId, onClose }: Props) {
                   ))}
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  {/* Re-fetch every distinct source represented in this zone.
-                      Hard-coding "fandom" here was a real bug — operators
-                      thought they triggered a global retry but only one
-                      provider ran. Using the actual source set keeps the
-                      button honest regardless of which providers are
-                      configured for the game. */}
                   {Array.from(new Set(zone.maps.map((m) => m.source))).map((src) => (
                     <Button
                       key={src}

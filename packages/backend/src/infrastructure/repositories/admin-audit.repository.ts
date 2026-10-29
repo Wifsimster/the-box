@@ -69,8 +69,6 @@ export const adminAuditRepository = {
         ip: entry.ip ?? null,
       })
     } catch (err) {
-      // Never let audit failure break the request — the action already
-      // happened. Log loudly so operators can detect a broken trail.
       log.error({ err: String(err), action: entry.action }, 'failed to record admin audit')
     }
   },

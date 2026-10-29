@@ -15,16 +15,8 @@ const log = queueLogger.child({ worker: 'geo-registry-import' })
 const DEFAULT_USER_AGENT =
   'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
 
-// Tier 1 ingestion: pull a curated, permissively-licensed map image from the
-// JSON registry shipped with the backend. Preferred over Fandom because the
-// licensing is explicit per entry and the asset URL is stable (typically a
-// raw.githubusercontent.com path).
-
 export interface RegistryEntry {
   match: { slug?: string; aliases?: string[] }
-  // Always-set thumbnail / fallback PNG. For tile entries, the registry
-  // points this at one canonical tile (e.g. the upper-left tile at the
-  // most-zoomed-out layer) so admin grids keep showing a preview.
   imageUrl: string
   widthPx: number
   heightPx: number
@@ -32,13 +24,7 @@ export interface RegistryEntry {
   attribution: string
   sourceUrl?: string
   commercialUseOk?: boolean
-  // Optional region label (e.g. "Velen", "Act II"). Omit for the canonical
-  // world / mosaic map. Stored on geo_map.region for admin visibility; the
-  // runtime still selects a single is_active row per game today.
   region?: string
-  // Set to enable Leaflet tile rendering. The worker probes one canonical
-  // tile (deepest zoom, 0/0) before persisting; failure tombstones go
-  // through the same path as broken image URLs.
   tiles?: GeoMapTilesConfig
 }
 
@@ -49,8 +35,6 @@ interface RegistryFile {
 
 export interface ImportRegistryMapInput {
   gameId: number
-  // Pre-resolved registry entry (the tick-orchestrator looks this up by
-  // game.slug); passed in so this worker stays stateless and easy to test.
   entry: RegistryEntry
 }
 
@@ -65,7 +49,6 @@ let cachedRegistry: RegistryFile | null = null
 export async function loadRegistry(path?: string): Promise<RegistryFile> {
   if (cachedRegistry && !path) return cachedRegistry
   const here = dirname(fileURLToPath(import.meta.url))
-  // queue/workers → queue → infrastructure → src → packages/backend → data
   const target =
     path ?? resolvePath(here, '..', '..', '..', '..', 'data', 'geo-map-registry.json')
   const raw = await readFile(target, 'utf8')
@@ -99,10 +82,6 @@ export async function importRegistryMap(
     }
   }
 
-  // For tile entries, the canonical probe target is the deepest-zoom (0,0)
-  // tile — it always exists when the source is functional. The thumbnail
-  // imageUrl is HEAD-checked too: if the registry author got the URL wrong,
-  // we want to tombstone before admins see a broken thumbnail.
   const probeUrl = entry.tiles
     ? formatTileUrl(entry.tiles, entry.tiles.maxZoom, 0, 0)
     : entry.imageUrl
@@ -151,7 +130,6 @@ async function recordRegistryTombstone(gameId: number, reason: string): Promise<
   })
 }
 
-// Test hook — clears the in-process cache so unit tests can swap the file.
 export function _resetRegistryCache(): void {
   cachedRegistry = null
 }

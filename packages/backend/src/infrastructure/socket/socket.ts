@@ -18,8 +18,6 @@ import type {
 
 let io: SocketIOServer | null = null
 
-// Resolve the Better Auth session from a socket handshake. Returns null on
-// missing / invalid session; the caller decides how to react.
 export async function getSocketSession(socket: Socket) {
     try {
         return await auth.api.getSession({
@@ -31,8 +29,6 @@ export async function getSocketSession(socket: Socket) {
     }
 }
 
-// Attach the authenticated user id on the socket so per-namespace `join_user`
-// handlers can authorize without re-reading the session.
 declare module 'socket.io' {
     interface Socket {
         userId?: string
@@ -40,9 +36,6 @@ declare module 'socket.io' {
     }
 }
 
-/**
- * Initialize Socket.IO server and set up event listeners
- */
 export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
     io = new SocketIOServer(httpServer, {
         cors: {
@@ -52,9 +45,6 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
         path: '/socket.io',
     })
 
-    // Admin namespace for job updates. Connection is gated by Better Auth:
-    // only admins reach the `connection` handler, so `join_admin` doesn't
-    // need a second role check.
     const adminNamespace = io.of('/admin')
     adminNamespace.use(async (socket, next) => {
         const session = await getSocketSession(socket)
@@ -73,13 +63,11 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
     adminNamespace.on('connection', (socket) => {
         logger.info({ socketId: socket.id, userId: socket.userId }, 'admin client connected')
 
-        // Join admin room for job updates
         socket.on('join_admin', () => {
             socket.join('admin-room')
             logger.info({ socketId: socket.id }, 'client joined admin room')
         })
 
-        // Leave admin room
         socket.on('leave_admin', () => {
             socket.leave('admin-room')
             logger.info({ socketId: socket.id }, 'client left admin room')
@@ -90,7 +78,6 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
         })
     })
 
-    // Subscribe to BullMQ events and broadcast to admin clients
     setupQueueEventListeners(adminNamespace)
 
     ensureGeoNamespace()
@@ -101,11 +88,7 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
     return io
 }
 
-/**
- * Set up listeners for BullMQ queue events and broadcast to admin clients
- */
 function setupQueueEventListeners(adminNamespace: any) {
-    // Job progress updates
     importQueueEvents.on('progress', ({ jobId, data }: any) => {
         const progressData = typeof data === 'number' ? { progress: data } : data
 
@@ -117,7 +100,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job completed
     importQueueEvents.on('completed', ({ jobId, returnvalue }: { jobId: string; returnvalue: any }) => {
         logger.info({ jobId, result: returnvalue }, 'job completed')
 
@@ -127,7 +109,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job failed
     importQueueEvents.on('failed', ({ jobId, failedReason }: { jobId: string; failedReason: string }) => {
         logger.error({ jobId, error: failedReason }, 'job failed')
 
@@ -137,7 +118,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job added (waiting)
     importQueueEvents.on('added', ({ jobId }: { jobId: string }) => {
         logger.debug({ jobId }, 'job added to queue')
 
@@ -146,7 +126,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job active (started processing)
     importQueueEvents.on('active', ({ jobId }: { jobId: string }) => {
         logger.debug({ jobId }, 'job started processing')
 
@@ -155,7 +134,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job delayed
     importQueueEvents.on('delayed', ({ jobId, delay }: { jobId: string; delay: number }) => {
         logger.debug({ jobId, delay }, 'job delayed')
 
@@ -165,7 +143,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job waiting (moved to waiting state)
     importQueueEvents.on('waiting', ({ jobId }: { jobId: string }) => {
         logger.debug({ jobId }, 'job moved to waiting')
 
@@ -174,7 +151,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job removed
     importQueueEvents.on('removed', ({ jobId }: { jobId: string }) => {
         logger.debug({ jobId }, 'job removed from queue')
 
@@ -183,7 +159,6 @@ function setupQueueEventListeners(adminNamespace: any) {
         })
     })
 
-    // Job stalled (potentially stuck)
     importQueueEvents.on('stalled', ({ jobId }: { jobId: string }) => {
         logger.warn({ jobId }, 'job stalled')
 
@@ -195,9 +170,6 @@ function setupQueueEventListeners(adminNamespace: any) {
     logger.info('BullMQ event listeners configured')
 }
 
-/**
- * Broadcast batch import progress to admin clients
- */
 export function broadcastBatchImportProgress(data: {
     importStateId: number
     progress: number
@@ -220,9 +192,6 @@ export function broadcastBatchImportProgress(data: {
     logger.debug({ importStateId: data.importStateId, progress: data.progress }, 'batch import progress broadcast')
 }
 
-/**
- * Broadcast recalculate scores progress to admin clients
- */
 export function broadcastRecalculateScoresProgress(data: {
     recalculateStateId: number
     progress: number
@@ -245,18 +214,9 @@ export function broadcastRecalculateScoresProgress(data: {
     logger.debug({ recalculateStateId: data.recalculateStateId, progress: data.progress }, 'recalculate scores progress broadcast')
 }
 
-/**
- * Get Socket.IO instance
- */
 export function getSocketIO(): SocketIOServer | null {
     return io
 }
-
-// ---------- Geolocation mode ----------
-//
-// Geo events live under a dedicated `/geo` namespace to keep them isolated
-// from the admin namespace. Clients join a per-user room so we only broadcast
-// rewards/tier-ups to the affected user.
 
 function geoNamespace(): ReturnType<SocketIOServer['of']> | null {
     return io ? io.of('/geo') : null
@@ -266,8 +226,6 @@ export function ensureGeoNamespace(): void {
     const ns = geoNamespace()
     if (!ns) return
     if ((ns as unknown as { _the_box_geo_wired?: boolean })._the_box_geo_wired) return
-    // Resolve session once at connection time so `join_user` cannot be used
-    // to subscribe to another user's reward stream (previously an IDOR).
     ns.use(async (socket, next) => {
         const session = await getSocketSession(socket)
         if (!session?.user) {
@@ -305,19 +263,11 @@ export function emitGeoTierUp(event: GeoTierUpEvent): void {
     ns.to(`user:${event.userId}`).emit('geo:contributor:tier_up', event)
 }
 
-// Broadcast finalized/updated GeoGamers season standings to everyone on the
-// geo namespace so an open leaderboard refreshes. Not user-targeted.
 export function emitGeoGamersSeasonUpdated(event: GeoGamersSeasonUpdatedEvent): void {
     const ns = geoNamespace()
     if (!ns) return
     ns.emit('geogamers:season:updated', event)
 }
-
-// ---------- User-targeted notifications ----------
-//
-// Generic per-user notification channel (Premium grants, future account-level
-// alerts). Lives under `/notifications` so it stays mounted regardless of which
-// page the user is on, unlike `/geo` which only connects on Geo screens.
 
 function userNotificationsNamespace(): ReturnType<SocketIOServer['of']> | null {
     return io ? io.of('/notifications') : null
@@ -327,7 +277,6 @@ export function ensureUserNotificationsNamespace(): void {
     const ns = userNotificationsNamespace()
     if (!ns) return
     if ((ns as unknown as { _the_box_user_wired?: boolean })._the_box_user_wired) return
-    // Same auth posture as /geo — session-bound, no cross-user join.
     ns.use(async (socket, next) => {
         const session = await getSocketSession(socket)
         if (!session?.user) {
@@ -359,28 +308,12 @@ export function emitUserPremiumGranted(event: UserPremiumGrantedEvent): void {
     ns.to(`user:${event.userId}`).emit('user:premium-granted', event)
 }
 
-/**
- * Emit a generic reward grant to the user-notifications namespace. Called
- * by every async reward path (reactivation, milestones, payouts, …) AFTER
- * `rewardsService.grant(...)` returns wasNew=true so the inbox UI updates
- * live without polling. The grant row is already persisted, so a missed
- * emit (offline client) is reconciled on reconnect via the unclaimed-list
- * endpoint — this emit is best-effort, not authoritative.
- */
 export function emitRewardGranted(userId: string, event: RewardGrantedEvent): void {
     const ns = userNotificationsNamespace()
     if (!ns) return
     ns.to(`user:${userId}`).emit('reward:granted', event)
 }
 
-/**
- * Emit an achievement-unlock to the user-notifications namespace. Called
- * from every unlock path — game completion + forfeit (`game.routes`) and
- * the account-age milestone worker — AFTER the `user_achievements` rows are
- * persisted, so the user sees a celebratory toast on whatever page they are
- * on. Best-effort: a missed emit (offline client) is reconciled when the
- * achievements page next loads, so this emit is not authoritative.
- */
 export function emitAchievementUnlocked(
     userId: string,
     achievements: NewlyEarnedAchievement[]
@@ -395,10 +328,6 @@ export function emitAchievementUnlocked(
     }
     ns.to(`user:${userId}`).emit('achievement:unlocked', event)
 }
-
-// ---------- Geo-fetch pipeline (admin-only) ----------
-// Pipeline progress is admin-facing only — emitted into the /admin namespace
-// so the new admin tab can render live state without joining /geo.
 
 function adminRoomEmit(event: string, payload: unknown): void {
     if (!io) return

@@ -22,7 +22,6 @@ export const GridBackground: React.FC<{ intensity?: number }> = ({
           transform: `translate(${-offset}px, ${-offset}px)`,
         }}
       />
-      {/* Radial neon vignette */}
       <div
         style={{
           position: "absolute",

@@ -9,9 +9,6 @@ import {
   sandboxToday,
 } from './sandbox.service.js'
 
-// The sandbox is a pure function of the clock — every test pins a fixed
-// timestamp so there is nothing flaky to chase.
-
 const CYCLE_MS = 10 * 60 * 1_000
 const PLAY_MS = 7 * 60 * 1_000
 
@@ -45,7 +42,6 @@ describe('sandboxState — cycle phases', () => {
   })
 
   it('mid-play: in_progress with partial progress', () => {
-    // Halfway through the 7-minute play phase.
     const s = sandboxState(PLAY_MS / 2)
     assert.equal(s.status, 'in_progress')
     assert.ok(s.screenshotsDone > 0 && s.screenshotsDone < 10)
@@ -54,7 +50,6 @@ describe('sandboxState — cycle phases', () => {
   })
 
   it('never reaches 10 screenshots while still in_progress', () => {
-    // Sample densely across the play phase.
     for (let t = 0; t < PLAY_MS; t += 15_000) {
       const s = sandboxState(t)
       assert.equal(s.status, 'in_progress')
@@ -71,8 +66,6 @@ describe('sandboxState — cycle phases', () => {
   })
 
   it('loops — phase + progress repeat each cycle', () => {
-    // score and timestamps shift per cycle by design (final score wobbles,
-    // startedAt is absolute), so only the cycle-relative fields repeat.
     for (const offset of [0, 90_000, PLAY_MS, PLAY_MS + 120_000]) {
       const a = sandboxState(offset)
       const b = sandboxState(offset + CYCLE_MS)
@@ -82,11 +75,9 @@ describe('sandboxState — cycle phases', () => {
   })
 
   it('final score is stable within a cycle but varies across cycles', () => {
-    // Two samples in the same completed phase → identical score.
     const sameCycleA = sandboxState(PLAY_MS + 10_000)
     const sameCycleB = sandboxState(PLAY_MS + 90_000)
     assert.equal(sameCycleA.score, sameCycleB.score)
-    // The wobble repeats every 7 cycles.
     assert.equal(
       sandboxState(PLAY_MS + 10_000).score,
       sandboxState(PLAY_MS + 10_000 + 7 * CYCLE_MS).score,

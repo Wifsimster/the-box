@@ -3,8 +3,6 @@ import { db } from '../database/connection.js'
 import { encryptSecret, decryptSecret } from '../crypto/secret-box.js'
 import type { PublicEventType, WebhookSummary } from '@the-box/types'
 
-// Secrets are `whsec_` + 32 base64url bytes ⇒ 43 chars body, 49 total.
-// The `whsec_` prefix is grep-friendly for secret-detection tooling.
 const SECRET_BODY_BYTES = 32
 const SECRET_PREFIX = 'whsec_'
 
@@ -14,8 +12,6 @@ export interface WebhookRow {
   url: string
   secret_hash: string
   secret_prefix: string
-  // AES-256-GCM ciphertext of the signing secret (see secret-box.ts).
-  // Nullable for rows created before migration 20260524.
   secret_enc: string | null
   label: string
   events: PublicEventType[]
@@ -70,8 +66,6 @@ export const webhookRepository = {
   }): Promise<{ row: WebhookRow; secret: string }> {
     const secret = generateSecret()
     const secretHash = hashWebhookSecret(secret)
-    // 12-char preview: `whsec_` + 6 random chars. Enough to disambiguate
-    // multiple endpoints in the dashboard without leaking entropy.
     const secretPrefix = secret.slice(0, 12)
 
     const [row] = await db('webhooks')
@@ -80,8 +74,6 @@ export const webhookRepository = {
         url: params.url,
         secret_hash: secretHash,
         secret_prefix: secretPrefix,
-        // Encrypted at rest — the worker decrypts this to sign deliveries.
-        // The plaintext is returned to the caller once and never persisted.
         secret_enc: encryptSecret(secret),
         label: params.label,
         events: params.events,
@@ -90,20 +82,11 @@ export const webhookRepository = {
     return { row: row!, secret }
   },
 
-  /**
-   * Decrypts a webhook's signing secret for the delivery worker. Returns
-   * null if the row predates migration 20260524 (no ciphertext) or if
-   * decryption fails (e.g. BETTER_AUTH_SECRET was rotated) — the worker
-   * treats null as "send unsigned".
-   */
   decryptSecret(row: Pick<WebhookRow, 'secret_enc'>): string | null {
     return row.secret_enc ? decryptSecret(row.secret_enc) : null
   },
 
   async findActiveByUserAndEvent(userId: string, event: PublicEventType): Promise<WebhookRow[]> {
-    // Empty `events` array means "all events" — match on that or on the
-    // explicit subscription. Postgres `=` on text[] requires array_length
-    // guard for the empty-array case.
     return await db('webhooks')
       .where('user_id', userId)
       .andWhere('is_active', true)
@@ -143,19 +126,12 @@ export const webhookRepository = {
 }
 
 export const webhookDeliveryRepository = {
-  /**
-   * Idempotent enqueue. INSERT ... ON CONFLICT DO NOTHING means re-firing
-   * the same (webhook_id, event_id) tuple — e.g. a poller that re-runs
-   * after a crash — never produces duplicate deliveries.
-   */
   async enqueue(params: {
     webhookId: number
     eventId: string
     eventType: PublicEventType
     payload: Record<string, unknown>
   }): Promise<WebhookDeliveryRow | null> {
-    // `returning('*')` on a no-op INSERT returns an empty array, so we
-    // know whether this enqueue was the first or a duplicate.
     const rows = await db('webhook_deliveries')
       .insert({
         webhook_id: params.webhookId,
@@ -177,7 +153,6 @@ export const webhookDeliveryRepository = {
   },
 
   async markInProgress(id: number): Promise<boolean> {
-    // Compare-and-swap on status so concurrent workers don't double-process.
     const updated = await db('webhook_deliveries')
       .where('id', id)
       .andWhere('status', 'pending')

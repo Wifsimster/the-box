@@ -2,21 +2,11 @@ import { test, expect } from '@playwright/test'
 import { loginAsUser, loginAsAdmin } from './helpers/game-helpers'
 import { geoCommunityEnabled } from './helpers/features'
 
-// Admin geo authz boundary: every /api/admin/geo* endpoint MUST 403 a
-// non-admin (and 401 an unauthenticated client). Without this suite, a
-// regression that swaps `adminMiddleware` for `authMiddleware` (or for
-// `optionalAuthMiddleware`) would ship green and let any logged-in user
-// nuke the geo dataset.
-
-// Routes touched by the admin geo UI. Each entry is `{ method, path, body? }`.
-// Keep this list grouped + commented so the next person adding a route
-// remembers to extend it.
 const ADMIN_GEO_ENDPOINTS: Array<{
     method: 'GET' | 'POST' | 'DELETE'
     path: string
     body?: unknown
 }> = [
-    // --- /api/admin/geo-fetch (separate router) ---
     { method: 'GET', path: '/api/admin/geo-fetch/status' },
     { method: 'GET', path: '/api/admin/geo-fetch/games' },
     { method: 'POST', path: '/api/admin/geo-fetch/start', body: { all: false } },
@@ -28,7 +18,6 @@ const ADMIN_GEO_ENDPOINTS: Array<{
     { method: 'POST', path: '/api/admin/geo-fetch/1/maps/1/select' },
     { method: 'DELETE', path: '/api/admin/geo-fetch/1/cooldown' },
 
-    // --- /api/admin/geo (lives in admin.routes.ts) ---
     { method: 'POST', path: '/api/admin/geo/run' },
     { method: 'POST', path: '/api/admin/geo/run/1' },
     { method: 'POST', path: '/api/admin/geo/run/1/fandom' },
@@ -63,22 +52,12 @@ const ADMIN_GEO_ENDPOINTS: Array<{
         body: { geoScreenshotCandidateId: 1 },
     },
 
-    // --- destructive nuke endpoint ---
     {
         method: 'POST',
         path: '/api/admin/scraping/reset',
         body: { confirm: 'RESET' },
     },
 ]
-
-// The admin geo routers (`/api/admin/geo*`, `/api/admin/geo-fetch/*`) are
-// mounted unconditionally — `GEO_COMMUNITY_ENABLED` only gates the *player*
-// surface under `/api/geo`. So the authz boundary below is never skipped:
-// it is a security assertion, and the thing it guards is always live.
-//
-// Only the free-play test at the bottom needs the flag, and it asks
-// `/api/features` rather than inferring from a status code. The previous
-// probe read the JSON 404 of an unmounted router as "geo is available".
 
 test.describe('Admin Geo authz boundary', () => {
     test('unauthenticated requests get 401', async ({ request }) => {
@@ -92,9 +71,6 @@ test.describe('Admin Geo authz boundary', () => {
                             data: ep.body ?? {},
                             failOnStatusCode: false,
                         })
-            // Any of 401 (unauthenticated) or 403 (forbidden) is acceptable;
-            // anything else (200, 400, 500) is a regression because the
-            // request body could land before the auth check.
             expect(
                 [401, 403],
                 `${ep.method} ${ep.path} should reject unauthenticated callers (got ${res.status()})`,
@@ -103,8 +79,6 @@ test.describe('Admin Geo authz boundary', () => {
     })
 
     test('a non-admin user gets 403 on every admin geo endpoint', async ({ page }) => {
-        // Login as a normal user via UI so cookies flow into the request
-        // context for free.
         await loginAsUser(page)
         const failures: string[] = []
         for (const ep of ADMIN_GEO_ENDPOINTS) {
@@ -117,8 +91,6 @@ test.describe('Admin Geo authz boundary', () => {
                             data: ep.body ?? {},
                             failOnStatusCode: false,
                         })
-            // A regular user must never reach an admin endpoint. 401 also
-            // acceptable (e.g. session expired) but 200/400/500 = leak.
             if (![401, 403].includes(res.status())) {
                 failures.push(`${ep.method} ${ep.path} → ${res.status()}`)
             }
@@ -129,9 +101,6 @@ test.describe('Admin Geo authz boundary', () => {
         ).toEqual([])
     })
 
-    // Sanity: a real admin still gets a non-403 (e.g. 200, 400 on missing
-    // body) on at least the read endpoints. This prevents accidentally
-    // locking out the admin role too.
     test('an admin user is not blanket-forbidden', async ({ page }) => {
         await loginAsAdmin(page)
         const status = await page.request
@@ -141,19 +110,11 @@ test.describe('Admin Geo authz boundary', () => {
     })
 })
 
-// Public free-play surface: must be rate-limited (429 after a burst) so a
-// scraper can't extract every promoted answer in a tight loop. We don't
-// require a hard cap here — the test fires a generous burst and asserts
-// at least one 429 lands.
 test.describe('Public geo free-play rate limit', () => {
     test('free-play guess requires authentication for anonymous callers', async ({ request }) => {
         if (!(await geoCommunityEnabled(request)))
             test.skip(true, 'community geo surface disabled')
 
-        // Free-play is open to every *authenticated* user (the contribution
-        // surface stays free), but anonymous callers are rejected with 401 so
-        // the UI can prompt for sign-in — authMiddleware runs before the
-        // per-user rate limiter. Verify that auth gate holds.
         const r = await request.post('/api/geo/free-play/guess', {
             data: { metaId: 1, geoMapId: 1, guess: { x: 0.5, y: 0.5 } },
             failOnStatusCode: false,

@@ -8,15 +8,6 @@ import { tombstoneRetryAfter } from '../../../domain/services/geo-metadata.servi
 
 const log = queueLogger.child({ worker: 'geo-rawg-import' })
 
-// RAWG's `/games/{id}/screenshots` returns a paginated list of screenshots
-// scraped from official sources + community uploads. Coverage is broader
-// than Steam's `appdetails` because RAWG indexes Switch / PlayStation /
-// Xbox / mobile titles too — this is the source that fixes the
-// "Zelda BotW returns 0 candidates" case where the game isn't on Steam.
-//
-// Auth: query-string `?key=<RAWG_API_KEY>`. Free tier is 20k req/month
-// with a soft 20 req/min limit; we let the worker concurrency throttle
-// us and back off on 429s.
 const RAWG_API = 'https://api.rawg.io/api'
 const DEFAULT_USER_AGENT =
   'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
@@ -59,8 +50,6 @@ export async function importRawgScreenshots(
 
   const apiKey = env.RAWG_API_KEY
   if (!apiKey) {
-    // Caller is expected to gate on env, but fail loudly rather than silently
-    // tombstoning if a job slipped through.
     throw new Error('RAWG_API_KEY is not configured')
   }
 
@@ -83,8 +72,6 @@ export async function importRawgScreenshots(
   for (const shot of shots.slice(0, max)) {
     const externalId = `rawg:${rawgId}:${shot.id}`
     try {
-      // createCandidate uses ON CONFLICT (source, external_id) DO NOTHING, so
-      // re-running this importer is idempotent per RAWG screenshot id.
       await geoScreenshotRepository.createCandidate({
         gameId,
         geoMapId,

@@ -5,10 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/**
- * Format a duration in milliseconds for display next to a guess result.
- * Returns "1.2s" under a minute, "1m23s" beyond.
- */
 export function formatDiscoveryTime(timeTakenMs: number): string {
   if (!Number.isFinite(timeTakenMs) || timeTakenMs <= 0) return "0s"
   const totalSeconds = timeTakenMs / 1000
@@ -22,24 +18,18 @@ export function formatDiscoveryTime(timeTakenMs: number): string {
   return seconds === 0 ? `${minutes}m` : `${minutes}m${seconds}s`
 }
 
-/**
- * Calculate speed multiplier based on time taken to find the screenshot
- * Matches the backend logic in game.service.ts
- * @param timeTakenMs Time in milliseconds from screenshot shown to correct guess
- * @returns Multiplier value (1.0 to 2.0)
- */
 export function calculateSpeedMultiplier(timeTakenMs: number): number {
   const timeTakenSeconds = timeTakenMs / 1000
   
   if (timeTakenSeconds < 3) {
-    return 2.0 // 200 points
+    return 2.0
   } else if (timeTakenSeconds < 5) {
-    return 1.75 // 175 points
+    return 1.75
   } else if (timeTakenSeconds < 10) {
-    return 1.5 // 150 points
+    return 1.5
   } else if (timeTakenSeconds < 20) {
-    return 1.25 // 125 points
+    return 1.25
   } else {
-    return 1.0 // 100 points
+    return 1.0
   }
 }

@@ -1,11 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SUMMARY: HTML-first artifacts adoption — subagents meeting record (2026-05-10).
-  Reviewed Thariq's "Unreasonable Effectiveness of HTML" article and decided how
-  to apply it to The Box. Outcome: prefer HTML for visual/interactive specs,
-  keep Markdown for reference; pilot doc is docs/architecture.html; no /html
-  skill; HTML docs stay local-open / GitHub-rendered, never served by Express.
--->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -400,7 +393,6 @@ Canonical examples: tasks/html-first-subagents-meeting.html, docs/architecture.h
 </footer>
 
 <script>
-  // Active TOC highlight on scroll. Inline, vanilla, ~25 lines.
   (function () {
     const links = Array.from(document.querySelectorAll('aside.toc a'));
     const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);

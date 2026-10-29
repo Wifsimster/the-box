@@ -21,30 +21,17 @@ import { resolveUploadRelativePath, sendUploadFile } from './upload-file.js'
 import { maybeCaptureDescription } from '../../composition/describe-capture.js'
 import { logger } from '../../infrastructure/logger/logger.js'
 
-// Public preview is cheap to compute but the image endpoint streams
-// raw files — tighter cap for the image route, more forgiving for the
-// JSON endpoint that pages may call on every homepage view.
 const previewMetaLimiter = createRateLimiter({ windowMs: 60_000, max: 60 })
 const previewImageLimiter = createRateLimiter({ windowMs: 60_000, max: 30 })
 
-// Per-user throttle on guess submission. Real play submits a handful of
-// guesses per screenshot; 60/min is generous for a human yet caps the
-// abuse paths the persona review surfaced — spamming the zero-cost wrong
-// guess to brute-force the matcher or probe the proximity hint, and
-// hammering re-fetch+submit to game the timer. Keyed by user (falls back to
-// IP) so one client can't burn another's budget.
 const guessUserKey = (req: Request): string => req.userId ?? req.ip ?? 'unknown'
 const guessLimiter = createRateLimiter({ windowMs: 60_000, max: 60, key: guessUserKey })
 
 const router = Router()
 
-// Get uploads path for serving screenshot images
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'uploads')
 
-// Resolve today's first easy-tier screenshot. Shared by the public
-// preview endpoints so anonymous visitors can glimpse the challenge
-// before signing up without gaining access to the rest of the set.
 async function findTodayPreviewScreenshot(): Promise<{
   challengeDate: string
   imageUrl: string
@@ -67,8 +54,6 @@ async function findTodayPreviewScreenshot(): Promise<{
   }
 }
 
-// Public preview endpoint for the landing page teaser. Exposes only
-// today's first screenshot — never the answer, never subsequent shots.
 router.get('/preview', previewMetaLimiter, async (_req, res, next) => {
   try {
     const preview = await findTodayPreviewScreenshot()
@@ -92,9 +77,6 @@ router.get('/preview', previewMetaLimiter, async (_req, res, next) => {
   }
 })
 
-// Public image stream paired with GET /preview. Serves exactly one file
-// (today's first screenshot), bypassing the auth-gated /image/:id route
-// so anonymous visitors can see the teaser inline.
 router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
   try {
     const preview = await findTodayPreviewScreenshot()
@@ -127,10 +109,6 @@ router.get('/preview/image', previewImageLimiter, async (_req, res, next) => {
   }
 })
 
-// Allowed extensions for the image proxy. The Content-Type header is set
-// from the extension (verified, not sniffed) and any other extension is
-// rejected outright — closes the SVG-XSS path where a malicious upload
-// could execute JavaScript on the same origin as the auth cookie.
 const IMAGE_EXTENSION_CONTENT_TYPE: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -138,14 +116,6 @@ const IMAGE_EXTENSION_CONTENT_TYPE: Record<string, string> = {
   '.webp': 'image/webp',
 }
 
-// Serve screenshot image by ID. Two safety nets beyond the auth middleware:
-//   1. The user must have (or have had) a game session for a challenge
-//      that includes this screenshot — without it, any logged-in user
-//      could enumerate every screenshot in the catalogue, including
-//      future challenges (see New-1 in the readiness review).
-//   2. The Content-Type is derived from a known-good extension and we
-//      add `X-Content-Type-Options: nosniff` so browsers don't second-
-//      guess us if a stray SVG ever lands in the screenshots tree.
 router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
   try {
     const screenshotId = parseInt(req.params['screenshotId'] as string, 10)
@@ -169,8 +139,6 @@ router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
 
     const userId = req.userId
     if (!userId) {
-      // authMiddleware should have rejected, but be explicit so the
-      // ownership check below never reads `undefined`.
       res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED' } })
       return
     }
@@ -220,7 +188,6 @@ router.get('/image/:screenshotId', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Get today's challenge (or challenge by date if date query param is provided)
 router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
   try {
     const date = req.query.date as string | undefined
@@ -235,14 +202,9 @@ router.get('/today', optionalAuthMiddleware, async (req, res, next) => {
   }
 })
 
-// Start a challenge session
 router.post('/start/:challengeId', authMiddleware, async (req, res, next) => {
   try {
     const challengeId = parseInt(req.params['challengeId'] as string, 10)
-    // Premium status flips two things in startChallenge: the catch-up
-    // window expands to PREMIUM_CATCH_UP_DAYS, and an old free attempt
-    // returns 402 PREMIUM_REQUIRED_FOR_OLD_CATCHUP instead of a generic
-    // 400 so the frontend can surface the upsell instead of a dead end.
     const isPremium = await billingService.isPremium(req.userId!)
     const data = await gameService.startChallenge(challengeId, req.userId!, isPremium)
 
@@ -262,7 +224,6 @@ router.post('/start/:challengeId', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Get current screenshot
 router.get('/screenshot', authMiddleware, async (req, res, next) => {
   try {
     const { sessionId, position, prefetch } = req.query
@@ -275,8 +236,6 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
       return
     }
 
-    // Carousel/background warming uses prefetch=1 so the round-timer
-    // stamp stays on the position the user is actually playing.
     const isPrefetch = prefetch === '1' || prefetch === 'true'
 
     const data = await gameService.getScreenshot(
@@ -302,14 +261,6 @@ router.get('/screenshot', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Submit a guess.
-// Note: stale clients may still send `powerUpUsed` (legacy metadata hints,
-// retired 2026-06). It is accepted and IGNORED — never 400 a guess over a
-// retired optional field (zod strips unknown keys).
-//
-// `guessText` is bounded: the matcher aligns every word of the guess with
-// every word of the title and its aliases, so an unbounded string would be
-// a cheap way to burn CPU, and a non-string used to crash the handler.
 const MAX_GUESS_LENGTH = 200
 const guessBody = z.object({
   tierSessionId: z.string().min(1).max(100),
@@ -335,8 +286,6 @@ router.post('/guess', authMiddleware, guessLimiter, validateBody(guessBody), asy
       userId: req.userId!,
     })
 
-    // Push the unlock to the user's /notifications socket so the toast
-    // lands immediately, even before the results page mounts.
     if (data.newlyEarnedAchievements?.length) {
       emitAchievementUnlocked(req.userId!, data.newlyEarnedAchievements)
     }
@@ -346,11 +295,6 @@ router.post('/guess', authMiddleware, guessLimiter, validateBody(guessBody), asy
       data,
     })
 
-    // "Describe the game" (shadow mode, app settings describeGuess.*): a
-    // wrong guess that looks like a description is handed to the
-    // describe-guess worker. AFTER the response, never awaited: the player
-    // gets exactly today's result and timing. Errors are logged without the
-    // guess text.
     if (!data.isCorrect) {
       maybeCaptureDescription({
         userId: req.userId!,
@@ -376,10 +320,6 @@ router.post('/guess', authMiddleware, guessLimiter, validateBody(guessBody), asy
   }
 })
 
-// Activate the second-chance powerup for a specific position. Decrements
-// inventory and inserts a position_second_chances row atomically. The next
-// correct guess on (tier_session_id, position) will have its score floor
-// clamped to 70. See game.service.activateSecondChance for the contract.
 router.post('/second-chance', authMiddleware, async (req, res, next) => {
   try {
     const { tierSessionId, position } = req.body ?? {}
@@ -428,13 +368,6 @@ router.post('/second-chance', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Reveal one more letter of the masked title for a position. Server-
-// authoritative: returns only the recomputed masked string, never the
-// title. Gated server-side (one wrong guess first), capped per title, and
-// inventory-gated on the ranked daily (402 NO_INVENTORY → upsell). The
-// score penalty is locked in at reveal time and deducted by submitGuess.
-// Rate-limited: reveals are at most 2 per screenshot, so a burst beyond
-// this is automation, not play.
 const revealLetterLimiter = createRateLimiter({ windowMs: 60_000, max: 20 })
 router.post('/reveal-letter', authMiddleware, revealLetterLimiter, async (req, res, next) => {
   try {
@@ -451,8 +384,6 @@ router.post('/reveal-letter', authMiddleware, revealLetterLimiter, async (req, r
       return
     }
 
-    // Premium only changes the score cost in catch-up sessions (free
-    // letters off the leaderboard) — never on the ranked daily.
     const isPremium = await billingService.isPremium(req.userId!)
 
     const data = await gameService.revealLetter({
@@ -475,7 +406,6 @@ router.post('/reveal-letter', authMiddleware, revealLetterLimiter, async (req, r
   }
 })
 
-// End game early (forfeit)
 router.post('/end', authMiddleware, async (req, res, next) => {
   try {
     const { sessionId } = req.body
@@ -490,8 +420,6 @@ router.post('/end', authMiddleware, async (req, res, next) => {
 
     const data = await gameService.endGame(sessionId, req.userId!)
 
-    // Forfeit can still cross achievement thresholds; the EndGame response
-    // body doesn't drive a toast, so the socket push is the only cue here.
     if (data.newlyEarnedAchievements?.length) {
       emitAchievementUnlocked(req.userId!, data.newlyEarnedAchievements)
     }
@@ -512,7 +440,6 @@ router.post('/end', authMiddleware, async (req, res, next) => {
   }
 })
 
-// Search games (autocomplete)
 router.get('/games/search', async (req, res, next) => {
   try {
     const { q } = req.query

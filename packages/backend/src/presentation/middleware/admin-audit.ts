@@ -1,12 +1,6 @@
 import type { Request } from 'express'
 import { adminAuditRepository } from '../../infrastructure/repositories/admin-audit.repository.js'
 
-// Best-effort audit recorder. Routes call this AFTER the destructive write
-// has succeeded — we deliberately don't try to undo audit failures since
-// the action has already been applied. The repository itself swallows + logs
-// any DB error so the user-facing response isn't blocked by audit infra
-// (e.g. table missing on a fresh test DB).
-
 export interface AdminAuditTarget {
   kind: string
   id?: string | number | null

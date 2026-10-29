@@ -1,25 +1,11 @@
 import type { GeoPoint } from '@the-box/types'
 
-// Accuracy metrics for the LLM-vision localization study (issue #331, phase 5).
-//
-// Before agent_vision pins are allowed to vote (even at weight 0.25), the
-// offline harness `scripts/geo-vision-eval.ts` runs vision localization against
-// known-truth promoted metas and feeds the results here. The verdict gates
-// flipping GEO_AGENT_VISION_ENABLED: if the model can't localize well enough,
-// vision pins add noise rather than signal and the tier stays off.
-//
-// Pure — no I/O — so the metric math and the JSON parsing are unit-tested.
-
-// Enable bar: at least this fraction of predictions must land within the map's
-// consensus radius, AND the median normalized error must be below the cap.
 export const VISION_ENABLE_MIN_WITHIN_RADIUS = 0.4
 export const VISION_ENABLE_MAX_MEDIAN_DISTANCE = 0.1
 
 export interface VisionEvalSample {
   predicted: GeoPoint
   truth: GeoPoint
-  // The map's consensus_radius — raw euclidean units in the [0,1] map space,
-  // the same convention geo-consensus compares against.
   radius: number
 }
 
@@ -31,18 +17,12 @@ export interface VisionEvalSummary {
   pass: boolean
 }
 
-/** Raw euclidean distance in the map's [0,1] space (matches consensus radius). */
 export function euclideanDistance(a: GeoPoint, b: GeoPoint): number {
   const dx = a.x - b.x
   const dy = a.y - b.y
   return Math.sqrt(dx * dx + dy * dy)
 }
 
-/**
- * Normalized to [0,1] by the diagonal of the unit square (√2) — the same
- * "normalized distance" geo-scoring uses, so the median/0.1 bar is comparable
- * to the free-play scoring curve.
- */
 export function normalizedDistance(a: GeoPoint, b: GeoPoint): number {
   return euclideanDistance(a, b) / Math.SQRT2
 }
@@ -79,12 +59,6 @@ export function summarizeVisionEval(samples: VisionEvalSample[]): VisionEvalSumm
   return { count, medianNormalizedDistance, withinRadiusPct, within01Pct, pass }
 }
 
-/**
- * Parse a vision model's reply into a normalized point. Tolerant of prose or
- * code fences around the JSON; returns null when no valid `{x,y}` in [0,1] is
- * present. The harness counts a null as a miss, never a crash — one bad
- * completion shouldn't abort a 50-sample run.
- */
 export function parseVisionPoint(text: string): GeoPoint | null {
   if (!text) return null
   const candidates: string[] = []
@@ -100,7 +74,6 @@ export function parseVisionPoint(text: string): GeoPoint | null {
         return { x, y }
       }
     } catch {
-      // try the next candidate
     }
   }
   return null

@@ -53,11 +53,6 @@ function profileDataReducer(
   }
 }
 
-/**
- * ProfilePage — user identity + achievements (Overview) with Account / Creator /
- * Customize tabs for everything else. Heavy panels (StreamerKit, AdvancedStats,
- * GeoContributor, ThemeSwitcher) are lazy-loaded per tab.
- */
 export default function ProfilePage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -67,7 +62,6 @@ export default function ProfilePage() {
     profileDataReducer,
     initialProfileData,
   )
-  // User-driven overrides, seeded from the fetched profile during render.
   const [avatarOverride, setAvatarOverride] = useState<string | null>(null)
   const [themeOverride, setThemeOverride] = useState<ThemeKey | null>(null)
   const hasFetched = useRef(false)
@@ -86,7 +80,6 @@ export default function ProfilePage() {
   const fetchBillingEntitlement = useBillingStore((state) => state.fetchEntitlement)
   const isPremium = !!billingEntitlement?.isPremium
 
-  // Derived during render: user override wins, otherwise the fetched value.
   const fetchedTheme = userProfile?.selectedTheme
   const selectedTheme: ThemeKey =
     themeOverride ?? (fetchedTheme && isThemeKey(fetchedTheme) ? fetchedTheme : 'default')
@@ -102,8 +95,6 @@ export default function ProfilePage() {
     }
   }, [session?.user?.id, fetchInventory])
 
-  // The header reads the avatar from the session: refetch it so the new
-  // avatar shows there too, without a reload.
   const { refetch: refetchSession } = useSession()
   const handleAvatarChange = useCallback(
     (newAvatarUrl: string | null) => {
@@ -124,8 +115,6 @@ export default function ProfilePage() {
   }, [isPending, session, navigate, localizedPath])
 
    
-  // Intentional fetch-in-effect (no react-query/SWR in this stack); guarded by
-  // a hasFetched ref so it runs once per session.
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (session && !hasFetched.current) {

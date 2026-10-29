@@ -32,7 +32,7 @@
     "no-dupe-else-if": "error",
     "no-dupe-keys": "error",
     "no-duplicate-case": "error",
-    "no-empty": "error",
+    "no-empty": ["error", { "allowEmptyCatch": true }],
     "no-empty-character-class": "error",
     "no-empty-pattern": "error",
     "no-empty-static-block": "error",
@@ -164,7 +164,6 @@
           }
         ],
         "typescript/no-explicit-any": "warn",
-        // Type-aware (oxlint --type-aware, tsrslint backend), warnings only for now.
         "typescript/no-floating-promises": "warn",
         "typescript/no-misused-promises": "warn",
         "typescript/await-thenable": "warn",
@@ -178,8 +177,6 @@
         "react"
       ]
     },
-    // Design-token enforcement (docs/ui-tokens.md), error across src/**.
-    // The local ESLint-format rule runs through Oxlint's JS plugin API.
     {
       "files": [
         "src/**/*.{ts,tsx}"
@@ -191,7 +188,6 @@
         "./eslint-local/design-tokens-plugin.js"
       ]
     },
-    // Only opt-out: three.js materials legitimately need raw hex colors.
     {
       "files": [
         "src/components/backgrounds/**"

@@ -13,11 +13,6 @@ import type { AppSettingView } from '@/types'
 
 type Value = boolean | number | string | null
 
-/**
- * Admin → Paramètres. Renders every app setting from the server registry,
- * grouped, with a control per type. Secrets are write-only: the panel only
- * ever sees `{ set, mask }`, and the paste field is cleared after saving.
- */
 export function SettingsPanel() {
   const { t } = useTranslation()
   const [settings, setSettings] = useState<AppSettingView[] | null>(null)
@@ -293,7 +288,6 @@ function ValueControl({
   const current = setting.value === null ? '' : String(setting.value)
   const [draft, setDraft] = useState(current)
   const [busy, setBusy] = useState(false)
-  // Follow server updates (save, refresh) while the field is untouched.
   const [seen, setSeen] = useState(current)
   if (seen !== current) {
     setSeen(current)

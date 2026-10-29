@@ -5,9 +5,6 @@ import {
   logError,
 } from '@/lib/errors'
 
-/**
- * Guess submission request
- */
 export interface GuessSubmissionRequest {
   tierSessionId: string
   screenshotId: number
@@ -17,12 +14,8 @@ export interface GuessSubmissionRequest {
   roundTimeTakenMs: number
 }
 
-/**
- * Guess submission result from API
- */
 export interface GuessSubmissionResult {
   isCorrect: boolean
-  /** Present only on a correct guess or session completion — wrong guesses don't reveal the answer. */
   correctGame?: Game
   scoreEarned: number
   totalScore: number
@@ -33,27 +26,17 @@ export interface GuessSubmissionResult {
   letterPenalty?: number
   wrongGuessPenalty?: number
   secondChanceFloorBoost?: number
-  /** Streak bonus included in scoreEarned (3 / 5 / 10 first-try answers in a row). */
   streakBonus?: number
-  /** Length of the first-try run this answer extended. */
   streak?: number
-  /** "Warmer" hint after a wrong guess that relates to the answer. */
   proximityHint?: GuessProximityHint
-  /** `partial` when only the franchise was named (reduced score); else `exact`. */
   matchPrecision?: 'exact' | 'partial'
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
-/**
- * Service interface for guess submission
- */
 export interface GuessSubmissionService {
   submitGuess(request: GuessSubmissionRequest): Promise<GuessSubmissionResult>
 }
 
-/**
- * Mock guess submission service for development
- */
 class MockGuessSubmissionService implements GuessSubmissionService {
   private mockCorrectGame: Game = {
     id: 1,
@@ -70,13 +53,10 @@ class MockGuessSubmissionService implements GuessSubmissionService {
   async submitGuess(
     request: GuessSubmissionRequest
   ): Promise<GuessSubmissionResult> {
-    // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 300))
 
     const isCorrect = request.gameId === this.mockCorrectGame.id
 
-    // Score is "locked in" only on correct guess
-    // Wrong guesses deduct 100 points from total score (clamped at 0)
     const scoreEarned = isCorrect ? 100 : 0
     const scorePenalty = isCorrect ? 0 : this.WRONG_GUESS_PENALTY
 
@@ -84,13 +64,10 @@ class MockGuessSubmissionService implements GuessSubmissionService {
       this.correctAnswers++
     }
 
-    // Apply penalty for wrong guess, add earned score for correct
     this.totalLockedScore = Math.max(0, this.totalLockedScore - scorePenalty) + scoreEarned
 
-    // Advance only on correct guess
     const shouldAdvance = isCorrect
 
-    // Determine next position and completion
     const nextPosition = shouldAdvance
       ? (request.position < 10 ? request.position + 1 : null)
       : request.position
@@ -116,10 +93,6 @@ class MockGuessSubmissionService implements GuessSubmissionService {
   }
 }
 
-/**
- * API-based guess submission service
- * Uses backend endpoint: POST /api/game/guess
- */
 class ApiGuessSubmissionService implements GuessSubmissionService {
   private readonly baseUrl: string
 
@@ -131,8 +104,6 @@ class ApiGuessSubmissionService implements GuessSubmissionService {
     request: GuessSubmissionRequest
   ): Promise<GuessSubmissionResult> {
     try {
-      // Use fetchWithRetry for guess submission
-      // Only retry on network errors and 5xx, not on client errors
       const response = await fetchWithRetry(
         `${this.baseUrl}/game/guess`,
         {
@@ -145,13 +116,11 @@ class ApiGuessSubmissionService implements GuessSubmissionService {
         {
           maxRetries: 2,
           delayMs: 1000,
-          // Only retry on server errors, not client errors
           retryableStatuses: [500, 502, 503, 504],
         }
       )
 
       if (!response.ok) {
-        // Parse and throw appropriate error type
         throw await parseApiError(response)
       }
 
@@ -163,19 +132,13 @@ class ApiGuessSubmissionService implements GuessSubmissionService {
 
       return data.data
     } catch (error) {
-      // Log error with context
       logError(error, 'GuessSubmissionService')
 
-      // Re-throw for upstream handling
       throw error
     }
   }
 }
 
-/**
- * Factory function to create the guess submission service
- * Uses API service by default, falls back to mock if VITE_USE_MOCK_API is true
- */
 export function createGuessSubmissionService(): GuessSubmissionService {
   const useMock = import.meta.env.VITE_USE_MOCK_API === 'true'
 

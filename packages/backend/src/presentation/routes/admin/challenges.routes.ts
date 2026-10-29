@@ -6,9 +6,6 @@ import {
 
 const router = Router()
 
-// === Challenges ===
-
-// List all challenges
 router.get('/challenges', async (_req, res, next) => {
   try {
     const challenges = await adminService.getAllChallenges()
@@ -22,7 +19,6 @@ router.get('/challenges', async (_req, res, next) => {
   }
 })
 
-// Create a challenge
 const createChallengeSchema = z.object({
   challengeDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   screenshotIds: z.array(z.number()).length(10),
@@ -49,7 +45,6 @@ router.post('/challenges', async (req, res, next) => {
   }
 })
 
-// Reroll a daily challenge's screenshots
 const rerollChallengeSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   minMetacritic: z.number().min(70).max(100).optional(),
@@ -92,7 +87,6 @@ router.post('/challenges/reroll', async (req, res, next) => {
   }
 })
 
-// Reset admin's own daily session (allows replaying the challenge)
 const resetSessionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 })

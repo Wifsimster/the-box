@@ -13,11 +13,6 @@ import { FeatureScene } from "./scenes/FeatureScene";
 import { LeaderboardScene } from "./scenes/LeaderboardScene";
 import { CTAScene } from "./scenes/CTAScene";
 
-/**
- * Optional audio asset. Drop a royalty-free track at
- * `public/soundtrack.mp3` and it will mix in automatically; otherwise the
- * video renders silent.
- */
 const tryAudio = (): string | null => {
   try {
     return staticFile("soundtrack.mp3");
@@ -36,7 +31,6 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
       {audioSrc ? <Audio src={audioSrc} volume={0.6} /> : null}
 
       <TransitionSeries>
-        {/* 0:00–0:03 — Logo intro */}
         <TransitionSeries.Sequence durationInFrames={90}>
           <IntroScene />
         </TransitionSeries.Sequence>
@@ -45,7 +39,6 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
           presentation={fade()}
         />
 
-        {/* 0:03–0:08 — The hook */}
         <TransitionSeries.Sequence durationInFrames={150}>
           <HookScene />
         </TransitionSeries.Sequence>
@@ -54,7 +47,6 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
           presentation={slide({ direction: "from-right" })}
         />
 
-        {/* 0:08–0:13 — Daily Challenges */}
         <TransitionSeries.Sequence durationInFrames={150}>
           <FeatureScene
             eyebrow="Daily Drop"
@@ -86,7 +78,6 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
           presentation={slide({ direction: "from-right" })}
         />
 
-        {/* 0:13–0:18 — Power-ups & Achievements */}
         <TransitionSeries.Sequence durationInFrames={150}>
           <FeatureScene
             eyebrow="Power up"
@@ -118,7 +109,6 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
           presentation={slide({ direction: "from-right" })}
         />
 
-        {/* 0:18–0:23 — Live leaderboards */}
         <TransitionSeries.Sequence durationInFrames={150}>
           <LeaderboardScene />
         </TransitionSeries.Sequence>
@@ -127,7 +117,6 @@ export const MarketingVideo: React.FC<{ withAudio?: boolean }> = ({
           presentation={fade()}
         />
 
-        {/* 0:23–0:30 — CTA */}
         <TransitionSeries.Sequence durationInFrames={210}>
           <CTAScene />
         </TransitionSeries.Sequence>

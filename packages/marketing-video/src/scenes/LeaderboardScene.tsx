@@ -35,7 +35,6 @@ const LeaderboardRow: React.FC<{ row: Row; delay: number; animateScore: boolean 
   const { fps } = useVideoConfig();
   const t = (frame - delay) / fps;
 
-  // Animate the score upward to feel "live"
   const displayedScore = animateScore
     ? Math.round(
         interpolate(t, [0, 1.6], [0, row.score], {

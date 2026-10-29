@@ -35,10 +35,6 @@ const TooltipContent = ({
 )
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-/**
- * Simple Tooltip wrapper that matches the previous API for backward compatibility.
- * Usage: <Tooltip content="Hello">Hover me</Tooltip>
- */
 interface TooltipProps {
   content: React.ReactNode
   children: React.ReactNode

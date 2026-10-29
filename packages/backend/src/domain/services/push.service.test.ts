@@ -75,7 +75,6 @@ describe('pushService.sendToUser', () => {
     const result = await service.sendToUser('user-1', PAYLOAD)
     assert.deepEqual(result, { enqueued: false })
     assert.equal(state.enqueueCalls.length, 0)
-    // And it logs a warning so an operator can see the "feature off" path.
     assert.equal(state.warnings.length, 1)
   })
 
@@ -89,8 +88,6 @@ describe('pushService.sendToUser', () => {
   })
 
   it('returns enqueued: true even when the queue assigns no id (BullMQ optional id)', async () => {
-    // Inline the fake: the helper defaults to 'job-123' to keep the other
-    // tests terse, but here we deliberately want the dep to return no id.
     const service = createPushService({
       isConfigured: () => true,
       enqueueSendToUser: async () => ({}),

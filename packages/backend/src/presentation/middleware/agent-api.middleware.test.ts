@@ -10,8 +10,6 @@ import {
   requireScope,
 } from './agent-api.middleware.js'
 
-// Minimal Express res double: captures the status + json body and whether the
-// handler chain continued (next called).
 function mockRes() {
   const state: { status: number; body: unknown } = { status: 200, body: undefined }
   const res = {
@@ -58,7 +56,6 @@ describe('requireScope', () => {
   })
 
   it('rejects a streamer key even though it authenticated', () => {
-    // A key carrying only streamer scopes can never reach the agent surface.
     const { res, state } = mockRes()
     let nexted = false
     requireScope('geo-agent:read')(reqWithScopes(['read:public', 'webhooks:self']), res, () => {
@@ -69,8 +66,6 @@ describe('requireScope', () => {
   })
 
   it('rejects a mixed key (mutual exclusion): every scope must be geo-agent', () => {
-    // Defense in depth against a key that somehow carries both families —
-    // holding geo-agent:read is not enough if a streamer scope rides along.
     const { res, state } = mockRes()
     let nexted = false
     requireScope('geo-agent:read')(
@@ -109,8 +104,6 @@ describe('requireScope', () => {
   })
 
   it('rejects a consensus-promote key on the override route (distinct scope)', () => {
-    // The override scope is never implied by geo-agent:promote — a key must
-    // carry it explicitly.
     const { res, state } = mockRes()
     let nexted = false
     requireScope('geo-agent:promote-override')(reqWithScopes(['geo-agent:promote']), res, () => {

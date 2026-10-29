@@ -8,11 +8,8 @@ import { loadFeaturedLeader } from './featured-leader.js'
 
 const log = queueLogger.child({ worker: 'evening-nudge' })
 
-// Don't re-push the same user within this window even if the job runs twice
-// (retry, or a second container). Mirrors the streak-risk cooldown.
 const MIN_HOURS_BETWEEN_NUDGES = 20
 
-// Don't greet brand-new accounts with a stranger's name on day one.
 const MIN_ACCOUNT_AGE_DAYS = 2
 
 export interface EveningNudgeResult {
@@ -28,18 +25,6 @@ interface NudgeCandidate {
   locale: string | null
 }
 
-/**
- * Users who should get tonight's "beat the leader" push:
- *   - have at least one active push subscription,
- *   - are a real (non-anonymous) account older than {@link MIN_ACCOUNT_AGE_DAYS},
- *   - have NOT played today's challenge,
- *   - are outside the per-user cooldown,
- *   - are not today's leader (also implied by "not played today"),
- *   - are NOT going to receive tonight's streak-risk email — mutual exclusion
- *     so a single user never gets both evening nudges. The streak-risk worker
- *     targets `current_streak >= 1 AND email_marketing_consent AND not played
- *     today`; those users get the (leader-enhanced) email instead.
- */
 async function findCandidates(leaderUserId: string | null): Promise<NudgeCandidate[]> {
   let query = db('user')
     .join('push_subscriptions', 'push_subscriptions.user_id', 'user.id')
@@ -75,8 +60,6 @@ async function sendOne(
       body,
       url: `/${locale}/play`,
     })
-    // Stamp on enqueue (push is fire-and-forget via the fan-out worker); the
-    // cooldown makes a re-run a no-op for already-stamped users.
     await db('user').where('id', candidate.id).update({ last_evening_nudge_at: new Date() })
     return 'enqueued'
   } catch (err) {
@@ -85,12 +68,6 @@ async function sendOne(
   }
 }
 
-/**
- * Recurring evening push that pulls players back to today's daily challenge,
- * personalized with the current title holder. Fetches the leader ONCE, then
- * fans out to candidates. Empty board → privacy-safe "be the first" copy;
- * unsafe / opted-out leader name → score-only copy.
- */
 export async function sendEveningNudges(
   onProgress?: (current: number, total: number) => void
 ): Promise<EveningNudgeResult> {

@@ -9,10 +9,6 @@ interface ContentPageProps {
   children: React.ReactNode
 }
 
-/**
- * Shared shell for the long-form pages (rules, FAQ, contact, legal): the
- * PageHero header without the 3D background, and a reading-width column.
- */
 export function ContentPage({ icon, title, subtitle, children }: ContentPageProps) {
   useHashScroll()
 

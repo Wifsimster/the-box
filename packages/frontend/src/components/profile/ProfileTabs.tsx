@@ -153,9 +153,6 @@ export function ProfileTabs({
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6 mt-6">
-        {/* Each panel opens with an h2 (visually hidden, the tab already shows
-            the label) so the cards' h3 titles don't skip a level under the
-            profile h1. Security keeps its visible h2. */}
         <h2 className="sr-only">{t('profile.tabs.overview')}</h2>
         <ProfileSection>
           <Card>
@@ -261,9 +258,6 @@ export function ProfileTabs({
             <ProfileSection>
               <StreamerKitCard />
             </ProfileSection>
-            {/* Gated at the mount site, not just inside the card: an empty
-                ProfileSection still collects the parent's `space-y-6`, which
-                would leave a 24px hole under the streamer kit. */}
             {geoCommunity && (
               <ProfileSection delay={0.05}>
                 <GeoContributorCard />

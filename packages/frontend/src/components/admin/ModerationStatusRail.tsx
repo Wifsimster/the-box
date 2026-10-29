@@ -10,15 +10,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { GeoHealth } from '@/hooks/useGeoHealth'
 import type { GeoRunStatePayload } from '@/hooks/useGeoRunPolling'
 
-// One status surface for the moderation tab. Sections in priority order:
-//   1. Counter row — always visible when health is loaded.
-//   2. Cold-start guidance if `curated === 0` or `withMap === 0`.
-//   3. Compact run-state row appears when a manual ingestion run is in
-//      flight, regardless of the section above.
-//
-// Data is owned by the parent so all sections agree without duplicate
-// polls (`useGeoHealth` + `useGeoRunPolling` are subscribed once).
-
 interface ModerationStatusRailProps {
     health: GeoHealth | null
     healthLoading: boolean
@@ -26,9 +17,6 @@ interface ModerationStatusRailProps {
     runState: GeoRunStatePayload | null
     onMapsClick?: () => void
     onPinsClick?: () => void
-    // Cold-start CTAs — the empty-state copy used to point at the Jeux tab
-    // in prose only, leaving the moderator to scan the tab list. The parent
-    // wires these so the button deep-links straight to the right surface.
     onActivateGames?: () => void
     onGoToAcquisition?: () => void
 }
@@ -70,11 +58,6 @@ export function ModerationStatusRail({
         )
     }
 
-    // On a brand-new instance every counter is 0/0 and the row is just
-    // noise — three zeros pretending to be data. Hide the counters until
-    // there's something to count; the cold-start row carries the message
-    // in that state. The Stripe Dashboard does the same with its "Today"
-    // metrics row before the first payment.
     const errorsCount = health.queue.failed + (health.failures?.length ?? 0)
     const pinsToReview = health.queue.waiting + health.queue.active
     const allZeros =

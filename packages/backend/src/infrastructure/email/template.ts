@@ -1,12 +1,3 @@
-/**
- * Shared visual identity for every transactional and marketing email
- * the app sends. Keeps the dark gaming look (deep purple background,
- * neon eyebrow, purple→pink gradient CTA) consistent across the
- * password-reset / verification flows, the daily nudges, and the
- * admin test mail. Inline styles only — most clients still strip
- * <style> tags.
- */
-
 const STYLE = {
   outer: 'background:#0b0612;padding:24px 0;font-family:-apple-system,Segoe UI,Arial,sans-serif;',
   card:
@@ -27,17 +18,12 @@ const STYLE = {
 export const EMAIL_STYLE = STYLE
 
 export interface RenderEmailInput {
-  /** Small uppercase label rendered above the heading. Defaults to "The Box". */
   eyebrow?: string
   heading: string
-  /** Body paragraphs. May contain inline HTML (`<strong>`, `<em>`, `<a>`). */
   paragraphs?: string[]
-  /** Raw HTML inserted before the CTA — useful for inline reward boxes. */
   beforeCtaHtml?: string
   cta?: { label: string; url: string }
-  /** Tip / small text below the CTA. */
   tip?: string
-  /** Footer HTML rendered after the divider (unsubscribe, link expiry…). */
   footerHtml?: string
 }
 
@@ -86,10 +72,6 @@ export interface RenderEmailTextInput {
   footerLines?: string[]
 }
 
-/**
- * Plain-text counterpart for clients that block HTML. Mirrors the HTML
- * render order: heading, body paragraphs, CTA URL, tip, footer.
- */
 export function renderEmailText(input: RenderEmailTextInput): string {
   const lines: string[] = []
   lines.push(stripTags(input.heading))

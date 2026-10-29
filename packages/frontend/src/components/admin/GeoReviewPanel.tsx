@@ -19,24 +19,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type GeoSubTab = 'catalog' | 'acquisition' | 'queue' | 'reports'
 const SUB_TABS: GeoSubTab[] = ['catalog', 'acquisition', 'queue', 'reports']
-// Cold-start CTAs ("Activer un jeu") deep-link straight to the Candidats
-// filter so the moderator lands on the curation funnel without a second
-// click. Anything else just falls back to the default Activés filter.
 type CatalogFilter = 'enabled' | 'no-map' | 'candidates' | 'all'
 const CATALOG_FILTERS: CatalogFilter[] = ['enabled', 'no-map', 'candidates', 'all']
 
 export function GeoReviewPanel() {
     const { t } = useTranslation()
-    // Sub-tab lives in the URL (`?sub=…`) so AdminPage's redirect map can
-    // deep-link `?tab=geoFetch` straight into Acquisition and the
-    // moderator's tab choice survives a refresh. The legacy `?view=…`
-    // segment is read once for backward compatibility (cold-start CTAs)
-    // but no longer written.
     const [searchParams, setSearchParams] = useSearchParams()
-    // Deep-link seed from the "À un pin de l'éligibilité" card: `qGameId` /
-    // `qGameName` pre-select the queue tab filtered to one game. Read once for
-    // the initial state below, then stripped from the URL by the effect so the
-    // filter is dismissable and doesn't re-seed on the next render.
     const seedGameIdRaw = searchParams.get('qGameId')
     const seedGameId =
         seedGameIdRaw && Number.isFinite(Number(seedGameIdRaw)) ? Number(seedGameIdRaw) : null
@@ -59,8 +47,6 @@ export function GeoReviewPanel() {
             const params = new URLSearchParams(searchParams)
             if (next === 'queue') params.delete('sub')
             else params.set('sub', next)
-            // `filter`/`view` are meaningful only on the Catalogue tab —
-            // strip them when navigating away so URLs stay clean.
             if (next !== 'catalog') {
                 params.delete('view')
                 params.delete('filter')
@@ -80,25 +66,14 @@ export function GeoReviewPanel() {
         },
         [searchParams, setSearchParams],
     )
-    // Default to the only status that needs the moderator's attention. The
-    // other statuses are still reachable via the chip row, but the page
-    // should not open on `collecting` (no decision possible) or `all` (mixes
-    // already-handled rows into the queue).
     const [statusFilter, setStatusFilter] = useState<StatusFilter>(
         seedGameId != null ? 'all' : 'pending',
     )
-    // Per-game filter for the Pins tab. Set when the operator clicks "Voir
-    // les captures" on a Maps row so the candidate list narrows to that game.
-    // Cleared via the badge in the Pins header. Lifted here (rather than inside
-    // GeoReviewQueue) because the catalog tab and the status rail also drive it.
     const [gameFilter, setGameFilter] = useState<GameFilter | null>(
         seedGameId != null
             ? { gameId: seedGameId, gameName: seedGameName ?? `#${seedGameId}` }
             : null,
     )
-    // A deep link can also arrive while the panel is already mounted (the
-    // "À un pin" card sits on the same tab), so re-seed the filters whenever
-    // a new game id shows up in the URL.
     const [prevSeedGameId, setPrevSeedGameId] = useState(seedGameId)
     if (seedGameId !== prevSeedGameId) {
         setPrevSeedGameId(seedGameId)
@@ -108,9 +83,6 @@ export function GeoReviewPanel() {
         }
     }
     const rootRef = useRef<HTMLDivElement>(null)
-    // Strip the one-shot deep-link seed params after the state has captured
-    // them, so the game filter can be cleared and a refresh doesn't re-apply
-    // it, and bring the queue into view.
     useEffect(() => {
         if (!searchParams.has('qGameId') && !searchParams.has('qGameName')) return
         const params = new URLSearchParams(searchParams)
@@ -119,22 +91,9 @@ export function GeoReviewPanel() {
         setSearchParams(params, { replace: true })
         rootRef.current?.scrollIntoView({ block: 'start' })
     }, [searchParams, setSearchParams])
-    // Owned here (not inside GeoMapsTab) so an in-flight manual run keeps
-    // polling and the live banner stays visible when the operator switches
-    // between Pins / Maps / Games tabs.
     const { state: runState, error: runError, arm: armRunPolling } = useGeoRunPolling()
-    // Single health subscription shared between the counter strip and the
-    // cold-start banner — keeps them in sync without a duplicate poll.
     const { data: health, loading: healthLoading, error: healthError } = useGeoHealth()
 
-    // When the URL doesn't pin a `sub`, route the moderator to the tab
-    // where their next action lives, derived from the live health snapshot:
-    //   queue.pending > 0       → queue        (steady-state daily routine)
-    //   curated === 0           → catalog      (cold start: activate a game)
-    //   withMap === 0           → acquisition  (games activated, ingest maps)
-    //   otherwise               → queue        (empty queue is diagnostic)
-    // We DON'T rewrite the URL — `subInUrl === null` keeps the URL clean
-    // and explicit clicks still set `?sub=…` as before.
     const resolvedDefault: GeoSubTab | null = (() => {
         if (!health) return null
         const queueCount = health.queue.active + health.queue.waiting
@@ -143,21 +102,13 @@ export function GeoReviewPanel() {
         if (health.coverage.withMap === 0) return 'acquisition'
         return 'queue'
     })()
-    // A game-seeded deep link always wants the queue, even before the health
-    // snapshot that drives resolvedDefault has loaded.
     const activeTab: GeoSubTab = subInUrl ?? (seedGameId != null ? 'queue' : resolvedDefault) ?? 'queue'
-    // When the cold-start state-machine routes to `catalog`, pre-select the
-    // Candidats filter so the CTA the moderator sees in the empty state is
-    // the curation funnel (the actual first action they need to take).
     const effectiveCatalogFilter: CatalogFilter =
         !subInUrl && resolvedDefault === 'catalog' && !catalogFilterFromUrl
             ? 'candidates'
             : (catalogFilterFromUrl ?? 'enabled')
 
     const viewCapturesForGame = (gameId: number, gameName: string) => {
-        // GeoReviewQueue owns candidate/detail state; switching to the queue
-        // tab remounts it fresh (Radix unmounts inactive tabs), so we only
-        // need to seed the shared filters here.
         setGameFilter({ gameId, gameName })
         setStatusFilter('all')
         setActiveTab('queue')
@@ -165,7 +116,6 @@ export function GeoReviewPanel() {
 
     return (
         <div ref={rootRef} className="space-y-4 scroll-mt-[calc(var(--header-h)+4.5rem)] sm:scroll-mt-[calc(var(--header-h)+1rem)]">
-            {/* Page header */}
             <header className="space-y-1">
                 <h2 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2">
                     <MapPin className="size-5 text-neon-pink" aria-hidden="true" />
@@ -217,12 +167,6 @@ export function GeoReviewPanel() {
                     <p className="text-sm text-muted-foreground">
                         {t('admin.geo.tabs.acquisitionDescription')}
                     </p>
-                    {/* Folded the standalone "Cartes" admin tab in here so
-                        ingestion controls live next door to the moderation
-                        queue and the catalog they feed. The previous tab
-                        duplicated triggers already exposed in
-                        Catalogue › Cartes; the IA now keeps a single
-                        ingestion entry-point. */}
                     <GeoFetchPanel />
                 </TabsContent>
 
@@ -237,11 +181,6 @@ export function GeoReviewPanel() {
                     <p className="text-sm text-muted-foreground">
                         {t('admin.geo.tabs.catalogDescription')}
                     </p>
-                    {/* Maps + Games used to live behind a [Cartes | Jeux]
-                        sub-toggle; the unified Catalogue datatable below
-                        absorbs both surfaces with filter pills (Activés /
-                        Sans carte / Candidats / Tous). The cold-start CTA
-                        deep-links into the Candidats filter. */}
                     <GeoMapsTab
                         runState={runState}
                         runError={runError}

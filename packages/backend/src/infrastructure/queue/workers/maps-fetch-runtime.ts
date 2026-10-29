@@ -24,10 +24,6 @@ export interface SourceIdentity {
   slug: string
 }
 
-/**
- * Lookup source-identity fields for a game in one round trip. Each per-source
- * worker reads only the field(s) it needs but the SELECT is the same.
- */
 export async function loadSourceIdentity(
   gameId: number,
 ): Promise<SourceIdentity | null> {
@@ -79,30 +75,11 @@ export interface RunSourceFetchInput {
   source: GeoSourceName
   attemptKind: GeoIngestAttemptKind
   correlationId?: string
-  /**
-   * Token-bucket capacity. Defaults to `rateLimitPerMin / 60 + 1`.
-   */
   rateCapacity?: number
-  /**
-   * Per-second refill. Defaults to `rateLimitPerMin / 60`.
-   */
   rateRefillPerSec?: number
-  /**
-   * The actual fetch + persist work. Throws on transient failure (BullMQ
-   * retries) or returns a domain outcome (e.g. not_found, empty) which is
-   * recorded without retrying.
-   */
   fetch: () => Promise<FetchOutcomeReport>
 }
 
-/**
- * Common shell for per-source fetchers: guard with rate limiter + circuit
- * breaker, time the call, log the attempt, advance the pipeline.
- *
- * Throwing inside `fetch` lets BullMQ retry (transient errors). Returning a
- * non-success `FetchOutcomeReport` records the outcome and advances without
- * retry — for permanent / domain failures.
- */
 export async function runSourceFetch(
   input: RunSourceFetchInput,
 ): Promise<FetchOutcomeReport> {
@@ -128,7 +105,6 @@ export async function runSourceFetch(
       report = { outcome: 'circuit_open', errorCode: 'CIRCUIT_OPEN' }
     } else {
       report = transientErrorToReport(err)
-      // Re-throw to let BullMQ retry transient errors.
       await recordAttempt(input, report, correlationId, Date.now() - startedAt)
       throw err
     }
@@ -136,7 +112,6 @@ export async function runSourceFetch(
 
   await recordAttempt(input, report, correlationId, Date.now() - startedAt)
 
-  // Always advance the pipeline so the orchestrator picks the next source.
   await advancePipeline({
     gameId: input.gameId,
     correlationId,

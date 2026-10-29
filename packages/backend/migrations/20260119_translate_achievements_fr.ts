@@ -1,10 +1,6 @@
 import type { Knex } from 'knex'
 
-/**
- * Update existing achievements to French translations.
- */
 export async function up(knex: Knex): Promise<void> {
-    // Update speed achievements
     await knex('achievements').where('key', 'speed_demon').update({
         name: 'Démon de la Vitesse',
         description: 'Obtenez 3 réponses parfaites de suite (moins de 3 secondes chacune)',
@@ -20,7 +16,6 @@ export async function up(knex: Knex): Promise<void> {
         description: 'Répondez à une capture en moins de 2 secondes',
     })
 
-    // Update accuracy achievements
     await knex('achievements').where('key', 'no_hints_needed').update({
         name: 'Sans Indices',
         description: 'Complétez un défi quotidien sans utiliser d\'indices',
@@ -36,7 +31,6 @@ export async function up(knex: Knex): Promise<void> {
         description: 'Obtenez 10 bonnes réponses de suite sans erreur',
     })
 
-    // Update score achievements
     await knex('achievements').where('key', 'perfect_run').update({
         name: 'Partie Parfaite',
         description: 'Obtenez exactement 2000 points dans un seul défi',
@@ -47,7 +41,6 @@ export async function up(knex: Knex): Promise<void> {
         description: 'Obtenez plus de 1800 points dans un seul défi',
     })
 
-    // Update streak achievements
     await knex('achievements').where('key', 'dedicated_player').update({
         name: 'Joueur Dévoué',
         description: 'Maintenez une série de 3 jours',
@@ -63,7 +56,6 @@ export async function up(knex: Knex): Promise<void> {
         description: 'Maintenez une série de 30 jours',
     })
 
-    // Update genre achievements
     await knex('achievements').where('key', 'rpg_expert').update({
         name: 'Expert RPG',
         description: 'Identifiez correctement 10 jeux RPG',
@@ -79,7 +71,6 @@ export async function up(knex: Knex): Promise<void> {
         description: 'Identifiez correctement 10 jeux de Stratégie',
     })
 
-    // Update completion achievements
     await knex('achievements').where('key', 'first_win').update({
         name: 'Première Victoire',
         description: 'Complétez votre premier défi quotidien',
@@ -90,7 +81,6 @@ export async function up(knex: Knex): Promise<void> {
         description: 'Complétez 100 défis quotidiens',
     })
 
-    // Update competitive achievements
     await knex('achievements').where('key', 'top_ten').update({
         name: 'Top 10',
         description: 'Classez-vous dans le top 10 d\'un défi quotidien',
@@ -108,7 +98,6 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-    // Revert to English
     await knex('achievements').where('key', 'speed_demon').update({
         name: 'Speed Demon',
         description: 'Get 3 perfect speed guesses in a row (under 3 seconds each)',

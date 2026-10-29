@@ -8,12 +8,6 @@ import type {
 
 const log = repoLogger.child({ repository: 'user' })
 
-/**
- * User repository for better-auth's 'user' table.
- * Note: Password operations are handled by better-auth via the 'account' table.
- */
-
-// Better-auth user table row structure
 export interface UserRow {
   id: string
   name: string
@@ -23,7 +17,6 @@ export interface UserRow {
   role: string | null
   createdAt: Date
   updatedAt: Date
-  // Custom fields from additionalFields config (snake_case as defined in migration)
   username: string | null
   display_username: string | null
   display_name: string | null
@@ -64,7 +57,6 @@ function mapRowToUser(row: UserRow): User {
 }
 
 export const userRepository = {
-  /** The streamer-kit opt-in settings: whether the profile is public, and its slug. */
   async getPublicProfileSettings(
     userId: string
   ): Promise<{ public_profile_enabled: boolean; public_slug: string | null } | null> {
@@ -78,12 +70,6 @@ export const userRepository = {
     return row ?? null
   },
 
-  /**
-   * Patch the public-profile settings. `public_slug` carries a UNIQUE
-   * constraint, so a duplicate raises Postgres 23505 — deliberately left to
-   * propagate so the caller can answer 409 SLUG_TAKEN rather than this
-   * repository inventing an HTTP concern.
-   */
   async updatePublicProfileSettings(
     userId: string,
     update: Record<string, unknown>
@@ -91,11 +77,6 @@ export const userRepository = {
     await db('user').where('id', userId).update(update)
   },
 
-  /**
-   * RGPD Art. 17 erasure. ON DELETE CASCADE removes sessions, accounts and
-   * game data, mirroring the admin delete path; the cascaded `session` rows
-   * are what log the user out.
-   */
   async deleteAccount(userId: string): Promise<void> {
     await db('user').where('id', userId).del()
   },
@@ -182,9 +163,6 @@ export const userRepository = {
     return row?.stripe_customer_id ?? null
   },
 
-  // Public-profile addressing for a user: their opt-in flag and slug. Used by
-  // the session webhook hooks to decide whether to fan out and which slug to
-  // stamp on the event — keeps that raw lookup out of the composition root.
   async getPublicProfileRef(
     userId: string,
   ): Promise<{ publicSlug: string | null; publicProfileEnabled: boolean } | null> {
@@ -224,10 +202,6 @@ export const userRepository = {
 
   async grantSupporterLifetime(userId: string, grantedAt: Date = new Date()): Promise<boolean> {
     log.info({ userId, grantedAt }, 'grantSupporterLifetime')
-    // Idempotent: keep the earliest grant timestamp so a duplicate webhook
-    // doesn't overwrite the original supporter date. Returns true only when
-    // a row was actually flipped, so callers can fire one-shot side effects
-    // (notifications, emails) without re-firing on a duplicate webhook.
     const updated = await db('user')
       .where('id', userId)
       .whereNull('supporter_lifetime_at')
@@ -240,9 +214,6 @@ export const userRepository = {
 
   async revokeSupporterLifetime(userId: string, reason: string): Promise<boolean> {
     log.warn({ userId, reason }, 'revokeSupporterLifetime')
-    // Only act on users who actually had the grant; lets the webhook
-    // handler tell legitimate revocations (returning true) apart from
-    // benign duplicates (false) without an extra read.
     const updated = await db('user')
       .where('id', userId)
       .whereNotNull('supporter_lifetime_at')
@@ -336,9 +307,6 @@ export const userRepository = {
     return Number(row?.current_streak ?? 0)
   },
 
-  // RGPD Art. 16 (rectification): update only the columns the caller
-  // supplied. `username` and `display_username` are kept in sync so the
-  // Better Auth username plugin and our public-profile lookups agree.
   async updateProfile(
     userId: string,
     fields: { displayName?: string; username?: string; country?: CountryCode | null }
@@ -371,7 +339,6 @@ export const userRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { UserRepository as UserRepositoryPort } from '../../domain/ports/repositories.js'
 export const _userRepositoryTypeCheck: UserRepositoryPort = userRepository

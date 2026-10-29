@@ -1,7 +1,3 @@
-// Pure copy builder for the GeoGamers daily push. Kept infra-free (like
-// evening-nudge-copy) so it's unit-testable without pulling in the Redis-backed
-// services barrel.
-
 export function buildGeoGamersDailyCopy(locale: 'fr' | 'en'): { title: string; body: string } {
   if (locale === 'en') {
     return {

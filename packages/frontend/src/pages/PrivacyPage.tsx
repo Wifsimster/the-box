@@ -14,8 +14,6 @@ export default function PrivacyPage() {
     { title: t('legal.privacySecurityTitle'), content: t('legal.privacySecurity') },
     { title: t('legal.privacyPaymentsTitle'), content: t('legal.privacyPayments') },
     { title: t('legal.privacySubprocessorsTitle'), content: t('legal.privacySubprocessors') },
-    // Listed only while "describe the game" is live: the policy must not
-    // describe processing that doesn't happen. Wording pending legal review.
     ...(describeGuess
       ? [{ title: t('legal.privacyDescribeGuessTitle'), content: t('legal.privacyDescribeGuess') }]
       : []),

@@ -39,7 +39,6 @@ function mapRowToGame(row: GameRow): Game {
   }
 }
 
-/** The geo-metadata columns of a game, without the rest of the record. */
 export interface GeoGameMetadataRow {
   id: number
   name: string
@@ -50,11 +49,6 @@ export interface GeoGameMetadataRow {
 }
 
 export const gameRepository = {
-  /**
-   * The geo-metadata columns for one game. Used by the admin per-game tier
-   * diagnosis panel and by the agent enrollment surface, neither of which
-   * needs the full Game record.
-   */
   async findGeoMetadata(id: number): Promise<GeoGameMetadataRow | null> {
     const row = await db('games')
       .where({ id })
@@ -69,13 +63,11 @@ export const gameRepository = {
     return row ?? null
   },
 
-  /** Whether a game id exists at all. Cheaper than fetching the row to null-check it. */
   async exists(id: number): Promise<boolean> {
     const row = await db('games').where({ id }).first<{ id: number }>('id')
     return row !== undefined
   },
 
-  /** Ids of every curated game whose geo metadata resolved — the ingest-eligible set. */
   async findGeoIngestEligibleIds(): Promise<number[]> {
     const rows = await db('games')
       .where('geo_curated', true)
@@ -84,10 +76,6 @@ export const gameRepository = {
     return rows.map((row) => row.id)
   },
 
-  /**
-   * Patch the geo columns of one game. Returns false when no row matched so
-   * the caller can answer 404 rather than reporting a silent no-op success.
-   */
   async updateGeoColumns(id: number, update: Record<string, unknown>): Promise<boolean> {
     const updated = await db('games').where({ id }).update(update)
     return updated > 0
@@ -136,7 +124,6 @@ export const gameRepository = {
 
     log.debug({ page, limit, search: options.search, sortBy, sortOrder }, 'findPaginated')
 
-    // Map frontend field names to database column names
     const columnMap: Record<string, string> = {
       name: 'name',
       releaseYear: 'release_year',
@@ -150,7 +137,6 @@ export const gameRepository = {
     let query = db('games')
     let countQuery = db('games')
 
-    // Apply search filter if provided
     if (options.search && options.search.trim()) {
       const searchTerm = `%${options.search.trim()}%`
       query = query.where(function() {
@@ -165,11 +151,9 @@ export const gameRepository = {
       })
     }
 
-    // Get total count
     const countResult = await countQuery.count('* as count')
     const total = Number(countResult[0]?.count ?? 0)
 
-    // Get paginated results
     const rows = await query
       .orderBy(sortColumn, sortOrder)
       .offset(offset)
@@ -252,12 +236,6 @@ export const gameRepository = {
     log.info({ gameId: id }, 'game deleted')
   },
 
-  /**
-   * Update a game with data from RAWG API.
-   * Updates metadata fields, never the slug. Aliases are written only when
-   * passed, and the caller passes the curated list plus any new RAWG
-   * alternative names (see mergeGameAliases) — nothing is ever removed.
-   */
   async updateFromRawg(id: number, data: {
     name?: string
     releaseYear?: number
@@ -268,7 +246,6 @@ export const gameRepository = {
     coverImageUrl?: string
     metacritic?: number
     rawgId?: number
-    /** Full alias list to store — callers merge, never drop curated ones. */
     aliases?: string[]
     lastSyncedAt?: Date
   }): Promise<Game | null> {
@@ -298,14 +275,6 @@ export const gameRepository = {
     return row ? mapRowToGame(row) : null
   },
 
-  /**
-   * Candidate catalogue games for a free-text guess, used by the smart-guess
-   * proximity hint. We tokenise the guess and ILIKE on `name` for each
-   * significant token (≥3 alphanumerics, minus a few stop-words). This narrows
-   * the catalogue to a small set the domain then confirms with the fuzzy
-   * matcher — far cheaper than loading every game. Returns `[]` when the guess
-   * yields no usable tokens (e.g. "di"), which the caller treats as "no hint".
-   */
   async findGuessMatchCandidates(guessText: string, limit = 25): Promise<Game[]> {
     const STOP_WORDS = new Set(['the', 'and', 'for', 'les', 'des', 'una', 'los'])
     const tokens = guessText
@@ -355,7 +324,6 @@ export const gameRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { GameRepository as GameRepositoryPort } from '../../domain/ports/repositories.js'
 export const _gameRepositoryTypeCheck: GameRepositoryPort = gameRepository

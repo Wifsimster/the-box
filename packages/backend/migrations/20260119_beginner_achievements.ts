@@ -1,14 +1,7 @@
 import type { Knex } from 'knex'
 
-/**
- * Add beginner-friendly achievements to improve user retention and gamification.
- * These achievements are designed to be easily achievable for new players.
- * All names and descriptions are in French (primary language).
- */
 export async function up(knex: Knex): Promise<void> {
-    // Add new beginner-friendly achievements
     await knex('achievements').insert([
-        // === PREMIERS PAS (Gratification immédiate) ===
         {
             key: 'welcome_player',
             name: 'Bienvenue !',
@@ -43,7 +36,6 @@ export async function up(knex: Knex): Promise<void> {
             is_hidden: false,
         },
 
-        // === PROGRESSION RAPIDE (Succès en une session) ===
         {
             key: 'getting_warmed_up',
             name: 'Échauffement',
@@ -78,7 +70,6 @@ export async function up(knex: Knex): Promise<void> {
             is_hidden: false,
         },
 
-        // === JALONS DE SCORE (Progressif) ===
         {
             key: 'score_500',
             name: 'Étoile Montante',
@@ -113,7 +104,6 @@ export async function up(knex: Knex): Promise<void> {
             is_hidden: false,
         },
 
-        // === PARTICIPATION (Engagement) ===
         {
             key: 'regular_player',
             name: 'Joueur Régulier',
@@ -159,7 +149,6 @@ export async function up(knex: Knex): Promise<void> {
             is_hidden: false,
         },
 
-        // === PROGRESSION CUMULATIVE ===
         {
             key: 'game_collector_10',
             name: 'Collectionneur',
@@ -194,7 +183,6 @@ export async function up(knex: Knex): Promise<void> {
             is_hidden: false,
         },
 
-        // === SÉRIES (Jalons plus accessibles) ===
         {
             key: 'comeback_kid',
             name: 'De Retour',
@@ -229,7 +217,6 @@ export async function up(knex: Knex): Promise<void> {
             is_hidden: false,
         },
 
-        // === VITESSE (Entrée plus facile) ===
         {
             key: 'fast_fingers',
             name: 'Doigts Rapides',
@@ -253,7 +240,6 @@ export async function up(knex: Knex): Promise<void> {
             is_hidden: false,
         },
 
-        // === FUN/CACHÉS ===
         {
             key: 'persistent_guesser',
             name: 'Persévérant',
@@ -280,7 +266,6 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-    // Remove the beginner achievements
     await knex('achievements').whereIn('key', [
         'welcome_player',
         'first_guess',

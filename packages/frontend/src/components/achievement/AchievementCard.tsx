@@ -12,7 +12,6 @@ interface AchievementCardProps {
     className?: string
 }
 
-// Tier colors map to semantic tokens: easy=warning (amber), medium=primary (violet), hard=neon-cyan
 const tierColors = {
     1: 'bg-warning/10 border-warning/30 text-warning',
     2: 'bg-primary/10 border-primary/30 text-primary',
@@ -24,13 +23,11 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
     const isEarned = achievement.earned
     const isLocked = achievement.isHidden && !isEarned
 
-    // Check if achievement should be considered complete based on progress
     const isComplete = isEarned || (
         achievement.progressMax != null &&
         achievement.progress >= achievement.progressMax
     )
 
-    // Show progress bar for any achievement with a progressMax, even if progress is 0
     const hasProgress = achievement.progressMax != null && achievement.progressMax > 0
 
     const tierColor = tierColors[achievement.tier as keyof typeof tierColors] || tierColors[1]
@@ -52,9 +49,6 @@ export function AchievementCard({ achievement, size = 'medium', className }: Ach
     const localizedDescription = t(`achievements.items.${achievement.key}.description`, {
         defaultValue: achievement.description,
     })
-    // A non-color status hint that screen readers can use ("locked" /
-    // "earned"). We render the same cue visually as a Lock icon so users
-    // who can't perceive the purple-vs-grey delta still get the signal.
     const statusAriaLabel = isComplete ? earnedLabel : lockedLabel
 
     if (size === 'small') {

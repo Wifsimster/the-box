@@ -72,7 +72,6 @@ export function AnimatedProgress({
               : {}
           }
         />
-        {/* Animated shimmer overlay for in-progress state */}
         {animated && isInProgress && (
           <m.div
             className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent"

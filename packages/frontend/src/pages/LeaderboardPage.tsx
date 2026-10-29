@@ -36,23 +36,18 @@ const TAB_TRIGGERS: Record<LeaderboardTab, { icon: LucideIcon; label: string }> 
 const parseTab = (value: string | null): LeaderboardTab =>
   (TABS as ReadonlyArray<string>).includes(value ?? '') ? (value as LeaderboardTab) : 'daily'
 
-// The monthly tab ranks players or countries; `?view=countries` keeps the
-// country view linkable (shares, marketing posts).
 type MonthlyView = 'players' | 'countries'
 const parseMonthlyView = (value: string | null): MonthlyView =>
   value === 'countries' ? 'countries' : 'players'
 
 interface BoardsState {
   daily: LeaderboardEntry[]
-  /** Guests who finished the selected day's box (never ranked). */
   dailyGuests: number
   monthly: MonthlyLeaderboardEntry[]
   achievements: AchievementLeaderboardEntry[]
   dailyLoading: boolean
   monthlyLoading: boolean
   achievementLoading: boolean
-  // A failed request is not an empty board: the panel shows a retry instead
-  // of "No results yet" + a play CTA (which read as "nobody played today").
   dailyFailed: boolean
   monthlyFailed: boolean
   achievementFailed: boolean
@@ -80,8 +75,6 @@ const initialBoards: BoardsState = {
   achievementFailed: false,
 }
 
-// HTTP errors reject like network errors, so both land in the panel's
-// retry state rather than being read as an empty board.
 const fetchBoard = (url: string) =>
   fetch(url).then((res) => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -173,7 +166,6 @@ export default function LeaderboardPage() {
     monthlyFailed,
     achievementFailed,
   } = boards
-  // Bumped by a panel's Retry button to re-run that board's fetch effect.
   const [reload, setReload] = useState({ daily: 0, monthly: 0, achievements: 0 })
   const retryDaily = useCallback(() => setReload((r) => ({ ...r, daily: r.daily + 1 })), [])
   const retryMonthly = useCallback(() => setReload((r) => ({ ...r, monthly: r.monthly + 1 })), [])
@@ -221,15 +213,12 @@ export default function LeaderboardPage() {
   )
   const { selectedPlayer, playerSession, sessionLoading, sessionError } = sessionDialog
 
-  // Midnight today, read once per mount (lazy initializer) so the clock stays
-  // out of the render path and `today` keeps a stable identity across renders.
   const [today] = useState(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   })
 
-  // Parse date from URL query param if present
   const getInitialDate = (): Date => {
     const dateParam = searchParams.get('date')
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
@@ -254,8 +243,6 @@ export default function LeaderboardPage() {
     return todayStr === dateStr
   }
 
-  // Intentional fetch-in-effect: this stack has no react-query/SWR; the boards
-  // reducer owns loading/data. (Same rationale for the two effects below.)
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     dispatchBoards({ type: 'dailyStart' })
@@ -273,8 +260,6 @@ export default function LeaderboardPage() {
       })
   }, [selectedDate, reload.daily])
 
-  // Fetch achievement leaderboard (once, not date-dependent). The loading
-  // flag starts `true` in the reducer, so no setState-on-mount is needed.
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (reload.achievements > 0) dispatchBoards({ type: 'achievementsStart' })
@@ -290,14 +275,13 @@ export default function LeaderboardPage() {
       })
   }, [reload.achievements])
 
-  // Fetch monthly leaderboard when monthly tab is active or month changes
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     if (activeTab !== 'monthly' || monthlyView !== 'players') return
 
     dispatchBoards({ type: 'monthlyStart' })
     const year = selectedMonth.getFullYear()
-    const month = selectedMonth.getMonth() + 1 // getMonth() returns 0-11, API expects 1-12
+    const month = selectedMonth.getMonth() + 1
 
     fetchBoard(`/api/leaderboard/monthly/${year}/${month}`)
       .then(data => {
@@ -364,10 +348,6 @@ export default function LeaderboardPage() {
       <div className="max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full mb-6">
-            {/* "Results" (D9) ranks today's box and the month. The achievements
-                and Panorama boards leave the tab bar but stay deep-linkable
-                (?tab=achievements / ?tab=geogamers): their trigger only shows
-                while one of them is the active tab. */}
             {visibleLeaderboardTabs(activeTab).map((tab) => {
               const { icon: Icon, label } = TAB_TRIGGERS[tab]
               return (

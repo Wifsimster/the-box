@@ -1,18 +1,5 @@
-/**
- * Domain-facing queue ports.
- *
- * Captures the subset of the BullMQ Queue surface that domain services
- * (currently `job.service.ts`) rely on. Stage 1 keeps this wide so the
- * existing BullMQ `importQueue` instance is directly assignable.
- */
 import type { JobData, JobType } from '@the-box/types'
 
-/**
- * Input-side job state union (what callers pass to queue.getJobs).
- * Matches the subset of BullMQ's JobType that domain services actually
- * use, deliberately excluding 'unknown' (which is only a possible output
- * of getState()).
- */
 export type BullJobState =
   | 'waiting'
   | 'active'
@@ -22,17 +9,8 @@ export type BullJobState =
   | 'waiting-children'
   | 'prioritized'
 
-/**
- * Output-side union (what getState() may return). Includes 'unknown' to
- * match BullMQ's Job.getState() signature.
- */
 export type BullJobStateResult = BullJobState | 'unknown'
 
-/**
- * Minimal shape of a BullMQ Job as used by job.service.ts.
- * Kept loose (fields optional where BullMQ exposes them as optional) to
- * match the real object without forcing a dependency on bullmq types here.
- */
 export interface BullJobLike {
   id?: string
   name: string
@@ -65,10 +43,6 @@ export interface RepeatableJobLike {
   next?: number
 }
 
-/**
- * Port describing the queue surface used by the job domain service.
- * Matches BullMQ Queue methods enough for the singleton to satisfy it.
- */
 export interface ImportQueuePort {
   add(
     name: JobType | string,
@@ -92,11 +66,6 @@ export interface ImportQueuePort {
   getDelayedCount(): Promise<number>
 }
 
-/**
- * Read-only slice for queues we only inspect (e.g. geoQueue's repeatable
- * jobs surfaced in the admin job list). Avoids forcing `add()` payload
- * compatibility across queues with different `JobData` generics.
- */
 export interface ReadOnlyQueuePort {
   getJobs(
     types: BullJobState[],

@@ -37,11 +37,6 @@ export const screenshotRepository = {
     return row ? mapRowToScreenshot(row) : null
   },
 
-  // Authorisation gate for the image-proxy route. Returns true iff `userId`
-  // has (or had) a game_session for a daily_challenge whose tier includes
-  // `screenshotId`. Without this gate any authenticated user could iterate
-  // screenshot ids and harvest unreleased challenge answers (a key blocker
-  // from the post-merge review).
   async userCanAccessScreenshot(userId: string, screenshotId: number): Promise<boolean> {
     const row = await db('tier_screenshots')
       .join('tiers', 'tiers.id', 'tier_screenshots.tier_id')
@@ -139,17 +134,14 @@ export const screenshotRepository = {
   },
 
   async findRandomNotInTier(tierId: number, count: number, minMetacritic?: number): Promise<Screenshot[]> {
-    // Get screenshot IDs currently used in the tier
     const usedIds = await db('tier_screenshots')
       .where('tier_id', tierId)
       .pluck<number[]>('screenshot_id')
 
-    // Build query with optional metacritic filter
     let query = db('screenshots')
       .where('screenshots.is_active', true)
       .whereNotIn('screenshots.id', usedIds.length > 0 ? usedIds : [0])
 
-    // If minMetacritic is provided, join with games table and filter
     if (minMetacritic !== undefined) {
       query = query
         .join('games', 'screenshots.game_id', 'games.id')
@@ -157,7 +149,6 @@ export const screenshotRepository = {
         .whereNotNull('games.metacritic')
     }
 
-    // Select random screenshots
     const rows = await query
       .orderByRaw('RANDOM()')
       .limit(count)
@@ -167,7 +158,6 @@ export const screenshotRepository = {
   },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ScreenshotRepository as ScreenshotRepositoryPort } from '../../domain/ports/repositories.js'
 export const _screenshotRepositoryTypeCheck: ScreenshotRepositoryPort = screenshotRepository

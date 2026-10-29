@@ -12,7 +12,6 @@ const log = repoLogger.child({ repository: 'geo-pin' })
 
 export interface GeoPinSubmissionRow {
   id: number
-  // Null for agent-proposed pins (see the 20260710_geo_agent_pins migration).
   user_id: string | null
   geo_screenshot_candidate_id: number
   x: number
@@ -31,8 +30,6 @@ export interface GeoPinSubmissionRow {
 }
 
 function mapPin(row: GeoPinSubmissionRow): GeoPinSubmission {
-  // CHECK constraint already restricts confidence to {1,2,3}; the cast
-  // is just to match the narrowed wire type without re-validating.
   const confidence =
     row.confidence === 1 || row.confidence === 2 || row.confidence === 3
       ? (row.confidence as GeoPinConfidence)
@@ -72,8 +69,6 @@ export const geoPinRepository = {
       'submit pin',
     )
 
-    // ON CONFLICT on the (user_id, candidate_id) unique index: silently no-op
-    // so callers can treat duplicate submissions as a benign client retry.
     const [row] = await db('geo_pin_submission')
       .insert({
         user_id: data.userId,
@@ -90,13 +85,6 @@ export const geoPinRepository = {
     return row ? mapPin(row) : null
   },
 
-  /**
-   * Submit an AGENT-proposed pin (issue #331). No user — owned by a geo-agent
-   * API key, flagged by `source`, and downweighted in consensus. The unique
-   * partial index (agent_key_id, candidate, vision_pass) means a duplicate
-   * proposal is a benign no-op (returns null) rather than an error, mirroring
-   * the human path's ON CONFLICT DO NOTHING.
-   */
   async submitAgent(data: {
     agentKeyId: number
     geoScreenshotCandidateId: number
@@ -133,8 +121,6 @@ export const geoPinRepository = {
         .returning<GeoPinSubmissionRow[]>('*')
       return row ? mapPin(row) : null
     } catch (err) {
-      // 23505 = unique_violation on the partial agent index → duplicate
-      // proposal for this (key, candidate, pass). Treat as a benign no-op.
       if ((err as { code?: string }).code === '23505') return null
       throw err
     }
@@ -168,10 +154,6 @@ export const geoPinRepository = {
       })
   },
 
-  // Counts pin submissions inside the last `windowSeconds`. The window is a
-  // bound numeric parameter (no string interpolation) so this helper can't be
-  // turned into a SQL-injection seam by a future caller. Window is clamped
-  // to a positive integer to keep the SQL plan honest.
   async countByUserInWindow(userId: string, windowSeconds: number): Promise<number> {
     const seconds = Math.max(1, Math.floor(windowSeconds))
     const result = await db('geo_pin_submission')
@@ -186,10 +168,6 @@ export const geoPinRepository = {
     return Number(result?.count ?? 0)
   },
 
-  // Total pins submitted today (UTC). Cheap aggregate read used by the
-  // public "X épingles posées aujourd'hui" social-proof counter on the
-  // empty/first-run state. Counts every submission regardless of status
-  // — a contribution is a contribution, accepted or not.
   async countSinceUtcMidnight(): Promise<number> {
     const result = await db('geo_pin_submission')
       .where(
@@ -202,9 +180,6 @@ export const geoPinRepository = {
     return Number(result?.count ?? 0)
   },
 
-  // Same shape as userRejectionRatio7d but keyed by the agent API key, for the
-  // per-key auto-pause (issue #331, phase 5). Counts this key's agent pins in
-  // the last 7 days and how many consensus rejected.
   async agentKeyRejectionRatio7d(
     agentKeyId: number,
   ): Promise<{ submitted: number; rejected: number }> {
@@ -233,8 +208,6 @@ export const geoPinRepository = {
   },
 
   async userRejectionRatio7d(userId: string): Promise<{ submitted: number; rejected: number }> {
-    // 7 days = 604800 seconds, expressed as a bound parameter for the same
-    // reason as countByUserInWindow.
     const sevenDaysSeconds = 7 * 24 * 60 * 60
     const rows = await db('geo_pin_submission')
       .where({ user_id: userId })

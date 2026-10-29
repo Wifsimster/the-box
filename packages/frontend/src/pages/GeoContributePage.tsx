@@ -50,13 +50,6 @@ export default function GeoContributePage() {
     } = useGeoStore()
 
     const [message, setMessage] = useState<string | null>(null)
-    // Anonymous bootstrap: a guest landing here has no session, so the
-    // contributor + pick endpoints would 401 and the page would blank
-    // out. Auto-creating a Better Auth anonymous session keeps the
-    // contribute path frictionless — pins land flagged `is_anonymous`
-    // server-side so consensus and admin moderation can still
-    // distinguish them. The ref guards against duplicate calls in
-    // React 18 strict-mode dev.
     const anonSignInTriggered = useRef(false)
 
     useEffect(() => {
@@ -68,9 +61,6 @@ export default function GeoContributePage() {
             try {
                 await authClient.signIn.anonymous()
             } catch {
-                // Failure here just means the user stays unauthenticated
-                // and the contributor/pick endpoints will surface their
-                // own 401 — nothing else to do client-side.
             }
         })()
     }, [isSessionPending, session?.user?.id])
@@ -88,8 +78,6 @@ export default function GeoContributePage() {
     const isLocked = !!unlock && !unlock.unlocked
 
     useEffect(() => {
-        // Avoid the guaranteed-to-fail pick call when the user is locked —
-        // it would just return a 403 and blank the page into an error state.
         if (!unlock) return
         if (unlock.unlocked) pickContribution(gameId)
     }, [gameId, pickContribution, unlock])
@@ -107,7 +95,6 @@ export default function GeoContributePage() {
                     "Thanks — we'll let you know once other players agree on the spot.",
                 ),
             )
-            // Queue up the next one.
             setTimeout(() => {
                 setMessage(null)
                 pickContribution(gameId)
@@ -222,8 +209,6 @@ export default function GeoContributePage() {
                             </StepTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {/* Below lg the screenshot card scrolls away while
-                                pinning — keep it floating over the map. */}
                             <div className="relative">
                                 <GeoMapCanvas
                                     imageUrl={currentCandidateMap.imageUrl}
@@ -239,12 +224,6 @@ export default function GeoContributePage() {
                                     className="lg:hidden"
                                 />
                             </div>
-                            {/* Confidence chip — shown only after a pin is
-                                placed so it doesn't pre-bias the player.
-                                Skipping the chip is allowed; the server
-                                treats unspecified as "sure" today, and a
-                                follow-up will weight low-confidence pins
-                                proportionally less in consensus. */}
                             {pendingPin ? (
                                 <ConfidenceChips
                                     value={pendingConfidence}
@@ -333,10 +312,6 @@ function StepTitle({ step, children }: { step: number; children: ReactNode }) {
     )
 }
 
-// Three buckets, each carrying its weight intent for the future
-// consensus tweak. The label keys live under
-// geo.contribute.confidence.* so a translator can rephrase
-// "Sure / Approx / Guess" without touching code.
 const CONFIDENCE_OPTIONS: Array<{ value: GeoPinConfidence; key: string; fallback: string }> = [
     { value: 1, key: 'geo.contribute.confidence.sure', fallback: 'Sure' },
     { value: 2, key: 'geo.contribute.confidence.approx', fallback: 'Approximate' },

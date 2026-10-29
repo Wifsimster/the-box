@@ -1,24 +1,9 @@
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import { loginAsUser, loginAsAdmin } from './helpers/game-helpers'
 
-// Authz boundary on /api/referral/*. The IDOR concern flagged in the
-// E2E coverage meeting (Shug, "IDOR on referral.routes.ts attribution")
-// is structurally mitigated by the route always sourcing userId from
-// req.userId (session) rather than from URL/body — see referral.routes.ts.
-// This spec locks that contract in: the routes must require auth, must
-// reject self-referral, must reject unknown codes, and /stats must
-// return the caller's own data (never another user's).
-//
-// We do NOT actually consume a real referral here — claim() is a
-// one-shot per account and would mutate seed state in a way other
-// specs could observe. The negative-path scenarios below cover the
-// security surface without touching state.
-
 const FAKE_USER_ID = 'this_is_definitely_not_a_real_user_id_xyz_123'
 
 async function referralRouteAvailable(request: APIRequestContext): Promise<boolean> {
-    // /stats requires auth; an unauthenticated probe must hit the auth
-    // middleware (401) — that confirms the route is mounted. 404 = absent.
     const r = await request.get('/api/referral/stats', { failOnStatusCode: false })
     return r.status() !== 404
 }
@@ -28,8 +13,6 @@ interface SessionResponse {
 }
 
 async function getMyUserId(request: APIRequestContext): Promise<string | null> {
-    // better-auth exposes the current session via /api/auth/get-session.
-    // Returns null user when unauthenticated.
     const res = await request.get('/api/auth/get-session', { failOnStatusCode: false })
     if (res.status() !== 200) return null
     const body = (await res.json()) as SessionResponse
@@ -85,7 +68,6 @@ test.describe('Referral claim — domain invariants', () => {
         })
         expect(res.status()).toBe(404)
         const body = (await res.json()) as { success: boolean; error?: { code: string } }
-        // The submitted code resolves to no account → REFERRER_NOT_FOUND (404).
         expect(body.error?.code).toBe('REFERRER_NOT_FOUND')
         await ctx.close()
     })
@@ -113,11 +95,6 @@ test.describe('Referral claim — domain invariants', () => {
 
 test.describe('Referral stats — session isolation', () => {
     test('/stats returns the caller\'s own stats — never another user\'s', async ({ browser }) => {
-        // Read both users' stats and confirm the responses are
-        // session-scoped: distinct results, no cross-leak. The strongest
-        // assertion we can make without mutating state is that the
-        // referredBy fields and the referralsMade counts are independently
-        // resolved per session — not, say, hard-coded to admin.
         const ctxA = await browser.newContext()
         const pageA = await ctxA.newPage()
         await loginAsUser(pageA)
@@ -142,20 +119,13 @@ test.describe('Referral stats — session isolation', () => {
         }).data
         await ctxB.close()
 
-        // Sanity: both calls actually identified two different users via
-        // the session. If they collapsed to the same id, the test below
-        // is meaningless.
         expect(myIdA, 'could not resolve user A id').toBeTruthy()
         expect(myIdB, 'could not resolve user B id').toBeTruthy()
         expect(myIdA).not.toBe(myIdB)
 
-        // The shape contract: fields exist with expected types. We don't
-        // assert on specific *values* of referralsMade because seed data
-        // could legitimately have either user as a referee in some setup.
         for (const stats of [statsA, statsB]) {
             expect(typeof stats.hasClaimed).toBe('boolean')
             expect(typeof stats.referralsMade).toBe('number')
-            // referredBy is nullable string — accept either.
             expect(['string', 'object']).toContain(typeof stats.referredBy)
         }
     })

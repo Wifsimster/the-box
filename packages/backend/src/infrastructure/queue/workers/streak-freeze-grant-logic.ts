@@ -11,14 +11,8 @@ const log = queueLogger.child({ worker: 'streak-freeze-grant' })
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// Active-ish window. Users who have not played in the last 60 days are not
-// going to benefit from a freeze; granting them one is just inventory noise.
 const ACTIVE_DAYS = 60
 
-// Per-user cap on simultaneous freezes. Selling them is forbidden (see
-// docs/game-flow.md), so the only way to acquire freezes is via this
-// monthly grant + reactivation chest. Capping at 2 keeps the auto-consume
-// behavior forgiving without trivializing missed days.
 const MAX_FREEZES_PER_USER = 2
 
 const STREAK_FREEZE_KEY = 'streak_freeze'
@@ -45,20 +39,12 @@ async function findActiveUsers(): Promise<ActiveUserRow[]> {
   return rows
 }
 
-/**
- * Build the YYYY-MM source_ref for the current month. Stable across the
- * worker's runtime so rerunning the job inside the same month is a no-op.
- */
 function currentMonthSourceRef(now = new Date()): string {
   const yyyy = now.getUTCFullYear()
   const mm = String(now.getUTCMonth() + 1).padStart(2, '0')
   return `streak_freeze:${yyyy}-${mm}`
 }
 
-/**
- * Grant 1× streak_freeze to every active user, idempotent on the monthly
- * source_ref. Skips users already at the cap.
- */
 export async function grantMonthlyStreakFreezes(
   onProgress?: (current: number, total: number) => void
 ): Promise<StreakFreezeGrantResult> {
@@ -75,9 +61,6 @@ export async function grantMonthlyStreakFreezes(
     if (!user) continue
 
     try {
-      // Cap enforcement: if the user already owns the max, skip the grant
-      // entirely. We do NOT insert a reward_grants row for a no-op so the
-      // inbox stays empty for these users.
       const owned = await inventoryRepository.getItemQuantity(
         user.id,
         ITEM_TYPE,

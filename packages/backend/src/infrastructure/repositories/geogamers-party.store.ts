@@ -9,12 +9,9 @@ import type { PartyRoundContent } from '../../domain/services/geogamers-party.se
 
 const log = repoLogger.child({ repository: 'geogamers-party' })
 
-// Party state is ephemeral — a 2h TTL is plenty for a session and keeps stale
-// lobbies from accumulating (no cron needed; Redis expires them).
 const PARTY_TTL_SECONDS = 2 * 60 * 60
 const KEY = (code: string) => `geogamers:party:${code}`
 
-// Unambiguous invite-code alphabet (no 0/O/1/I).
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 export function generatePartyCode(): string {
@@ -30,17 +27,13 @@ export const geoGamersPartyStore = {
     return raw ? (JSON.parse(raw) as GeoGamersParty) : null
   },
 
-  // Persist and refresh the TTL. Party mutations always go through the pure
-  // state machine, then save() writes the new snapshot.
   async save(party: GeoGamersParty): Promise<void> {
     await getRedis().set(KEY(party.code), JSON.stringify(party), 'EX', PARTY_TTL_SECONDS)
   },
 
-  // Reserve a fresh, unused code and persist the initial party.
   async create(party: Omit<GeoGamersParty, 'code'>): Promise<GeoGamersParty> {
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = generatePartyCode()
-      // NX: only set if the code is free, so two hosts can't collide.
       const ok = await getRedis().set(
         KEY(code),
         JSON.stringify({ ...party, code }),
@@ -58,17 +51,10 @@ export const geoGamersPartyStore = {
   },
 }
 
-/**
- * Resolve `count` round contents from the eligible pool. `listEligibleMetas`
- * excludes every screenshot that has EVER been a daily challenge, so party
- * content can never leak (or be used to scout) the ranked daily. Returns fewer
- * than `count` only if the pool is too small.
- */
 export async function resolvePartyRoundContents(count: number): Promise<PartyRoundContent[]> {
   const eligible = await geoGamersChallengeRepository.listEligibleMetas({})
   if (eligible.length === 0) return []
 
-  // Shuffle (Fisher–Yates) and take up to `count` distinct metas.
   const pool = [...eligible]
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
@@ -96,8 +82,6 @@ export async function resolvePartyRoundContents(count: number): Promise<PartyRou
   return contents
 }
 
-// Server-only lookup for the party image proxy: the underlying asset URL for a
-// round's screenshot (never sent to clients — streamed through the proxy).
 export async function resolvePartyRoundImage(metaId: number): Promise<string | null> {
   const meta = await geoScreenshotRepository.findMetaById(metaId)
   if (!meta) return null

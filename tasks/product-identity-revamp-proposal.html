@@ -1,11 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SUMMARY: Revue d'identité produit de The Box + refonte proposée (2026-09-13, main @ 2.158.4).
-  Neuf constats vérifiés dans le code : 7 emplacements servent 6 taglines différentes, 0 marque dans le
-  chrome de l'app, 74 chaînes FR tutoient contre 181 qui vouvoient, « Géo » et « GeoGamers » se confondent.
-  Proposition : garder le nom et lui donner un verbe (« Ouvre la boîte »), tagline en constante, règle
-  « le jeu tutoie, le contrat vouvoie », marque dans le header, nav primaire de 5 à 3. 5 phases, 4 décisions.
--->
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -86,7 +79,6 @@
   }
   .thesis strong { color: var(--fg); font-weight: 600; }
 
-  /* ---- verdict figures ---- */
   .figs {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 1px; background: var(--border); border: 1px solid var(--border);
@@ -101,7 +93,6 @@
   .fig .n small { font-size: 0.95rem; color: var(--muted); font-weight: 500; }
   .fig p { margin: 0.55rem 0 0; font-size: 0.83rem; color: var(--muted); line-height: 1.45; }
 
-  /* ---- findings ---- */
   .findings { display: flex; flex-direction: column; gap: 1px; background: var(--border); border-block: 1px solid var(--border); margin: 1.6rem 0 0; }
   .finding {
     background: var(--surface); padding: 1.05rem 1.2rem 1.1rem;
@@ -135,7 +126,6 @@
   .legend .l-drift { color: var(--drift); }
   .legend .l-miss  { color: var(--cyan); }
 
-  /* ---- the one loud moment ---- */
   .lockup {
     margin: 2rem 0 0; padding: 2.6rem 1.6rem 2.3rem; text-align: center;
     background: radial-gradient(120% 140% at 50% 0%, rgba(168,85,247,0.13), rgba(236,72,153,0.05) 55%, transparent 80%);
@@ -152,7 +142,6 @@
   .lockup .verb-en { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0.7rem 0 0; }
   .lockup .cat { margin: 1.15rem auto 0; max-width: 44ch; color: #cfcadd; font-size: 0.95rem; }
 
-  /* ---- specimen pairs ---- */
   .specimens { display: flex; flex-direction: column; gap: 0.9rem; margin: 1.4rem 0 0; }
   .spec {
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -171,7 +160,6 @@
   .spec .next { color: var(--fg); }
   .spec .tag.t-next { color: var(--keep); }
 
-  /* ---- tables ---- */
   .tablewrap { overflow-x: auto; margin: 1.2rem 0 0; border: 1px solid var(--border); border-radius: var(--radius); }
   table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 520px; }
   th, td { text-align: left; padding: 0.62rem 0.9rem; border-bottom: 1px solid var(--border); vertical-align: top; }
@@ -183,7 +171,6 @@
   td.m { font-family: var(--mono); font-size: 0.78rem; color: #b9a6d8; overflow-wrap: anywhere; }
   td.k { white-space: nowrap; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  /* ---- callouts ---- */
   .note {
     margin: 1.3rem 0 0; padding: 0.85rem 1.05rem; font-size: 0.9rem;
     border-left: 3px solid var(--cyan); background: rgba(34,184,207,0.055);
@@ -194,7 +181,6 @@
   .note p:last-child { margin-bottom: 0; }
   .note b { color: var(--fg); }
 
-  /* ---- phases ---- */
   .phases { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 1.4rem; }
   .phase { background: var(--surface); padding: 1.05rem 1.2rem; display: grid; grid-template-columns: 5.2rem 1fr; gap: 0 1rem; }
   .phase .p-id { font-family: var(--mono); font-size: 0.72rem; color: var(--purple); letter-spacing: 0.08em; padding-top: 0.2rem; }

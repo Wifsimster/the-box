@@ -6,21 +6,16 @@ import type {
 } from '@the-box/types'
 
 interface DailyLoginState {
-    // Login status
     status: DailyLoginStatus | null
 
-    // Inventory
     inventory: UserInventory | null
 
-    // Loading states
     isLoading: boolean
     isClaiming: boolean
 
-    // Modal state
     isModalOpen: boolean
     justClaimed: ClaimRewardResponse | null
 
-    // Actions
     fetchStatus: (userRole?: string) => Promise<void>
     fetchInventory: () => Promise<void>
     claimReward: () => Promise<ClaimRewardResponse | null>
@@ -52,10 +47,6 @@ export const useDailyLoginStore = create<DailyLoginState>((set, get) => ({
             const json = await response.json()
             set({ status: json.data, isLoading: false })
 
-            // Daily-first proposal: the reward no longer auto-opens on top of
-            // today's box. It waits behind the header gift badge and the
-            // post-game card (TodayDone) instead. `userRole` is kept in the
-            // signature so callers don't change.
             void userRole
         } catch (error) {
             console.error('Failed to fetch daily login status:', error)
@@ -99,7 +90,6 @@ export const useDailyLoginStore = create<DailyLoginState>((set, get) => ({
             const json = await response.json()
             const claimResponse = json.data as ClaimRewardResponse
 
-            // Update status to reflect claimed state
             const currentStatus = get().status
             if (currentStatus) {
                 set({

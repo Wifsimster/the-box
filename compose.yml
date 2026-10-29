@@ -2,7 +2,7 @@ name: the-box
 
 services:
   the-box:
-    image: wifsimster/the-box:1.1 # Pin to minor version for controlled updates
+    image: wifsimster/the-box:1.1
     container_name: the-box
     restart: unless-stopped
     healthcheck:
@@ -22,28 +22,22 @@ services:
     env_file:
       - .env
     environment:
-      # System
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Paris
       - NODE_ENV=production
 
-      # Database & Cache (REQUIRED)
       - DATABASE_URL=postgresql://${DB_USER:-thebox}:${DB_PASSWORD:-thebox}@the-box-postgres:5432/${DB_NAME:-thebox}
       - REDIS_URL=redis://the-box-redis:6379
 
-      # Authentication (REQUIRED - Generate with: openssl rand -base64 32)
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
 
-      # URLs (REQUIRED)
       - API_URL=https://the-box.battistella.ovh
       - CORS_ORIGIN=https://the-box.battistella.ovh
 
-      # Email (Optional - for password reset)
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - EMAIL_FROM=${EMAIL_FROM:-no-reply@the-box.battistella.ovh}
 
-      # RAWG API (Optional - for game imports)
       - RAWG_API_KEY=${RAWG_API_KEY:-}
     volumes:
       - uploads:/app/uploads
@@ -56,18 +50,14 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=lan"
 
-      # Entrypoint
       - "traefik.http.routers.the-box.entrypoints=websecure"
 
-      # Router
       - "traefik.http.routers.the-box.rule=Host(`the-box.battistella.ovh`)"
       - "traefik.http.routers.the-box.tls=true"
       - "traefik.http.routers.the-box.tls.certresolver=letsencrypt"
 
-      # Service
       - "traefik.http.services.the-box.loadBalancer.server.port=80"
 
-      # Watchtower automatic update
       - com.centurylinklabs.watchtower.enable=true
 
     networks:
@@ -107,13 +97,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Database backup service (runs daily at 2am).
-  # Credentials live in a ~/.pgpass file at 0600 rather than the PGPASSWORD
-  # env var. PGPASSWORD shows up in `docker inspect` output and in any
-  # process listing the cron daemon spawns; .pgpass is only readable by
-  # the postgres user inside the container. Compose's `secrets:` block
-  # writes /run/secrets/db_password from the project root file, which the
-  # entry script copies into ~/.pgpass with the correct permissions.
   db-backup:
     image: postgres:16-alpine
     container_name: the-box-db-backup
@@ -127,8 +110,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Build the .pgpass file from the mounted secret on each container
-    # start; the backup script reads it instead of trusting an env var.
     command:
       - sh
       - -c
@@ -147,10 +128,6 @@ volumes:
   redis-data:
   postgres-data:
 
-# Compose-managed secrets. Drop a single-line `secrets/db_password.txt`
-# (gitignored) next to compose.yml with the Postgres user's password
-# before bringing the stack up. Docker mounts it read-only at
-# /run/secrets/db_password inside the backup container.
 secrets:
   db_password:
     file: ./secrets/db_password.txt

@@ -1,41 +1,23 @@
-/**
- * Scoring System Verification Tests
- * 
- * This file contains test cases to verify scoring calculations match
- * between backend and frontend, and that all edge cases are handled correctly.
- */
-
 import { calculateSpeedMultiplier } from '../lib/utils'
 
-// Constants matching backend
 const BASE_SCORE = 100
 const WRONG_GUESS_PENALTY = 0
 const UNFOUND_PENALTY = 0
 
-/**
- * Calculate score earned for a correct guess (frontend version).
- * Letter-reveal penalties are locked in server-side at reveal time and are
- * not part of this base formula (the flat -20% metadata-hint penalty was
- * retired 2026-06).
- */
 function calculateScoreEarned(timeTakenMs: number): number {
   const speedMultiplier = calculateSpeedMultiplier(timeTakenMs)
   let scoreEarned = Math.round(BASE_SCORE * speedMultiplier)
-  scoreEarned = Math.min(scoreEarned, 200) // Cap at 200
+  scoreEarned = Math.min(scoreEarned, 200)
 
   return scoreEarned
 }
 
-/**
- * Test speed multiplier boundary conditions
- */
 export function testSpeedMultiplierBoundaries(): {
   passed: boolean
   failures: string[]
 } {
   const failures: string[] = []
 
-  // Test boundary conditions
   const testCases = [
     { timeMs: 0, expected: 2.0, description: '0 seconds (instant)' },
     { timeMs: 2999, expected: 2.0, description: '2.999 seconds (< 3s)' },
@@ -65,9 +47,6 @@ export function testSpeedMultiplierBoundaries(): {
   }
 }
 
-/**
- * Test score calculation for correct guesses
- */
 export function testScoreCalculation(): {
   passed: boolean
   failures: string[]
@@ -117,16 +96,12 @@ export function testScoreCalculation(): {
   }
 }
 
-/**
- * Test perfect game scenario
- */
 export function testPerfectGame(): {
   passed: boolean
   totalScore: number
   expected: number
 } {
-  // All 10 screenshots correct, all under 3 seconds, no letter reveals, no wrong guesses
-  const scorePerScreenshot = calculateScoreEarned(2000) // 200 points
+  const scorePerScreenshot = calculateScoreEarned(2000)
   const totalScore = scorePerScreenshot * 10
 
   return {
@@ -136,30 +111,21 @@ export function testPerfectGame(): {
   }
 }
 
-/**
- * Test all wrong guesses scenario
- */
 export function testAllWrongGuesses(): {
   passed: boolean
   totalScore: number
   expected: number
 } {
-  // 10 wrong guesses, no correct answers
-  // During gameplay: Math.max(0, 0 - (10 × 30)) = 0 (can't go negative during gameplay)
-  // But this is a theoretical calculation - actual implementation prevents negative during gameplay
   const wrongGuesses = 10
   const theoreticalScore = -(wrongGuesses * WRONG_GUESS_PENALTY)
 
   return {
-    passed: true, // This is expected behavior - negative prevented during gameplay
-    totalScore: Math.max(0, theoreticalScore), // Actual behavior
-    expected: 0, // What would be shown during gameplay
+    passed: true,
+    totalScore: Math.max(0, theoreticalScore),
+    expected: 0,
   }
 }
 
-/**
- * Test early end game scenario
- */
 export function testEarlyEndGame(): {
   passed: boolean
   scenarios: Array<{
@@ -172,29 +138,26 @@ export function testEarlyEndGame(): {
     {
       screenshotsFound: 5,
       sessionScore: 500,
-      expectedFinalScore: 500 - (5 * UNFOUND_PENALTY), // 500 - 0 = 500
+      expectedFinalScore: 500 - (5 * UNFOUND_PENALTY),
     },
     {
       screenshotsFound: 0,
       sessionScore: 0,
-      expectedFinalScore: 0 - (10 * UNFOUND_PENALTY), // 0 - 0 = 0
+      expectedFinalScore: 0 - (10 * UNFOUND_PENALTY),
     },
     {
       screenshotsFound: 8,
       sessionScore: 1200,
-      expectedFinalScore: 1200 - (2 * UNFOUND_PENALTY), // 1200 - 0 = 1200
+      expectedFinalScore: 1200 - (2 * UNFOUND_PENALTY),
     },
   ]
 
   return {
-    passed: true, // These are expected calculations
+    passed: true,
     scenarios,
   }
 }
 
-/**
- * Run all verification tests
- */
 export function runAllVerificationTests(): {
   speedMultiplier: ReturnType<typeof testSpeedMultiplierBoundaries>
   scoreCalculation: ReturnType<typeof testScoreCalculation>
@@ -224,7 +187,6 @@ export function runAllVerificationTests(): {
   }
 }
 
-// Export for use in browser console or test runner
 if (typeof window !== 'undefined') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Browser console access requires any
   ; (window as any).scoringVerification = {

@@ -6,10 +6,6 @@ import { dbLogger } from '../logger/logger.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Mirror knexfile.ts: TLS is opt-in via DATABASE_SSL=true. Managed
-// Postgres providers (RDS, Supabase, Neon) require it; self-hosted
-// Postgres on a private Docker network does not, and forcing SSL there
-// fails the boot with "server does not support SSL connections".
 const useSsl = env.DATABASE_SSL === 'true'
 
 export const db: Knex = knex({
@@ -33,7 +29,6 @@ export const db: Knex = knex({
   },
 })
 
-// Log slow queries in development
 if (env.NODE_ENV === 'development') {
   db.on('query', (query) => {
     dbLogger.trace({ sql: query.sql, bindings: query.bindings }, 'query start')

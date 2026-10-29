@@ -1,14 +1,9 @@
-/**
- * Test achievement progress calculation
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 import { AchievementService } from '../src/domain/services/achievement.service.js'
 
 async function testProgress() {
     const achievementService = new AchievementService()
 
-    // Find admin user
     const admin = await db('user')
         .where('username', 'testadmin')
         .first()
@@ -23,7 +18,6 @@ async function testProgress() {
 
     const achievements = await achievementService.getAllAchievementsWithProgress(admin.id)
 
-    // Filter to leaderboard achievements
     const leaderboardAchievements = achievements.filter(a =>
         a.key === 'champion' || a.key === 'podium_finish' || a.key === 'top_ten'
     )

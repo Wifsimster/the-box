@@ -8,7 +8,6 @@ import {
   type CountryPlayerMonthStats,
 } from './country-leaderboard.js'
 
-/** `n` players from `country`, each with the given per-day average over `games` days. */
 function players(country: CountryCode, averages: number[], games = 1): CountryPlayerMonthStats[] {
   return averages.map((avg, i) => ({
     userId: `${country}-${i}`,
@@ -52,9 +51,6 @@ describe('rankCountries — threshold', () => {
 
 describe('rankCountries — aggregation', () => {
   it('averages each player per day, then averages players', () => {
-    // A plays 20 days at 1000/day, B plays 1 day at 2000. Per-player
-    // averages are 1000 and 2000, so the country scores 1500, not the
-    // session-weighted 1048.
     const rows: CountryPlayerMonthStats[] = [
       { userId: 'a', countryCode: 'FR', gamesPlayed: 20, totalScore: 20_000 },
       { userId: 'b', countryCode: 'FR', gamesPlayed: 1, totalScore: 2000 },

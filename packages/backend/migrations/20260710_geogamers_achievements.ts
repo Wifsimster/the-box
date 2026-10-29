@@ -1,13 +1,5 @@
 import type { Knex } from 'knex'
 
-// Recognition-only GeoGamers achievements. Points feed the existing
-// achievement-points leaderboard (that's a recognition tier, not GeoGamers
-// season score — no points cross into the season ranking). Awarded on a
-// completed RANKED run; see geogamers.routes.
-//
-// French copy to match the app's default locale (like the other achievement
-// seed migrations).
-
 const ACHIEVEMENTS = [
   {
     key: 'geogamers_first_run',
@@ -35,7 +27,6 @@ const ACHIEVEMENTS = [
 
 export async function up(knex: Knex): Promise<void> {
   for (const a of ACHIEVEMENTS) {
-    // Idempotent: skip if the key already exists (re-run / partial apply safe).
     const exists = await knex('achievements').where({ key: a.key }).first()
     if (!exists) await knex('achievements').insert(a)
   }

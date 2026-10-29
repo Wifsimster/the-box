@@ -1,8 +1,6 @@
 import { db } from '../database/connection.js'
 import { repoLogger } from '../logger/logger.js'
 
-// Re-export domain row types so existing modules importing these names
-// from the repository file keep working.
 export type {
     AchievementRow,
     UserAchievementRow,
@@ -17,9 +15,6 @@ import type {
 const log = repoLogger.child({ repository: 'achievement' })
 
 export class AchievementRepository {
-    /**
-     * Get all achievements
-     */
     async findAll(): Promise<AchievementRow[]> {
         log.debug('Finding all achievements')
         return db<AchievementRow>('achievements')
@@ -29,9 +24,6 @@ export class AchievementRepository {
             .orderBy('points', 'desc')
     }
 
-    /**
-     * Get a single achievement by key
-     */
     async findByKey(key: string): Promise<AchievementRow | undefined> {
         log.debug({ key }, 'Finding achievement by key')
         return db<AchievementRow>('achievements')
@@ -39,9 +31,6 @@ export class AchievementRepository {
             .first()
     }
 
-    /**
-     * Get achievements by category
-     */
     async findByCategory(category: string): Promise<AchievementRow[]> {
         log.debug({ category }, 'Finding achievements by category')
         return db<AchievementRow>('achievements')
@@ -50,9 +39,6 @@ export class AchievementRepository {
             .orderBy('points', 'desc')
     }
 
-    /**
-     * Get all achievements earned by a user (with achievement details)
-     */
     async findUserAchievements(userId: string): Promise<UserAchievementWithDetails[]> {
         log.debug({ userId }, 'Finding user achievements')
         return db<UserAchievementRow>('user_achievements')
@@ -71,9 +57,6 @@ export class AchievementRepository {
             .orderBy('user_achievements.earned_at', 'desc')
     }
 
-    /**
-     * Check if user has earned a specific achievement
-     */
     async hasAchievement(userId: string, achievementKey: string): Promise<boolean> {
         log.debug({ userId, achievementKey }, 'Checking if user has achievement')
         const result = await db('user_achievements')
@@ -85,9 +68,6 @@ export class AchievementRepository {
         return !!result
     }
 
-    /**
-     * Award an achievement to a user
-     */
     async awardAchievement(
         userId: string,
         achievementKey: string,
@@ -120,9 +100,6 @@ export class AchievementRepository {
         return userAchievement
     }
 
-    /**
-     * Update progress for an achievement (creates record if doesn't exist)
-     */
     async updateProgress(
         userId: string,
         achievementKey: string,
@@ -137,14 +114,12 @@ export class AchievementRepository {
             throw new Error(`Achievement not found: ${achievementKey}`)
         }
 
-        // Check if already awarded
         const existing = await db<UserAchievementRow>('user_achievements')
             .where('user_id', userId)
             .where('achievement_id', achievement.id)
             .first()
 
         if (existing) {
-            // Update progress only if not fully earned yet
             const [updated] = await db<UserAchievementRow>('user_achievements')
                 .where('id', existing.id)
                 .update({
@@ -160,7 +135,6 @@ export class AchievementRepository {
 
             return updated
         } else {
-            // Create new progress record
             const [created] = await db<UserAchievementRow>('user_achievements')
                 .insert({
                     user_id: userId,
@@ -180,9 +154,6 @@ export class AchievementRepository {
         }
     }
 
-    /**
-     * Get user's progress on all achievements
-     */
     async getUserProgress(userId: string): Promise<Record<string, UserAchievementRow>> {
         log.debug({ userId }, 'Getting user achievement progress')
 
@@ -200,9 +171,6 @@ export class AchievementRepository {
         return progressMap
     }
 
-    /**
-     * Get achievement statistics for a user
-     */
     async getUserStats(userId: string): Promise<{
         totalEarned: number
         totalPoints: number
@@ -232,9 +200,6 @@ export class AchievementRepository {
         return stats
     }
 
-    /**
-     * Get leaderboard by achievement points
-     */
     async getLeaderboard(limit: number = 100): Promise<Array<{
         userId: string
         username: string
@@ -270,8 +235,6 @@ export class AchievementRepository {
         }))
     }
 
-    // ---- Aggregations used by the domain service ----
-
     async countCompletedGameSessions(userId: string): Promise<number> {
         const row = await db('game_sessions')
             .where('user_id', userId)
@@ -282,9 +245,6 @@ export class AchievementRepository {
     }
 
     async countPerfectSessions(userId: string): Promise<number> {
-        // Perfect = speed score 2000 (10 screenshots × 200 max), i.e. the
-        // total minus the in-game streak bonus. Restrict to completed
-        // sessions so a mid-flight session doesn't count.
         const row = await db('game_sessions')
             .where('user_id', userId)
             .where('is_completed', true)
@@ -347,11 +307,6 @@ export class AchievementRepository {
     }
 
     async countHintFreeCompletedGames(userId: string): Promise<number> {
-        // Count completed game sessions that have zero power-up usage across
-        // all of their guesses AND zero letter reveals. power_up_used is only
-        // ever non-null on historical rows (legacy metadata hints, retired
-        // 2026-06) but must stay in the predicate so old hint-assisted
-        // sessions don't retroactively become "hint-free".
         const rows = await db('game_sessions')
             .leftJoin('tier_sessions', 'game_sessions.id', 'tier_sessions.game_session_id')
             .leftJoin('guesses', 'tier_sessions.id', 'guesses.tier_session_id')
@@ -451,7 +406,6 @@ export class AchievementRepository {
 
 export const achievementRepository = new AchievementRepository()
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { AchievementRepository as AchievementRepositoryPort } from '../../domain/ports/repositories.js'
 export const _achievementRepositoryTypeCheck: AchievementRepositoryPort = achievementRepository

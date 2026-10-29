@@ -15,17 +15,6 @@ interface ErrorBoundaryState {
   errorInfo: ErrorInfo | null
 }
 
-/**
- * Error Boundary Component
- *
- * Catches JavaScript errors anywhere in the child component tree,
- * logs those errors, and displays a fallback UI instead of crashing the whole app.
- *
- * Usage:
- * <ErrorBoundary>
- *   <App />
- * </ErrorBoundary>
- */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
@@ -37,7 +26,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    // Update state so the next render will show the fallback UI
     return { hasError: true, error }
   }
 
@@ -56,7 +44,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render(): ReactNode {
     if (this.state.hasError && this.state.error) {
-      // Custom fallback if provided
       if (this.props.fallback && this.state.errorInfo) {
         return this.props.fallback(
           this.state.error,
@@ -65,7 +52,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         )
       }
 
-      // Default fallback UI
       return <DefaultErrorFallback error={this.state.error} reset={this.handleReset} />
     }
 
@@ -73,9 +59,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-/**
- * Default error fallback UI
- */
 function DefaultErrorFallback({
   error,
   reset,
@@ -89,20 +72,17 @@ function DefaultErrorFallback({
   return (
     <div className="min-h-dvh flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full text-center">
-        {/* Error Icon */}
         <div className="mb-6 flex justify-center">
           <div className="size-20 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="size-10 text-destructive" />
           </div>
         </div>
 
-        {/* Error Message */}
         <h1 className="text-3xl font-bold mb-2">{t('errors.boundary.title')}</h1>
         <p className="text-muted-foreground mb-6">
           {t('errors.boundary.message')}
         </p>
 
-        {/* Error Details (Dev Only) */}
         {isDev && (
           <div className="mb-6 p-4 bg-card border border-border rounded-lg text-left">
             <p className="text-sm font-mono text-destructive mb-2">
@@ -116,9 +96,6 @@ function DefaultErrorFallback({
           </div>
         )}
 
-        {/* Action Buttons — `min-h-11` because a crashed view leaves these as
-            the only controls on screen; the default 40px is under the mobile
-            target. */}
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Button onClick={reset} variant="default" className="min-h-11 gap-2">
             <RefreshCw className="size-4" />
@@ -134,7 +111,6 @@ function DefaultErrorFallback({
           </Button>
         </div>
 
-        {/* Help Text */}
         <p className="text-sm text-muted-foreground mt-6">
           {t('errors.boundary.contactSupport')}
         </p>
@@ -143,17 +119,10 @@ function DefaultErrorFallback({
   )
 }
 
-/**
- * Lazy Component Error Boundary
- *
- * Specialized error boundary for lazy-loaded components (code splitting).
- * Shows a retry button when chunk loading fails.
- */
 export function LazyComponentErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       fallback={(error, _, reset) => {
-        // Check if it's a chunk load error
         const isChunkError =
           error.message.includes('Failed to fetch dynamically imported module') ||
           error.message.includes('Loading chunk') ||
@@ -163,7 +132,6 @@ export function LazyComponentErrorBoundary({ children }: { children: ReactNode }
           return <LazyLoadErrorFallback reset={reset} />
         }
 
-        // For non-chunk errors, use default fallback
         return <DefaultErrorFallback error={error} reset={reset} />
       }}
     >
@@ -172,9 +140,6 @@ export function LazyComponentErrorBoundary({ children }: { children: ReactNode }
   )
 }
 
-/**
- * Lazy load error fallback UI
- */
 function LazyLoadErrorFallback({ reset }: { reset: () => void }) {
   const { t } = useTranslation()
 

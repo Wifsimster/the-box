@@ -4,7 +4,6 @@ import type { GuessAttempt } from '@the-box/types'
 
 interface GuessAttemptsListProps {
   attempts: GuessAttempt[]
-  /** Smaller variant used inside mobile result rows. */
   compact?: boolean
 }
 
@@ -19,8 +18,6 @@ export function GuessAttemptsList({ attempts, compact = false }: GuessAttemptsLi
   const padding = compact ? 'px-1.5 py-0.5' : 'px-2 py-0.5'
   const iconSize = compact ? 'size-2.5' : 'size-3'
 
-  // Tracks how many times each guess text has appeared so duplicate guesses
-  // get distinct keys without relying on the array index.
   const seenGuesses = new Map<string, number>()
 
   return (
@@ -31,8 +28,6 @@ export function GuessAttemptsList({ attempts, compact = false }: GuessAttemptsLi
       {attempts.map((attempt) => {
         const display = attempt.guess?.trim() || '—'
         const isCorrect = attempt.isCorrect
-        // Attempts carry no id and the same text can be entered twice, so disambiguate
-        // repeats by their occurrence count to produce a stable, unique key.
         const occurrence = (seenGuesses.set(
           display,
           (seenGuesses.get(display) ?? 0) + 1,

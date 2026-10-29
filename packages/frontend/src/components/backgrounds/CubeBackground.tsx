@@ -1,12 +1,3 @@
-/*
- * react-three-fiber renders its scene graph through lowercase intrinsic JSX
- * elements (`<mesh>`, `<boxGeometry>`, `<bufferAttribute>`, `<pointsMaterial>`,
- * …) whose props (`args`, `attach`, `intensity`, `wireframe`, `sizeAttenuation`,
- * …) are R3F-specific, not DOM attributes. react-doctor's no-unknown-property
- * rule is DOM-only and has no R3F awareness, so it flags every one of these
- * valid props as "unknown". Disable just that rule for this single R3F file —
- * every other rule still applies.
- */
 /* oxlint-disable react-doctor/no-unknown-property */
 import { useRef, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
@@ -51,15 +42,12 @@ function DigitalDust() {
       pos[i3 + 1] = (Math.random() - 0.5) * 16
       pos[i3 + 2] = (Math.random() - 0.5) * 8
 
-      // Slower, more subtle movement
       vel[i3] = (Math.random() - 0.5) * 0.003
       vel[i3 + 1] = (Math.random() - 0.5) * 0.003
       vel[i3 + 2] = (Math.random() - 0.5) * 0.001
 
-      // Varying sizes for dust effect
       siz[i] = Math.random() * 0.015 + 0.005
 
-      // Random phase for twinkling
       pha[i] = Math.random() * Math.PI * 2
     }
 
@@ -81,7 +69,6 @@ function DigitalDust() {
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3
 
-        // Mouse repulsion
         const dx = array[i3] - mouseX
         const dy = array[i3 + 1] - mouseY
         const dist = Math.sqrt(dx * dx + dy * dy)
@@ -93,15 +80,12 @@ function DigitalDust() {
           array[i3 + 1] += Math.sin(angle) * force
         }
 
-        // Drift movement
         array[i3] += velocities[i3]
         array[i3 + 1] += velocities[i3 + 1]
         array[i3 + 2] += velocities[i3 + 2]
 
-        // Subtle floating motion
         array[i3 + 1] += Math.sin(time * 0.5 + phases[i]) * 0.001
 
-        // Boundary wrap
         if (array[i3] > 10) array[i3] = -10
         if (array[i3] < -10) array[i3] = 10
         if (array[i3 + 1] > 8) array[i3 + 1] = -8
@@ -109,7 +93,6 @@ function DigitalDust() {
         if (array[i3 + 2] > 4) array[i3 + 2] = -4
         if (array[i3 + 2] < -4) array[i3 + 2] = 4
 
-        // Twinkle effect - subtle size variation
         sizeArray[i] = sizes[i] * (0.7 + 0.3 * Math.sin(time * 2 + phases[i]))
       }
 
@@ -144,8 +127,6 @@ function DigitalDust() {
 }
 
 export function CubeBackground() {
-  // Reduced-motion players get a single static frame instead of a
-  // continuously drifting scene (also spares the battery on phones).
   const prefersReducedMotion = useReducedMotion()
 
   return (

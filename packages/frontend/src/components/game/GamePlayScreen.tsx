@@ -12,11 +12,6 @@ import { CountdownTimer } from '@/components/game/CountdownTimer'
 import { useRoundTimer } from '@/hooks/useCountdownTimer'
 import { ReportCaptureDialog } from '@/components/ReportCaptureDialog'
 
-/**
- * The active daily-game surface: blurred backdrop, screenshot viewer, score
- * + end-game controls and the guess input dock. Extracted from GamePage so
- * that component focuses on game-loop orchestration rather than layout.
- */
 export function GamePlayScreen({
   showResult,
   currentImageUrl,
@@ -30,8 +25,6 @@ export function GamePlayScreen({
   isAuthenticated: boolean
   isKeyboardOpen: boolean
 }) {
-  // Per-screenshot countdown. The hook also owns the timeout side-effect
-  // (lock the screenshot as a permanent miss and advance) when time runs out.
   const timer = useRoundTimer()
 
   return (
@@ -42,16 +35,10 @@ export function GamePlayScreen({
       exit={{ opacity: 0 }}
       className="relative size-full flex flex-col"
     >
-      {/* Round Countdown Timer (Top Left) — mirrors the score panel shell. */}
-      {/* `top-2` flat, not `max(…, env(safe-area-inset-top))`: /play keeps the
-          sticky Header, which already pads the notch, so adding the inset here
-          pushed the panel a second status-bar height down the screen in the
-          installed PWA. */}
       <div className="absolute left-2 top-2 z-40 sm:left-4 sm:top-4">
         <CountdownTimer state={timer} />
       </div>
 
-      {/* Score and End Game Button (Top Right) */}
       <div className="absolute right-2 top-2 z-40 flex min-w-28 flex-col items-stretch sm:right-4 sm:top-4 sm:min-w-36">
         <div className="bg-background/70 backdrop-blur-md rounded-t-xl last:rounded-b-xl px-4 sm:px-6 py-1.5 sm:py-2.5 border border-border/60 shadow-2xl">
           <ScoreDisplay />
@@ -59,7 +46,6 @@ export function GamePlayScreen({
         <EndGameButton />
       </div>
 
-      {/* Dynamic Blurred Background Layer */}
       {currentImageUrl && (
         <m.div
           className="absolute inset-0 size-full z-0"
@@ -73,24 +59,16 @@ export function GamePlayScreen({
             className="size-full object-cover blur-3xl opacity-20 scale-110"
             aria-hidden="true"
           />
-          {/* Gradient overlays for ambient effect */}
           <div className="absolute inset-0 bg-linear-to-br from-neon-purple/10 via-transparent to-neon-pink/10 pointer-events-none" />
         </m.div>
       )}
 
-      {/* Screenshot Viewer — flex-1 so it fills all space above the dock.
-          When the layout viewport shrinks (Android keyboard) or we add
-          padding-bottom on the outer container (iOS keyboard), this area
-          shrinks naturally and the screenshot stays visible. */}
       <div className="relative z-10 flex-1 min-h-0 flex items-center justify-center">
         {currentImageUrl ? (
           <ScreenshotViewer imageUrl={currentImageUrl} className="size-full min-h-0" />
         ) : (
           <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
         )}
-        {/* Report button — overlay on the viewer; only shown while we
-            have a real screenshot in play. Pinned to the bottom-right
-            to avoid overlapping the score panel (z-40) at the top. */}
         {currentScreenshotId && (
           <div className="absolute bottom-2 right-2 z-30">
             <ReportCaptureDialog
@@ -103,7 +81,6 @@ export function GamePlayScreen({
         )}
       </div>
 
-      {/* Guess Input Dock — normal flow, pinned at bottom via flex-col. */}
       <div
         className="relative z-20 bg-linear-to-t from-background/95 via-background/90 to-transparent pt-3 md:pt-4 px-2 sm:px-3 md:px-4"
         style={{
@@ -123,10 +100,8 @@ export function GamePlayScreen({
         <SecondChanceModal />
       </div>
 
-      {/* Result Card Overlay */}
       <AnimatePresence>{showResult && <ResultCard />}</AnimatePresence>
 
-      {/* Completion Choice Modal */}
       <CompletionChoiceModal />
     </m.div>
   )

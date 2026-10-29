@@ -4,7 +4,6 @@ import { Flame, Info, Play, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 
-/** Today's first screenshot, served publicly for the blurred teaser. */
 const TODAY_PREVIEW_IMAGE = '/api/game/preview/image'
 
 interface TodayStartProps {
@@ -13,23 +12,11 @@ interface TodayStartProps {
   isAuthenticated: boolean
   isOnline: boolean
   isStarting: boolean
-  /** Catch-up of a past box (`/play?date=`): no preview, no leaderboard. */
   isCatchUp?: boolean
-  /** Active streak for signed-in players; null hides the chip. */
   streak?: number | null
   onStart: () => void
 }
 
-/**
- * The closed box: the one screen between opening the site and the first
- * screenshot (decision D1). Today's first screenshot is shown blurred behind a
- * single button; the tap starts the session, and the screenshot appears sharp
- * in place with its 45 s clock running. The blur keeps the clock fair: nobody
- * gets to study screenshot 1 before the timer starts.
- *
- * Replaces the former intro screen on `/play` too, where it also opens
- * catch-up boxes (`?date=`) — without the preview, which is always today's.
- */
 export function TodayStart({
   date,
   totalScreenshots,
@@ -61,7 +48,6 @@ export function TodayStart({
       exit={reducedMotion ? undefined : { opacity: 0 }}
       className="relative flex size-full flex-col items-center justify-center overflow-y-auto px-4 py-6"
     >
-      {/* Soft ambient wash from the same screenshot. */}
       {showPreview && (
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
           <img
@@ -84,10 +70,6 @@ export function TodayStart({
           </p>
         </div>
 
-        {/* The first screenshot, blurred: the box is right here, and the
-            clock only starts once the player opens it. Hovering lifts the
-            veil a little (less blur, lighter tint) as a tease; it stays far
-            too blurred to read, so the clock remains fair. */}
         <div
           data-testid="today-box-preview"
           aria-hidden="true"

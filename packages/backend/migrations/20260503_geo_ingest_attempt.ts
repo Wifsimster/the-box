@@ -1,13 +1,5 @@
 import type { Knex } from 'knex'
 
-// Per-attempt log for source fetches. Replaces the single-row `geo_ingest_failure`
-// tombstone with full history: every fetch attempt (success or failure) is one
-// row. The "should we cool down?" question becomes a query on this table, not a
-// flag, so a different source is never blocked by another's failure.
-//
-// `geo_ingest_failure` is left in place for one release; deleted in a follow-up
-// migration after the orchestrator has switched over.
-
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('geo_ingest_attempt', (table) => {
     table.bigIncrements('id').primary()
@@ -44,7 +36,6 @@ export async function up(knex: Knex): Promise<void> {
       ['game_id', 'source', 'attempted_at'],
       'idx_geo_ingest_attempt_game_source_time',
     )
-    // Hot path: "any failure for (game, source) in the last N days?"
     table.index(
       ['game_id', 'source', 'outcome', 'attempted_at'],
       'idx_geo_ingest_attempt_cooldown_query',

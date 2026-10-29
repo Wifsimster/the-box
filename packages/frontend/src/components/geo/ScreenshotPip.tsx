@@ -9,13 +9,6 @@ interface ScreenshotPipProps {
     className?: string
 }
 
-/**
- * Picture-in-picture reference card for the capture being located. Floats
- * over the map (anchored to the top-right of the nearest relative ancestor)
- * so the player can keep the screenshot in view while dropping a pin: tap
- * the image to enlarge / shrink it, or dismiss it behind a recoverable
- * "show capture" pill when it gets in the way of the pin spot.
- */
 export function ScreenshotPip({ imageUrl, alt, className }: ScreenshotPipProps) {
     const { t } = useTranslation()
     const [expanded, setExpanded] = useState(false)
@@ -66,8 +59,6 @@ export function ScreenshotPip({ imageUrl, alt, className }: ScreenshotPipProps) 
                     className="block w-full object-contain"
                     draggable={false}
                 />
-                {/* Affordance hint — decorative, the button above carries the
-                    accessible name. */}
                 <span
                     aria-hidden
                     className="pointer-events-none absolute bottom-1 right-1 inline-flex size-6 items-center justify-center rounded-full bg-black/55 text-white"

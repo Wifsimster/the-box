@@ -47,8 +47,6 @@ export default function GeoGamersPartyPage() {
         connect()
     }, [connect])
 
-    // Identity comes from the server, which also issues guest ids. Reading it
-    // from the auth session left a guest host unable to start their own party.
     const isHost = !!view && !!playerId && view.hostId === playerId
     const selectedMap = useMemo(
         () => view?.round?.maps?.find((m) => m.id === selectedMapId) ?? view?.round?.maps?.[0] ?? null,
@@ -59,7 +57,6 @@ export default function GeoGamersPartyPage() {
         [view?.reveal?.pins],
     )
 
-    // ---------- No party yet: join / create ----------
     if (!view) {
         return (
             <div className="mx-auto max-w-md space-y-6 px-4 py-6 sm:py-8">
@@ -73,7 +70,6 @@ export default function GeoGamersPartyPage() {
                     </p>
                 )}
 
-                {/* Join first: most players arrive with a code from the host. */}
                 <Card>
                     <CardHeader>
                         <CardTitle id="party-join-title">{t('geogamersParty.join')}</CardTitle>
@@ -130,8 +126,6 @@ export default function GeoGamersPartyPage() {
                             </div>
                         </div>
 
-                        {/* The server has validated 30/45/60 since day one; the UI
-                            hardcoded 45, so the option was unreachable. */}
                         <div>
                             <p id="party-timer-label" className="mb-2 text-sm text-muted-foreground">
                                 {t('geogamersParty.timer')}
@@ -173,7 +167,6 @@ export default function GeoGamersPartyPage() {
         )
     }
 
-    // ---------- Scoreboard (shared) ----------
     const scoreboard = (
         <ol className="space-y-1">
             {view.scoreboard.map((s, i) => {
@@ -255,7 +248,6 @@ export default function GeoGamersPartyPage() {
                 </p>
             )}
 
-            {/* ---------- Lobby ---------- */}
             {view.status === 'lobby' && (
                 <section className="space-y-4">
                     <Card variant="neon">
@@ -274,10 +266,6 @@ export default function GeoGamersPartyPage() {
                                 aria-label={t('geogamersParty.copyCode')}
                                 title={t('geogamersParty.copyCode')}
                                 onClick={async () => {
-                                    // The old version flashed "copied" even when the
-                                    // clipboard API was missing or the write was
-                                    // refused — the invite code is the one thing
-                                    // this screen exists to hand over.
                                     if (!code) return
                                     try {
                                         await navigator.clipboard.writeText(code)
@@ -324,8 +312,6 @@ export default function GeoGamersPartyPage() {
                                             ({t('geogamersParty.you')})
                                         </span>
                                     )}
-                                    {/* Opacity alone carried this state — a colour-only
-                                        signal, which ui-tokens forbids. */}
                                     {!p.connected && (
                                         <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                                             {t('geogamersParty.disconnected')}
@@ -349,7 +335,6 @@ export default function GeoGamersPartyPage() {
                 </section>
             )}
 
-            {/* ---------- In round ---------- */}
             {view.status === 'in_round' && view.round && (
                 <section>
                     <p className="mb-2 text-sm font-medium text-muted-foreground tabular-nums">
@@ -367,11 +352,6 @@ export default function GeoGamersPartyPage() {
                                     {t('geogamersParty.waitingOthers')}
                                 </p>
                                 {scoreboard}
-                                {/* Only the host, and only once they're done: there is no
-                                    server-side round timer, so an idle player would hold
-                                    everyone here indefinitely. Closing scores the
-                                    stragglers on what they had reached — which is why it
-                                    isn't offered to a host who hasn't played yet. */}
                                 {isHost && (
                                     <div className="space-y-2">
                                         <Button variant="outline" className="w-full" onClick={forceReveal}>
@@ -385,7 +365,6 @@ export default function GeoGamersPartyPage() {
                             </CardContent>
                         </Card>
                     ) : !view.you?.resolvedPhase1 ? (
-                        // identify phase
                         <div>
                             <div className="mb-4 overflow-hidden rounded-xl border border-border bg-card">
                                 <img
@@ -434,7 +413,6 @@ export default function GeoGamersPartyPage() {
                             </form>
                         </div>
                     ) : selectedMap ? (
-                        // locate phase
                         <div>
                             <div className="mb-3 rounded-lg bg-primary/15 px-4 py-2">
                                 <p className="text-center text-sm">
@@ -446,7 +424,6 @@ export default function GeoGamersPartyPage() {
                                     </span>
                                 </p>
                             </div>
-                            {/* Keep the capture in view while pinning. */}
                             <div className="relative">
                                 <GeoMapCanvas
                                     imageUrl={selectedMap.imageUrl}
@@ -487,7 +464,6 @@ export default function GeoGamersPartyPage() {
                 </section>
             )}
 
-            {/* ---------- Reveal / Finished ---------- */}
             {(view.status === 'reveal' || view.status === 'finished') && (
                 <section className="space-y-4">
                     {view.reveal && view.status === 'reveal' && (

@@ -1,10 +1,3 @@
-/**
- * Error handling utilities for API calls and services
- */
-
-/**
- * Custom error types
- */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -45,9 +38,6 @@ export class NotFoundError extends ApiError {
   }
 }
 
-/**
- * Parse API error response
- */
 export async function parseApiError(response: Response): Promise<ApiError> {
   let message = response.statusText || 'Request failed'
   let code = `HTTP_${response.status}`
@@ -59,7 +49,6 @@ export async function parseApiError(response: Response): Promise<ApiError> {
       code = data.error.code || code
     }
   } catch {
-    // Failed to parse JSON, use default message
   }
 
   switch (response.status) {
@@ -74,9 +63,6 @@ export async function parseApiError(response: Response): Promise<ApiError> {
   }
 }
 
-/**
- * Retry configuration
- */
 export interface RetryConfig {
   maxRetries: number
   delayMs: number
@@ -91,20 +77,14 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   delayMs: 1000,
   backoffMultiplier: 2,
   retryableStatuses: [408, 429, 500, 502, 503, 504],
-  timeoutMs: 10000, // 10 seconds default timeout
-  maxBackoffMs: 5000, // Cap backoff at 5 seconds
+  timeoutMs: 10000,
+  maxBackoffMs: 5000,
 }
 
-/**
- * Delay helper for retry logic
- */
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-/**
- * Fetch with automatic retry logic and timeout protection
- */
 export async function fetchWithRetry(
   url: string,
   options?: RequestInit,
@@ -113,46 +93,33 @@ export async function fetchWithRetry(
   const config = { ...DEFAULT_RETRY_CONFIG, ...retryConfig }
   let lastError: Error | undefined
 
-  // Build the retryable-status lookup once before the loop so each attempt
-  // does an O(1) Set.has() instead of an O(n) Array.includes() scan.
   const retryableStatuses = new Set(config.retryableStatuses)
 
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
-    // Create AbortController for timeout
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs)
 
     try {
-      // Merge abort signal with existing options
       const fetchOptions: RequestInit = {
         ...options,
         signal: controller.signal,
       }
 
-      // Sequential by design: this is a retry-with-backoff loop, so each
-      // attempt must await the previous one's outcome (and the backoff delay)
-      // before deciding whether to retry. Parallelizing would fire every retry
-      // at once and defeat the purpose.
       // oxlint-disable-next-line react-doctor/async-await-in-loop
       const response = await fetch(url, fetchOptions)
 
-      // Clear timeout on successful response
       clearTimeout(timeoutId)
 
-      // If response is OK or not retryable, return it
       if (response.ok || !retryableStatuses.has(response.status)) {
         return response
       }
 
-      // Store error for potential retry
       lastError = await parseApiError(response.clone())
 
-      // Don't retry on last attempt
       if (attempt === config.maxRetries) {
         throw lastError
       }
 
-      // Wait before retry with capped exponential backoff
       const uncappedDelay = config.delayMs * Math.pow(config.backoffMultiplier, attempt)
       const delayTime = Math.min(uncappedDelay, config.maxBackoffMs)
 
@@ -164,10 +131,8 @@ export async function fetchWithRetry(
 
       await delay(delayTime)
     } catch (error) {
-      // Clear timeout on error
       clearTimeout(timeoutId)
 
-      // Handle abort (timeout) specifically
       if (error instanceof Error && error.name === 'AbortError') {
         lastError = new NetworkError(`Request timeout after ${config.timeoutMs}ms`, error)
       } else if (error instanceof ApiError) {
@@ -176,12 +141,10 @@ export async function fetchWithRetry(
         lastError = new NetworkError('Network request failed', error)
       }
 
-      // Don't retry on last attempt
       if (attempt === config.maxRetries) {
         throw lastError
       }
 
-      // Wait before retry with capped exponential backoff
       const uncappedDelay = config.delayMs * Math.pow(config.backoffMultiplier, attempt)
       const delayTime = Math.min(uncappedDelay, config.maxBackoffMs)
 
@@ -198,9 +161,6 @@ export async function fetchWithRetry(
   throw lastError || new NetworkError('Request failed after retries')
 }
 
-/**
- * Get user-friendly error message
- */
 export function getUserFriendlyErrorMessage(error: unknown): string {
   if (error instanceof AuthenticationError) {
     return 'Please sign in to continue'
@@ -229,16 +189,6 @@ export function getUserFriendlyErrorMessage(error: unknown): string {
   return 'An unexpected error occurred. Please try again.'
 }
 
-/**
- * Map an error to an i18n key (or a pass-through message) for display.
- *
- * The known transport/auth failures return stable `game.errors.*` keys so the
- * toast site can translate them — fixing the previously hardcoded-English
- * toasts on the unhappy path (default locale is French). ValidationError /
- * ApiError carry a server-provided message (often already localized), so we
- * return it verbatim; the toast site calls `t(key, { defaultValue: key })`, so
- * a non-key string renders as-is rather than showing a raw key.
- */
 export function getErrorMessageKey(error: unknown): string {
   if (error instanceof AuthenticationError) return 'game.errors.signIn'
   if (error instanceof NotFoundError) return 'game.errors.notFound'
@@ -249,9 +199,6 @@ export function getErrorMessageKey(error: unknown): string {
   return 'game.errors.unexpected'
 }
 
-/**
- * Log error for debugging
- */
 export function logError(error: unknown, context?: string): void {
   const prefix = context ? `[${context}]` : '[Error]'
 

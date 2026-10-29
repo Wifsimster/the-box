@@ -1,12 +1,3 @@
-// Composition module for the billing service.
-//
-// Kept separate from the main composition root (services.ts) on purpose: the
-// billing webhook route is unit-tested and imports the production
-// billingService for its default router. services.ts eagerly constructs the
-// BullMQ queues (which open a Redis connection and keep the event loop
-// alive), so a tested module must not transitively import it. This module
-// wires billing from billing-only infrastructure — no queues — so it stays
-// safe to import from a test. `composition/services.ts` re-exports it.
 import { createBillingService } from '../domain/services/billing.service.js'
 import { serviceLogger } from '../infrastructure/logger/logger.js'
 import { userRepository } from '../infrastructure/repositories/user.repository.js'
@@ -20,10 +11,6 @@ import {
   snapshotResolvedCatalog,
 } from '../infrastructure/stripe/billing-catalog.resolver.js'
 
-// Stripe premium / lifetime-supporter entitlements. The service stays pure;
-// the concrete repositories, the entitled-status set, the Stripe customer
-// API, and the lookup_key catalog resolver are bound here. The Stripe SDK is
-// adapted to the narrow BillingStripeGateway so the domain never imports it.
 export const billingService = createBillingService({
   logger: serviceLogger,
   userRepository,

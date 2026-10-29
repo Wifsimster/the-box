@@ -1,7 +1,6 @@
 import type { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
-    // Create achievements table
     await knex.schema.createTable('achievements', (table) => {
         table.increments('id').primary()
         table.string('key', 100).unique().notNullable().comment('Unique identifier for achievement (e.g., "speed_demon")')
@@ -19,7 +18,6 @@ export async function up(knex: Knex): Promise<void> {
         table.index('tier')
     })
 
-    // Create user_achievements table (junction table with progress tracking)
     await knex.schema.createTable('user_achievements', (table) => {
         table.increments('id').primary()
         table.text('user_id').notNullable().references('id').inTable('user').onDelete('CASCADE')
@@ -35,9 +33,7 @@ export async function up(knex: Knex): Promise<void> {
         table.index('earned_at')
     })
 
-    // Seed initial achievements
     const achievements = [
-        // Speed-based achievements
         {
             key: 'speed_demon',
             name: 'Speed Demon',
@@ -69,7 +65,6 @@ export async function up(knex: Knex): Promise<void> {
             criteria: { type: 'single_speed', count: 1, max_time_ms: 2000 },
         },
 
-        // Accuracy-based achievements
         {
             key: 'no_hints_needed',
             name: 'No Hints Needed',
@@ -101,7 +96,6 @@ export async function up(knex: Knex): Promise<void> {
             criteria: { type: 'consecutive_correct', count: 10 },
         },
 
-        // Score-based achievements
         {
             key: 'perfect_run',
             name: 'Perfect Run',
@@ -123,7 +117,6 @@ export async function up(knex: Knex): Promise<void> {
             criteria: { type: 'min_score', score: 1800 },
         },
 
-        // Streak-based achievements
         {
             key: 'dedicated_player',
             name: 'Dedicated Player',
@@ -155,7 +148,6 @@ export async function up(knex: Knex): Promise<void> {
             criteria: { type: 'streak', days: 30 },
         },
 
-        // Genre-based achievements
         {
             key: 'rpg_expert',
             name: 'RPG Expert',
@@ -187,7 +179,6 @@ export async function up(knex: Knex): Promise<void> {
             criteria: { type: 'genre_master', genre: 'Strategy', count: 10 },
         },
 
-        // Completion achievements
         {
             key: 'first_win',
             name: 'First Win',
@@ -209,7 +200,6 @@ export async function up(knex: Knex): Promise<void> {
             criteria: { type: 'challenges_completed', count: 100 },
         },
 
-        // Competitive achievements
         {
             key: 'top_ten',
             name: 'Top 10',

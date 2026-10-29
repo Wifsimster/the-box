@@ -42,12 +42,10 @@ describe('computeRemainingMs', () => {
 
 describe('computeRemainingMs with banked time (resume budget)', () => {
   it('resumes from the remaining budget, not the full limit', () => {
-    // 30s already spent, a fresh segment just started → 15s left, NOT 45.
     assert.equal(computeRemainingMs(1000, 1000, LIMIT, 30_000), 15_000)
   })
 
   it('subtracts the live segment from the remaining budget', () => {
-    // 30s banked + 5s into the new segment → 10s left.
     assert.equal(computeRemainingMs(6000, 1000, LIMIT, 30_000), 10_000)
   })
 
@@ -61,13 +59,10 @@ describe('computeRemainingMs with banked time (resume budget)', () => {
   })
 
   it('clamps clock skew to the remaining budget, never the full limit', () => {
-    // now before startedAt would naively give the full limit — must cap at budget.
     assert.equal(computeRemainingMs(500, 1000, LIMIT, 30_000), 15_000)
   })
 
   it('a re-stamp after navigating back can never exceed the remaining budget', () => {
-    // The exploit: returning to a position re-stamps startedAt = now. The
-    // remaining must stay <= budget, never jump back to 45.
     assert.ok(computeRemainingMs(1000, 1000, LIMIT, 30_000) <= 15_000)
   })
 })

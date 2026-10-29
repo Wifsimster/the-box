@@ -1,7 +1,3 @@
-/**
- * Check all guesses and their games/genres
- */
-
 import { db } from '../src/infrastructure/database/connection.js'
 
 async function checkAllGuesses() {
@@ -34,7 +30,6 @@ async function checkAllGuesses() {
         console.log('\nNo correct guesses found in database')
     }
 
-    // Check total users with completed games
     const users = await db('game_sessions')
         .where('is_completed', true)
         .countDistinct('user_id as count')

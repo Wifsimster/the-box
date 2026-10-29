@@ -9,14 +9,8 @@ import { streamerKeysApi } from '@/lib/api/streamer-keys'
 const SLUG_RE = /^[a-z0-9_-]{3,32}$/
 
 interface StreamerPublicProfileSettingsProps {
-  /** Persisted enabled flag from the server. */
   savedEnabled: boolean
-  /** Persisted slug from the server (null when never set). */
   savedSlug: string | null
-  /**
-   * Called after a successful save so the parent can mirror the new values
-   * (it gates the keys / webhooks / recipes sections on `enabled`).
-   */
   onPersisted: (next: { enabled: boolean; slug: string | null }) => void
 }
 
@@ -54,11 +48,6 @@ function settingsFormReducer(
   }
 }
 
-/**
- * Public-profile toggle + slug editor. Owns its own form state (toggle, slug,
- * inline validation error, saving flag) and reports persisted values up via
- * `onPersisted`.
- */
 export function StreamerPublicProfileSettings({
   savedEnabled,
   savedSlug,
@@ -73,9 +62,6 @@ export function StreamerPublicProfileSettings({
   })
   const { enabled, slug, slugError, saving } = state
 
-  // Persist toggle / slug. Slug validation is local-first (cheap regex) — the
-  // server still re-enforces and additionally returns 409 SLUG_TAKEN on
-  // collision, which we surface inline rather than as a toast.
   async function persistSettings(next: { enabled?: boolean; slug?: string | null }) {
     const targetEnabled = next.enabled ?? enabled
     const targetSlug = next.slug !== undefined ? next.slug : (slug || null)
@@ -149,10 +135,6 @@ export function StreamerPublicProfileSettings({
           <label htmlFor="streamer-slug" className="block text-sm font-medium">
             {t('streamerKit.slugLabel')}
           </label>
-          {/* Mobile users routinely tap "Create key" before blur fires
-              on the slug input, so an explicit Save button is the
-              reliable affordance. onBlur is still wired as a
-              desktop-convenience fallback. */}
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-muted-foreground font-mono sm:inline">/streamers/</span>
             <Input

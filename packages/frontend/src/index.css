@@ -3,35 +3,12 @@
 :root {
   color-scheme: dark;
   --radius: 0.625rem;
-  /* Mobile BottomNav sizing. `--bottom-nav-h` is the bar itself; the layout
-     content padding and the PWA banners reserve `--bottom-nav-space` (bar +
-     iOS home-indicator inset) so nothing renders under the fixed bar. Kept as
-     a single source of truth so the bar and the reserved space can't drift. */
   --bottom-nav-h: 4rem;
   --bottom-nav-space: calc(4rem + env(safe-area-inset-bottom));
-  /* Sticky Header height. The bar itself is `h-14 sm:h-16` and pads the iOS
-     status bar with `env(safe-area-inset-top)` (non-zero only in the installed
-     PWA), so the space it actually occupies is bar + inset. Full-height screens
-     (/play, the Geo immersive layout) and the centred auth screens subtract
-     this instead of hard-coding `3.5rem`/`4rem`, which silently ignored the
-     notch inset and had drifted to different breakpoints per component. */
   --header-h: calc(3.5rem + env(safe-area-inset-top));
-  /* Vertical space a routed page can occupy inside the app shell: the dynamic
-     viewport minus the header, minus the space the shell reserves for the
-     mobile BottomNav. `dvh` (not `vh`) so it tracks the mobile browser toolbar
-     rather than the toolbar-hidden maximum. */
   --page-h: calc(100dvh - var(--header-h) - var(--bottom-nav-space));
-  /* Inner padding of Card / CardHeader / CardContent / CardFooter. 1rem on
-     phones (a 24px gutter inside a 16px page gutter left ~280px of content on
-     a 360px screen), 1.5rem from `sm` up. A single token so a consumer's own
-     `p-*` override still wins at every breakpoint. */
   --card-padding: 1rem;
-  /* Height of the default Button / icon Button / Input / Select / TabsList.
-     40px with a mouse, 44px on touch screens (Apple HIG / WCAG 2.5.5) — keyed
-     on the pointer, not the viewport, so desktop density is unchanged. A
-     consumer's explicit `h-*` / `size-*` still overrides it. */
   --control-h: 2.5rem;
-  /* Dark violet theme (default since dark-only) */
   --background: oklch(0.129 0.042 283.713);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 283.713);
@@ -43,18 +20,13 @@
   --secondary: oklch(0.279 0.041 283.713);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 283.713);
-  /* Bumped from 0.704 → 0.78 so secondary text on tinted card surfaces
-     (e.g. bg-muted/5, bg-card/60) clears the WCAG AA 4.5:1 ratio. */
   --muted-foreground: oklch(0.78 0.035 283.713);
   --accent: oklch(0.279 0.041 283.713);
   --accent-foreground: oklch(0.984 0.003 247.858);
   --destructive: oklch(0.704 0.191 22.216);
-  /* Dark text on the light red: 6.19:1 (white was 2.76:1). Same value as
-     --primary-foreground. */
   --destructive-foreground: oklch(0.208 0.042 283.713);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  /* Brighter focus ring so keyboard users see it against the dark theme. */
   --ring: oklch(0.78 0.18 320);
   --chart-1: oklch(0.702 0.183 293.541);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -62,56 +34,31 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
 
-  /* Brand colours. The mark, the header lockup and the share cards are
-     painted with these and NEVER with `--primary` / `--neon-*`, which the
-     six premium themes re-skin: a paying player on "emerald matrix" would
-     otherwise see a green brand. Intentionally NOT redefined in any
-     `[data-theme="..."]` block below — same contract as the theme swatches.
-     Personalisation stops at the chrome. See docs/brand.md §4. */
   --brand-purple: #a855f7;
   --brand-pink: #ec4899;
 
-  /* Gaming neon colors (preserved). `--neon-pink` lifted from #ec4899 →
-     #f472b6 so pink-on-dark text (countdown clock, hover links) clears the
-     4.5:1 contrast ratio. Decorative glows still read as the same pink. */
   --neon-purple: #a855f7;
   --neon-pink: #f472b6;
   --neon-blue: #3b82f6;
   --neon-cyan: #06b6d4;
 
-  /* Status colors */
   --success: #22c55e;
   --warning: #eab308;
   --error: #ef4444;
 
-  /* Quality-tier palette for score feedback (ResultCard speed/metacritic,
-     PersonalBestsCard category accents). Semantically distinct from status:
-     score-high = excellent, score-mid = fair, score-low = low. */
   --score-high: var(--success);
   --score-mid: var(--warning);
   --score-low: #f97316;
 
-  /* Subtle hover tint for data tables (admin panels). */
   --table-row-hover: oklch(0.25 0.04 280 / 0.3);
 
-  /* Podium / medal accents — used by leaderboard top-3 and profile-stat
-     trophy gradients. Distinct from score tiers: medals are categorical
-     (gold > silver > bronze), not a quality scale. */
   --medal-gold: #fbbf24;
   --medal-silver: #94a3b8;
   --medal-bronze: #b45309;
 
-  /* Interactive accents consumed by Framer Motion presets in
-     src/lib/animations.ts. */
   --border-interactive: oklch(0.7 0.25 300 / 0.5);
   --shadow-lift: 0 10px 30px oklch(0 0 0 / 0.3);
 
-  /* Theme-selector preview swatches. Intentionally NOT redefined in any
-     `[data-theme="..."]` block below — the whole point of the picker is
-     that each card previews its own palette regardless of which theme is
-     currently active. If these were aliases of `--neon-purple` /
-     `--primary` they would re-skin with the selection and every card
-     would look identical (the bug fixed in #262). */
   --theme-swatch-default-from: #a855f7;
   --theme-swatch-default-to: #f472b6;
   --theme-swatch-neon-pink-from: #f472b6;
@@ -126,10 +73,6 @@
   --theme-swatch-retro-80s-to: #2de2e6;
 }
 
-/* The header grows to `h-16` at `sm`; keep `--header-h` in step. Components
-   used to redeclare this themselves and had drifted apart — GamePage switched
-   at `sm` while the Geo immersive layout switched at `md`, so every viewport
-   between 640px and 768px clipped 8px off the bottom of the Geo screen. */
 @media (min-width: 40rem) {
   :root {
     --header-h: calc(4rem + env(safe-area-inset-top));
@@ -143,19 +86,12 @@
   }
 }
 
-/* The BottomNav is `md:hidden`, so from `md` up a page gets the header back
-   but no reserved bar space. */
 @media (min-width: 48rem) {
   :root {
     --page-h: calc(100dvh - var(--header-h));
   }
 }
 
-/* `LanguageLayout` stamps this whenever it drops the BottomNav (the fullscreen
-   Geo route and the in-game /play route). Zeroing the reserved space here —
-   rather than in each component — keeps every consumer honest at once: the
-   shell padding, the consent banner and the PWA install prompts all stop
-   holding a gap for a bar that isn't rendered. */
 :root[data-bottom-nav='hidden'] {
   --bottom-nav-space: 0px;
 }
@@ -186,11 +122,9 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Brand colors — theme-immune, see `--brand-*` above */
   --color-brand-purple: var(--brand-purple);
   --color-brand-pink: var(--brand-pink);
 
-  /* Gaming colors */
   --color-neon-purple: var(--neon-purple);
   --color-neon-pink: var(--neon-pink);
   --color-neon-blue: var(--neon-blue);
@@ -205,17 +139,14 @@
   --color-medal-silver: var(--medal-silver);
   --color-medal-bronze: var(--medal-bronze);
 
-  /* Border radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Fonts */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Animation timing */
   --duration-fast: 150ms;
   --duration-normal: 300ms;
   --duration-slow: 500ms;
@@ -223,7 +154,6 @@
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
 
-  /* Enhanced glow intensities */
   --glow-sm: 0 0 10px oklch(0.7 0.25 300 / 0.3);
   --glow-md: 0 0 20px oklch(0.7 0.25 300 / 0.4);
   --glow-lg: 0 0 30px oklch(0.7 0.25 300 / 0.5);
@@ -231,19 +161,12 @@
   --glow-warning: 0 0 20px oklch(0.8 0.15 85 / 0.5);
   --glow-error: 0 0 20px oklch(0.7 0.22 25 / 0.5);
 
-  /* Neon-pink emphasis glows — pink-hued counterpart to --glow-* for
-     selection/highlight accents that read pink (selected map tile, the
-     highlighted pricing card). --glow-pink-lg uses a soft negative spread
-     for a diffuse card halo. */
   --glow-pink-sm: 0 0 12px oklch(0.72 0.2 350 / 0.4);
   --glow-pink-lg: 0 0 40px -12px oklch(0.72 0.2 350 / 0.45);
 
-  /* Neutral elevation for shadcn surfaces (Card, Button). Same values as
-     Tailwind's shadow-sm / shadow-lg, named so components reference a token. */
   --shadow-raised: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-cta: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
-  /* Neon text-shadow stack for hero titles */
   --text-shadow-neon:
     0 0 10px oklch(0.65 0.2 293 / 0.8),
     0 0 20px oklch(0.65 0.2 293 / 0.6),
@@ -260,29 +183,18 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
-  /* dvh tracks the *current* viewport, so the shell doesn't overflow by the
-     mobile browser toolbar height the way 100vh does. */
   min-height: 100dvh;
-  /* iOS Safari inflates font sizes when a phone rotates to landscape; pin the
-     adjustment to 100% so text stays at its intended scale. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* A stray wide child (decorative glow, long word) must never give the
-     whole page a horizontal scroll on a phone. `clip` (unlike `hidden`)
-     doesn't create a scroll container, so the sticky Header keeps working. */
   overflow-x: clip;
 }
 
-/* Balanced wrapping keeps short headings from leaving a single orphan word
-   on the last line at phone widths. */
 h1,
 h2,
 h3 {
   text-wrap: balance;
 }
 
-/* Removes the double-tap-to-zoom delay on tappable controls without
-   disabling pinch zoom on the page. */
 a,
 button,
 input,
@@ -295,31 +207,20 @@ textarea,
   touch-action: manipulation;
 }
 
-/* Suppress the grey flash iOS Safari paints over tapped links/buttons — the
-   app already has its own active/focus styling, so the default highlight just
-   looks broken on the dark gaming theme. */
 html {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Keep focused / anchored elements clear of the sticky header (top) and the
-   mobile BottomNav (bottom) when the browser scrolls them into view —
-   WCAG 2.2 SC 2.4.11 Focus Not Obscured. */
 html {
   scroll-padding-top: calc(var(--header-h) + 1rem);
   scroll-padding-bottom: calc(var(--bottom-nav-space) + 1rem);
 }
 
-/* Default keyboard focus ring. Components that need a custom ring can
-   override locally with `focus-visible:` utilities; this just guarantees
-   that every interactive element shows *something* when tabbed to so we
-   don't ship a UI with no visible focus indicator. */
 :focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
 }
 
-/* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -338,12 +239,10 @@ html {
   background: var(--color-muted-foreground);
 }
 
-/* Text glow */
 .text-glow {
   text-shadow: 0 0 10px currentColor;
 }
 
-/* Skeleton loader shimmer animation */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -364,29 +263,18 @@ html {
   animation: shimmer 1.5s infinite ease-in-out;
 }
 
-/* Glow utility classes reuse the --glow-* tokens so components don't need
-   per-instance `style={{ boxShadow: 'var(--glow-*)' }}`. */
 .glow-sm { box-shadow: var(--glow-sm); }
 .glow-md { box-shadow: var(--glow-md); }
 .glow-lg { box-shadow: var(--glow-lg); }
 
-/* Shared neon gradient utilities. Use `gradient-gaming` for filled
-   surfaces (icon tiles, progress bars) and `gradient-gaming-title` for
-   gradient-text headlines. Keep CVA variants (e.g. Button.gaming) inline. */
 .gradient-gaming {
   @apply bg-linear-to-r from-neon-purple to-neon-pink;
 }
 .gradient-gaming-title {
-  /* Fallback color for environments where the gradient/clip can't render
-     (print, forced-colors, missing custom-property support). The browser
-     uses this color whenever `text-transparent` / `-webkit-text-fill-color`
-     resolves to a paint that's unavailable. */
   color: var(--color-foreground, white);
   @apply bg-linear-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent;
 }
 
-/* Windows High Contrast / forced-colors mode: drop the gradient entirely
-   and let the OS pick a readable foreground/background pair. */
 @media (forced-colors: active) {
   .gradient-gaming-title {
     background: none;
@@ -403,7 +291,6 @@ html {
   box-shadow: var(--glow-md);
 }
 
-/* Interactive card hover effect */
 .card-interactive {
   transition: all var(--duration-normal) var(--ease-smooth);
 }
@@ -419,7 +306,6 @@ html {
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 60%, transparent), var(--glow-md);
 }
 
-/* Neon grid backdrop (hero backdrops) */
 .bg-grid-neon {
   background-image:
     linear-gradient(oklch(0.65 0.2 293 / 0.1) 1px, transparent 1px),
@@ -427,12 +313,10 @@ html {
   background-size: 50px 50px;
 }
 
-/* Neon text-shadow utility */
 .text-shadow-neon {
   text-shadow: var(--text-shadow-neon);
 }
 
-/* Hide scrollbar utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -442,7 +326,6 @@ html {
   display: none;
 }
 
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
     animation: none;
@@ -461,22 +344,10 @@ html {
     scroll-behavior: auto !important;
   }
 
-  /* Disable blur animations for users with motion sensitivity. The blurred
-     daily teaser opts out (data-keep-blur): its blur is not an animation, it
-     hides screenshot 1 until the clock starts (daily-first, D1). */
   img[class*="blur"]:not([data-keep-blur]) {
     filter: blur(0) !important;
   }
 }
-
-/* =====================================================================
-   Premium themes
-   ---------------------------------------------------------------------
-   Applied as `data-theme` on <html>. Each theme overrides a small set
-   of CSS variables on top of the base dark-violet palette so components
-   that stick to semantic tokens (per the design-tokens lint rule) all
-   re-skin in one go. Free users stay on default.
-   ===================================================================== */
 
 [data-theme="neon_pink"] {
   --primary: oklch(0.74 0.22 350);
@@ -510,14 +381,6 @@ html {
   --border-interactive: oklch(0.74 0.18 40 / 0.55);
 }
 
-/* Retro 80s — full synthwave/outrun re-skin.
-   Unlike the accent-only themes above, this one repaints the core
-   surfaces (background, cards, popovers, borders) and the hero glow so
-   the whole app reads as a neon 1980s arcade. Surfaces stay dark enough
-   that the unchanged light `--foreground` keeps WCAG AA contrast; the
-   magenta/cyan accents are bright (high L in oklch) for the same reason.
-   The static horizon-grid backdrop lives on `[data-theme] body` below
-   (no animation, so nothing to disable under prefers-reduced-motion). */
 [data-theme="retro_80s"] {
   --background: oklch(0.13 0.07 305);
   --card: oklch(0.2 0.08 308);
@@ -547,9 +410,6 @@ html {
     0 0 46px oklch(0.72 0.2 200 / 0.25);
 }
 
-/* Neon horizon backdrop: a magenta/cyan perspective grid fading up into a
-   cyan "sun" glow on the horizon, painted behind the app shell. Fixed so
-   it doesn't scroll, low-alpha so card text contrast is unaffected. */
 [data-theme="retro_80s"] body {
   background-color: var(--color-background);
   background-image:
@@ -561,14 +421,6 @@ html {
   background-position: center, center, center bottom, center bottom;
   background-attachment: fixed;
 }
-
-/* =====================================================================
-   Premium cosmetics (entitlement-derived, not stored in inventory)
-   ---------------------------------------------------------------------
-   `.premium-frame` wraps an avatar with an animated conic-gradient ring;
-   `.premium-badge` is a small chip rendered next to the display name.
-   Both are pure CSS and disappear when the entitlement evaporates.
-   ===================================================================== */
 
 @keyframes premium-frame-spin {
   to {
@@ -611,9 +463,6 @@ html {
   letter-spacing: 0.04em;
 }
 
-/* Leaflet zoom controls — Leaflet's default 26x26 px buttons fail
-   WCAG 2.5.5 / 2.5.8 on mobile. Bump them to 44 px so thumb taps land
-   reliably. Visual style is otherwise inherited from Leaflet's CSS. */
 .leaflet-bar a,
 .leaflet-bar a:hover {
   width: 44px;
@@ -627,12 +476,6 @@ html {
   outline-offset: -2px;
 }
 
-/* Pin-drop entrance — runs once when a fresh fuchsia DivIcon mounts
-   (i.e. the player drops a pin). The Marker only renders when `pin` is
-   truthy, so this fires on placement, not on drag-to-refine. Paired
-   with the existing vibrate(10) for a unified visual + haptic beat.
-   Gated on prefers-reduced-motion so vestibular-sensitive users get a
-   static pin instead. */
 @keyframes geo-pin-pop {
   0% {
     transform: scale(0.4);
@@ -655,14 +498,6 @@ html {
   }
 }
 
-/* Daily-reward rarity unlock celebrations. Intensity escalates with the
-   rarity tier (see RARITY_CLAIM_ANIMATION in src/lib/rarity.ts):
-   - soft:  a gentle scale settle for common/uncommon
-   - glow:  scale + a glow pulse for rare/epic
-   - burst: a bouncy reveal with a rotating shimmer for legendary
-   All three are gated on prefers-reduced-motion so vestibular-sensitive
-   players get the final, static state instead. The rarity glow itself is
-   applied inline (box-shadow) on the element; these keyframes pulse it. */
 @keyframes rarity-reveal-soft {
   0% {
     transform: scale(0.92);
@@ -734,9 +569,6 @@ html {
   }
 }
 
-/* Daily-reward hero: soft light rays behind the medallion. Painted with
-   `currentColor` so the rarity text token (text-success, text-warning…)
-   tints them; a radial mask fades them out towards the edge. */
 .reward-rays {
   border-radius: 9999px;
   background: repeating-conic-gradient(

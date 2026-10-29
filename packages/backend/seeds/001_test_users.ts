@@ -3,11 +3,6 @@ import { randomBytes } from 'crypto'
 // @ts-ignore - from better-auth's dependency
 import { scryptAsync } from '@noble/hashes/scrypt.js'
 
-/**
- * Hash password using the same algorithm as better-auth.
- * Matches: N=16384, r=16, p=1, dkLen=64
- * Format: salt:key (both hex encoded)
- */
 async function hashPassword(password: string): Promise<string> {
   const saltBytes = randomBytes(16)
   const salt = saltBytes.toString('hex')
@@ -16,7 +11,7 @@ async function hashPassword(password: string): Promise<string> {
     r: 16,
     p: 1,
     dkLen: 64,
-    maxmem: 128 * 16384 * 16 * 2, // 64 MB
+    maxmem: 128 * 16384 * 16 * 2,
   })
   return `${salt}:${Buffer.from(key).toString('hex')}`
 }
@@ -26,7 +21,6 @@ export async function seed(knex: Knex): Promise<void> {
   const hashedPassword = await hashPassword(testPassword)
   const now = new Date()
 
-  // Test users with different score profiles
   const testUsers = [
     {
       email: 'testuser1@test.local',
@@ -85,7 +79,6 @@ export async function seed(knex: Knex): Promise<void> {
   ]
 
   for (const userData of testUsers) {
-    // Check if user already exists
     const existingUser = await knex('user')
       .where('email', userData.email)
       .first()
@@ -98,7 +91,6 @@ export async function seed(knex: Knex): Promise<void> {
     try {
       const userId = randomBytes(16).toString('hex')
 
-      // Insert user into better-auth's user table
       await knex('user').insert({
         id: userId,
         email: userData.email,
@@ -107,7 +99,6 @@ export async function seed(knex: Knex): Promise<void> {
         role: userData.role,
         createdAt: now,
         updatedAt: now,
-        // Custom fields (snake_case as defined in schema)
         username: userData.username,
         display_username: userData.username,
         display_name: userData.displayName,
@@ -117,7 +108,6 @@ export async function seed(knex: Knex): Promise<void> {
         last_played_at: userData.totalScore > 0 ? now : null,
       })
 
-      // Insert account for credential-based auth
       await knex('account').insert({
         id: randomBytes(16).toString('hex'),
         userId: userId,
@@ -135,13 +125,11 @@ export async function seed(knex: Knex): Promise<void> {
     }
   }
 
-  // Award achievements to test admin user
   const adminUser = await knex('user').where('email', 'testadmin@test.local').first()
 
   if (adminUser) {
     console.log('Awarding achievements to test admin...')
 
-    // Get achievement IDs
     const achievementKeys = [
       'first_win',
       'dedicated_player',
@@ -166,7 +154,6 @@ export async function seed(knex: Knex): Promise<void> {
     const earnedDate = new Date()
 
     for (const achievement of achievements) {
-      // Check if already awarded
       const existing = await knex('user_achievements')
         .where({ user_id: adminUser.id, achievement_id: achievement.id })
         .first()

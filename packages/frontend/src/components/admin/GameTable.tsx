@@ -82,7 +82,6 @@ export function GameTable({
 
   return (
     <>
-      {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         <AnimatePresence mode="popLayout">
           {games.map((game, index) => (
@@ -174,7 +173,6 @@ export function GameTable({
         </AnimatePresence>
       </div>
 
-      {/* Table (md+) */}
       <div className="hidden md:block rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>

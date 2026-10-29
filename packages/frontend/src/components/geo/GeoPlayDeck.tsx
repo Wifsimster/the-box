@@ -20,9 +20,6 @@ import {
     Dock,
 } from '@/components/geo/GeoPlaySlots'
 
-// Defer the Leaflet bundle (~150KB gz 47KB) until the player has actually
-// chosen a game + map. Cold visitors land on the empty/auth state and
-// shouldn't pay tile/marker code on first paint.
 const GeoMapCanvas = lazy(() =>
     import('@/components/geo/GeoMapCanvas').then((m) => ({ default: m.GeoMapCanvas })),
 )
@@ -55,11 +52,6 @@ export interface GeoPlayDeckProps {
     store: Store
 }
 
-/**
- * The immersive play deck: screenshot ↔ map with a sticky action dock.
- * Split out of GeoPlayPage so the page component stays focused on store
- * wiring and boot effects while this file owns the layout slots.
- */
 export function GeoPlayDeck({
     fullscreen,
     gamePickerOpen,
@@ -115,8 +107,6 @@ export function GeoPlayDeck({
         toggleIgnoreGame,
     } = store
 
-    // Slots feed `ImmersiveLayout`; memoized so a re-render that doesn't touch
-    // their inputs hands the layout a stable element reference.
     const topRightSlot: ReactNode = useMemo(
         () => (
             <>
@@ -215,9 +205,6 @@ export function GeoPlayDeck({
                             className="!rounded-none h-full"
                         />
                     </Suspense>
-                    {/* First-run onboarding: the tap-the-map gesture has no
-                        visible affordance of its own, so point at it until
-                        the player's first-ever draft pin. */}
                     {phase === 'ready' && !pendingGuess && !hasEverPlacedPin && (
                         <PinHintChip />
                     )}
@@ -246,12 +233,6 @@ export function GeoPlayDeck({
     const runActive = run != null
     const runComplete = run != null && run.scores.length >= RUN_LENGTH
 
-    // Full-deck takeover: with no game selected the split layout has
-    // nothing to split (the map panel would only say "pick a game
-    // first"), and the auth wall deserves the whole stage rather than
-    // the top third. In both cases the screenshot slot already renders
-    // the right state screen — hand it to the layout's hero slot and
-    // drop the dock (the state screens carry their own CTAs).
     const showHero = currentGameId == null || phase === 'authRequired'
 
     const bottomDockSlot: ReactNode = useMemo(
@@ -264,9 +245,6 @@ export function GeoPlayDeck({
                 canGoNext={historyIndex < roundHistory.length - 1 || currentGameId != null}
                 onSubmit={onSubmit}
                 onNextRound={() => void nextRound()}
-                // During a run, skip re-rolls across the whole catalog —
-                // the run owns game selection, so a same-game re-roll
-                // would fight it.
                 onSkip={() =>
                     void (runActive ? pickRandomAcrossGames() : rerollScreenshot())
                 }
@@ -308,9 +286,6 @@ export function GeoPlayDeck({
 
     return (
         <>
-            {/* Visually hidden live region for the pin-placement
-                announcement. Lives at the top of the page so AT
-                cursors don't have to scrub down to find the result. */}
             <output aria-live="polite" className="sr-only block">
                 {pinAnnouncement}
             </output>
@@ -341,8 +316,6 @@ export function GeoPlayDeck({
                     ) : null
                 }
                 topBar={
-                    // The welcome/auth hero carries its own entry points —
-                    // context chips on top of it would just duplicate them.
                     showHero ? null : (
                     <ContextHeader
                         gameLabel={currentGame?.name ?? null}

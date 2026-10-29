@@ -18,7 +18,6 @@ describe('priorMonthLabel', () => {
     })
 
     it('returns the same prior month regardless of UTC time within day 1', () => {
-        // Cron fires at 00:30 UTC on the 1st; verify the boundary.
         const earlyFirst = priorMonthLabel(new Date(Date.UTC(2026, 5, 1, 0, 30, 0)))
         const lateFirst = priorMonthLabel(new Date(Date.UTC(2026, 5, 1, 23, 59, 59)))
         assert.deepEqual(earlyFirst, lateFirst)

@@ -17,7 +17,6 @@ import { UserApiError, userApi } from '@/lib/api/user'
 import { AVATAR_MIN_ZOOM, renderAvatarCrop, type PixelArea } from '@/lib/avatarCrop'
 import { cn } from '@/lib/utils'
 
-// react-easy-crop only ships once a player has picked a file.
 const AvatarCropStep = lazy(() => import('./AvatarCropStep'))
 
 interface AvatarUploadProps {
@@ -27,7 +26,7 @@ interface AvatarUploadProps {
   onAvatarChange: (newAvatarUrl: string | null) => void
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const INITIAL_CROP: Point = { x: 0, y: 0 }
 
@@ -36,11 +35,9 @@ interface AvatarUploadState {
   isUploading: boolean
   isDeleting: boolean
   error: string | null
-  /** Object URL of the picked file, shown in the crop step. */
   source: string | null
   crop: Point
   zoom: number
-  /** Latest crop, in natural image pixels, reported by the cropper. */
   cropArea: PixelArea | null
 }
 
@@ -70,7 +67,6 @@ const initialAvatarUploadState: AvatarUploadState = {
   cropArea: null,
 }
 
-// State cleared whenever the dialog closes or the user cancels a selection.
 const clearedAvatarUploadState: Omit<AvatarUploadState, 'open'> = {
   isUploading: false,
   isDeleting: false,
@@ -146,7 +142,6 @@ export function AvatarUpload({
   const { open, isUploading, isDeleting, error, source, crop, zoom, cropArea } = state
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Release the object URL once it is no longer displayed.
   useEffect(() => {
     if (!source) return
     return () => URL.revokeObjectURL(source)
@@ -162,17 +157,14 @@ export function AvatarUpload({
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    // Allow picking the same file again after a cancel.
     event.target.value = ''
     if (!file) return
 
-    // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       dispatch({ type: 'error', message: t('profile.avatar.invalidType') })
       return
     }
 
-    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       dispatch({ type: 'error', message: t('profile.avatar.fileTooLarge') })
       return

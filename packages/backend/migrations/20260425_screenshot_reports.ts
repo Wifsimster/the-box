@@ -1,14 +1,6 @@
 import type { Knex } from 'knex'
 
-// User-driven reporting of ineligible captures (screenshots).
-// A report can target either a main `screenshots` row or a `geo_screenshot_candidate`
-// row (geo-only sources like Steam imports that don't live in `screenshots`).
-// Once enough unique users report the same target, the corresponding row is
-// flagged inactive and excluded from all selection queries (geo + daily game).
-
 export async function up(knex: Knex): Promise<void> {
-  // Geo candidates need their own active flag; the main screenshots table
-  // already has `is_active` which the daily-challenge picker honors.
   await knex.schema.alterTable('geo_screenshot_candidate', (table) => {
     table.boolean('is_active').notNullable().defaultTo(true)
   })
@@ -39,8 +31,6 @@ export async function up(knex: Knex): Promise<void> {
     table.index('geo_screenshot_candidate_id')
   })
 
-  // Enforce "exactly one of (screenshot_id, geo_screenshot_candidate_id) is set"
-  // and prevent the same user from reporting the same target twice.
   await knex.raw(`
     ALTER TABLE screenshot_reports
     ADD CONSTRAINT screenshot_reports_target_exclusive

@@ -5,16 +5,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { gameApi } from '@/lib/api/game'
 import type { LetterRevealState } from '@/types'
 
-// Mirror of the server's free leading-article rule (letter-reveal.service):
-// articles are visible in the mask without being paid reveals, so the
-// first-reveal announcement must skip them.
 const LEADING_ARTICLE = /^(?:(?:the|an|a|les|le|la)(?=\s)|l')/i
 
-/**
- * Leftmost revealed letter of a mask, ignoring a free leading article.
- * Digits are only considered when the title has no letters at all
- * (digit-only titles mask their digits instead).
- */
 function firstUnmaskedLetter(mask: string): string | null {
   const article = mask.match(LEADING_ARTICLE)
   const start = article ? article[0].length : 0
@@ -36,47 +28,18 @@ export type LetterRevealStatus =
   | 'cap-reached'
 
 export interface UseLetterRevealResult {
-  /**
-   * - 'hidden': not in a daily challenge / not playing / no mask state yet
-   * - 'locked': server gate not open yet (no wrong guess on this position)
-   * - 'ready': a reveal is possible right now
-   * - 'no-inventory': ranked daily with zero `hint_letter` items
-   * - 'cap-reached': every revealable letter has been bought
-   */
   status: LetterRevealStatus
-  /** Mask state for the current position; null while status is 'hidden'. */
   letterState: LetterRevealState | null
   isRevealing: boolean
-  /** Mirror of the server's catch-up rule: only today's challenge is inventory-gated. */
   isRankedDaily: boolean
-  /** `hint_letter` items currently held. */
   inventoryCount: number
-  /**
-   * The letter uncovered by the most recent reveal on the current position
-   * (diffed client-side from the previous vs next maskedTitle), for the
-   * polite live-region announcement. Reset on position change.
-   */
   lastRevealedLetter: string | null
   reveal: () => Promise<void>
 }
 
-/**
- * Masked-title letter-reveal logic for the daily challenge.
- *
- * Everything that matters is server-authoritative — the gate (one wrong
- * guess first), the per-title cap, the inventory consumption on the ranked
- * daily and the score penalty are all enforced by POST /reveal-letter;
- * this hook only mirrors those rules for affordance.
- *
- * Also owns the fetch-inventory-on-mount effect (previously living in the
- * retired HintButtons component) — without it the ranked-daily inventory
- * gate would silently read a never-loaded inventory.
- */
 export function useLetterReveal(): UseLetterRevealResult {
   const [isRevealing, setIsRevealing] = useState(false)
   const [lastRevealedLetter, setLastRevealedLetter] = useState<string | null>(null)
-  // Mirror of the server's catch-up rule needs today's date; read the clock
-  // once per mount (lazy initializer) rather than on every render.
   const [todayStr] = useState(() => new Date().toISOString().split('T')[0])
 
   const { session } = useAuth()
@@ -94,19 +57,12 @@ export function useLetterReveal(): UseLetterRevealResult {
     setLetterRevealState,
   } = useGameStore()
 
-  // Fetch inventory on mount if not loaded — the inventory gate below
-  // depends on it.
   useEffect(() => {
     if (!inventory && session?.user?.id) {
       fetchInventory()
     }
   }, [inventory, session?.user?.id, fetchInventory])
 
-  // A reveal announcement belongs to the position it happened on; clear it
-  // when the player navigates away so the live region never replays stale
-  // content against another mask. Adjusted during render (previous-value
-  // pattern) instead of in an effect, which would render the stale letter
-  // once before clearing it.
   const [announcedPosition, setAnnouncedPosition] = useState(currentPosition)
   if (announcedPosition !== currentPosition) {
     setAnnouncedPosition(currentPosition)
@@ -114,15 +70,12 @@ export function useLetterReveal(): UseLetterRevealResult {
   }
 
   const positionState = positionStates[currentPosition]
-  // Position-state copy wins (updated after each reveal); the screenshot
-  // payload seeds it on fetch.
   const letterState =
     positionState?.letterReveal ??
     (currentScreenshotData?.position === currentPosition
       ? currentScreenshotData?.letterReveal
       : undefined)
 
-  // Daily challenge only, while playing, with a server-provided mask.
   const hidden =
     challengeId === null || gamePhase !== 'playing' || !letterState || !tierSessionId
 
@@ -130,8 +83,6 @@ export function useLetterReveal(): UseLetterRevealResult {
   const capReached =
     letterState != null && letterState.lettersRevealed >= letterState.maxLetters
 
-  // Mirror of the server's catch-up rule: only today's challenge is the
-  // ranked daily, and only the ranked daily is inventory-gated.
   const isRankedDaily = challengeDate === todayStr
   const missingInventory = isRankedDaily && inventoryCount === 0
 
@@ -157,12 +108,6 @@ export function useLetterReveal(): UseLetterRevealResult {
         tierSessionId,
         position: currentPosition,
       })
-      // Diff old vs new mask to find the letter this reveal uncovered —
-      // a reveal flips one or more '_' into the same character. On the
-      // first reveal the previous mask is empty (the server hides even the
-      // skeleton until a reveal is paid), so fall back to the leftmost
-      // unmasked letter: reveals go left-to-right and the only other free
-      // letters are a leading article, which firstUnmaskedLetter skips.
       const nextMask = result.maskedTitle
       let revealedChar: string | null = null
       if (previousMask.length === nextMask.length) {
@@ -181,8 +126,6 @@ export function useLetterReveal(): UseLetterRevealResult {
         fetchInventory().catch(console.error)
       }
     } catch (error) {
-      // Server is authoritative — a 402/409 here just means our local
-      // mirror of the gate was stale; the button state will catch up.
       console.error('Letter reveal failed:', error)
     } finally {
       setIsRevealing(false)

@@ -6,10 +6,6 @@ import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middl
 
 const router = Router()
 
-/**
- * GET /api/achievements
- * Get all achievements (public)
- */
 router.get('/', async (_req, res, next) => {
     try {
         const achievements = await achievementService.getAllAchievementsWithProgress('')
@@ -33,10 +29,6 @@ router.get('/', async (_req, res, next) => {
     }
 })
 
-/**
- * GET /api/achievements/user/:userId
- * Get achievements for a specific user (with progress)
- */
 router.get('/user/:userId', optionalAuthMiddleware, async (req, res, next) => {
     try {
         const { userId } = req.params
@@ -79,10 +71,6 @@ router.get('/user/:userId', optionalAuthMiddleware, async (req, res, next) => {
     }
 })
 
-/**
- * GET /api/achievements/me
- * Get current user's achievements (authenticated)
- */
 router.get('/me', authMiddleware, async (req, res, next) => {
     try {
         const userId = req.userId!
@@ -118,10 +106,6 @@ router.get('/me', authMiddleware, async (req, res, next) => {
     }
 })
 
-/**
- * GET /api/achievements/leaderboard
- * Get achievement points leaderboard
- */
 router.get('/leaderboard', async (req, res, next) => {
     try {
         const limit = req.query['limit'] ? parseInt(req.query['limit'] as string) : 100

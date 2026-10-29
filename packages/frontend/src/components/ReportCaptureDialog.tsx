@@ -33,9 +33,6 @@ const REPORT_REASONS = [
     'other',
 ] as const satisfies readonly ScreenshotReportReason[]
 
-// Polymorphic target: callers pass exactly one of `screenshotId` (main daily
-// game / catch-up) or `geoScreenshotCandidateId` (geo pin game). The dialog
-// is otherwise identical regardless of where it's hosted.
 export type ReportCaptureTarget =
     | { screenshotId: number; geoScreenshotCandidateId?: never }
     | { geoScreenshotCandidateId: number; screenshotId?: never }
@@ -43,8 +40,6 @@ export type ReportCaptureTarget =
 interface ReportCaptureDialogProps {
     target: ReportCaptureTarget
     isAuthenticated: boolean
-    // Optional — when supplied lets the dialog render a custom trigger
-    // (e.g. an icon-only button overlaid on the screenshot viewer).
     triggerClassName?: string
     iconOnly?: boolean
 }

@@ -12,8 +12,6 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 const TOTP_LENGTH = 6
 
-// Password managers on Android (Bitwarden, …) can't fill the code field, but
-// copy the TOTP to the clipboard after filling the login: one tap pastes it.
 const canReadClipboard = typeof navigator !== 'undefined' && !!navigator.clipboard?.readText
 
 export default function TwoFactorChallengePage() {
@@ -46,8 +44,6 @@ export default function TwoFactorChallengePage() {
         inputRef.current?.focus()
         return
       }
-      // Session cookie is set by the verify endpoint; small delay so the
-      // browser commits the cookie before the next navigation.
       await new Promise((r) => setTimeout(r, 100))
       navigate(redirectTo)
     } catch {
@@ -67,8 +63,6 @@ export default function TwoFactorChallengePage() {
     setCode(next)
     if (error) setError(null)
     if (mode === 'totp' && next.length === TOTP_LENGTH && !isLoading) {
-      // Authenticator apps and SMS autofill paste all six digits at once:
-      // submit immediately instead of making the player hunt for the button.
       void verify(next)
     }
   }

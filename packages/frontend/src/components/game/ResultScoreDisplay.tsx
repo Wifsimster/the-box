@@ -10,7 +10,6 @@ interface SpeedFeedback {
   color: string
 }
 
-// Pure: maps elapsed time to the speed-feedback badge. No component state.
 function getSpeedFeedback(isCorrect: boolean, timeTakenSeconds: number): SpeedFeedback | null {
   if (!isCorrect) return null
   if (timeTakenSeconds <= 5) return { key: 'lightning', icon: Zap, color: 'text-score-mid' }
@@ -33,10 +32,6 @@ interface ResultScoreDisplayProps {
   matchPrecision?: 'exact' | 'partial'
 }
 
-/**
- * Presentational block for the score: the +100 × multiplier headline (or flat
- * score), hint / wrong-guess penalties, and the speed-feedback badge.
- */
 export function ResultScoreDisplay({
   isCorrect,
   scoreEarned,
@@ -53,9 +48,6 @@ export function ResultScoreDisplay({
 }: ResultScoreDisplayProps) {
   const { t } = useTranslation()
   const speedFeedback = getSpeedFeedback(isCorrect, timeTakenSeconds)
-  // A partial (franchise-only) match earns a reduced, already-discounted score,
-  // so the "100 × speed" headline would overstate it — show the flat earned
-  // value instead and explain why.
   const isPartial = matchPrecision === 'partial'
 
   const scoreColor = cn(
@@ -94,7 +86,6 @@ export function ResultScoreDisplay({
         </div>
       )}
 
-      {/* Partial (franchise-only) match explanation */}
       {isPartial && isCorrect && (
         <m.div
           initial={{ opacity: 0, y: 10 }}
@@ -106,7 +97,6 @@ export function ResultScoreDisplay({
         </m.div>
       )}
 
-      {/* Hint Penalty Display */}
       {hintPenalty && hintPenalty > 0 && isCorrect && (
         <m.div
           initial={{ opacity: 0, y: 10 }}
@@ -118,7 +108,6 @@ export function ResultScoreDisplay({
         </m.div>
       )}
 
-      {/* Letter Reveal Penalty Display */}
       {letterPenalty && letterPenalty > 0 && isCorrect && (
         <m.div
           initial={{ opacity: 0, y: 10 }}
@@ -130,7 +119,6 @@ export function ResultScoreDisplay({
         </m.div>
       )}
 
-      {/* In-game streak bonus (computed server-side, already in scoreEarned) */}
       {isCorrect && streakBonus && streakBonus > 0 && streak ? (
         <m.div
           initial={{ opacity: 0, y: 10 }}
@@ -143,7 +131,6 @@ export function ResultScoreDisplay({
         </m.div>
       ) : null}
 
-      {/* Wrong Guess Penalty Display */}
       {wrongGuessPenalty && wrongGuessPenalty > 0 && !isCorrect && (
         <m.div
           initial={{ opacity: 0, y: 10 }}
@@ -155,7 +142,6 @@ export function ResultScoreDisplay({
         </m.div>
       )}
 
-      {/* Speed feedback for correct answers */}
       {isCorrect && speedFeedback && (
         <m.div
           initial={{ opacity: 0, scale: 0.8 }}

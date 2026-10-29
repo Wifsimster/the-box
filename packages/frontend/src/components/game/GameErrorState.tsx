@@ -12,12 +12,6 @@ interface TimeRemaining {
   seconds: number
 }
 
-/**
- * Error / "already completed today" state for the daily game. Renders the
- * celebratory completion card when the error indicates today's challenge is
- * done, otherwise a generic error with retry. Extracted from GamePage to
- * keep that component focused on game-loop orchestration.
- */
 export function GameErrorState({
   error,
   timeRemaining,
@@ -46,7 +40,6 @@ export function GameErrorState({
           transition={{ duration: 0.35, ease: 'easeOut' }}
           className="relative w-full max-w-md m-auto"
         >
-          {/* Ambient neon glow */}
           <div
             aria-hidden="true"
             className="absolute -inset-px rounded-2xl bg-linear-to-br from-neon-purple/20 via-transparent to-neon-pink/20 blur-2xl"

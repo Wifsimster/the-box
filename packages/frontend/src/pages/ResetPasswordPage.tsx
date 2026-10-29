@@ -62,13 +62,11 @@ export default function ResetPasswordPage() {
   const token = searchParams.get('token')
 
   useEffect(() => {
-    // Check for error in URL params (from better-auth redirect)
     const errorParam = searchParams.get('error')
     if (errorParam === 'INVALID_TOKEN') {
       dispatch({ type: 'tokenInvalid' })
     }
 
-    // Check if token exists
     if (!token && !errorParam) {
       dispatch({ type: 'tokenInvalid' })
     }

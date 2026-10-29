@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 
-// Job kinds we care to surface in the manual-run progress UI. Mirrors the
-// backend's GeoJobData.kind minus consensus/promote-tier (those are unrelated
-// to the ingestion pipeline and the route already filters them out).
 const GeoRunJobKindSchema = z.enum([
     'resolve-metadata',
     'ingest-tick',
@@ -36,9 +33,6 @@ const GeoRunStatePayloadSchema = z.object({
         failed: z.number(),
         completed: z.number(),
     }),
-    // BullMQ job ids on the wire are strings, but we only key by gameId
-    // numerically. z.coerce.number() lets the JSON parse path recover when
-    // either side serializes the key as a string.
     byGame: z.record(z.coerce.number(), z.array(GeoRunJobSchema)),
     globals: z.array(GeoRunJobSchema),
 })
@@ -47,21 +41,10 @@ export type GeoRunStatePayload = z.infer<typeof GeoRunStatePayloadSchema>
 export interface UseGeoRunPolling {
     state: GeoRunStatePayload | null
     error: string | null
-    /**
-     * Force a poll burst for at least `windowMs` (default 5s). Covers the
-     * lag between enqueue and the first time a fresh job shows up in
-     * BullMQ's active/waiting sets.
-     */
     arm: (windowMs?: number) => void
 }
 
 export interface GeoRunPollingOptions {
-    /**
-     * When false, the hook stops scheduling new polls (e.g. the geo tab
-     * is not the active admin tab, or the page is hidden). Already-armed
-     * windows expire as normal. Defaults to true so existing call sites
-     * keep their behavior.
-     */
     enabled?: boolean
 }
 
@@ -79,24 +62,11 @@ async function fetchState(): Promise<GeoRunStatePayload> {
     return parsed.data
 }
 
-/**
- * Poll while either:
- *  - the most recent response said `isActive=true`, or
- *  - `arm()` was called within the last `armWindowMs`.
- *
- * Stops on its own when both go false to avoid hammering the endpoint
- * during quiet periods. Pass `{ enabled: false }` to suspend polling
- * entirely (e.g. when the admin navigates away from the geo tab).
- */
 export function useGeoRunPolling(
     intervalMs: number = DEFAULT_INTERVAL_MS,
     options: GeoRunPollingOptions = {},
 ): UseGeoRunPolling {
     const enabled = options.enabled ?? true
-    // Page Visibility pause: when the browser tab goes to background we
-    // stop scheduling polls. Without this, an admin who leaves the geo
-    // panel open in a background tab keeps hitting /api/admin/geo/run/state
-    // every 2s indefinitely.
     const [pageVisible, setPageVisible] = useState<boolean>(
         typeof document === 'undefined' ? true : document.visibilityState !== 'hidden',
     )
@@ -108,11 +78,8 @@ export function useGeoRunPolling(
     }, [])
     const [state, setState] = useState<GeoRunStatePayload | null>(null)
     const [error, setError] = useState<string | null>(null)
-    // Mutable refs so the interval callback always reads the latest values.
     const armedUntilRef = useRef<number>(0)
     const isActiveRef = useRef<boolean>(false)
-    // Bumping this nudges the polling effect to (re)start the interval after
-    // arm() — needed because arm() doesn't change any reactive state.
     const [pollNonce, setPollNonce] = useState(0)
 
     useEffect(() => {
@@ -129,9 +96,6 @@ export function useGeoRunPolling(
                 setError(null)
             } catch (e) {
                 if (cancelled) return
-                // Surface a stable, parseable error code/message rather
-                // than the raw stack — admins shouldn't see "TypeError: …"
-                // strings in the toast.
                 setError((e as { message?: string } | null)?.message ?? 'fetch failed')
             }
         }
@@ -143,7 +107,6 @@ export function useGeoRunPolling(
 
         if (!shouldPoll()) return undefined
 
-        // Fire once immediately so the UI updates without waiting `intervalMs`.
         void tick()
         const id = window.setInterval(() => {
             if (!shouldPoll()) {
@@ -167,8 +130,6 @@ export function useGeoRunPolling(
     return { state, error, arm }
 }
 
-// Helper: which tiers are currently in flight for a given game. Maps the
-// per-source job kinds to the tier labels the maps tab already uses.
 export type InFlightTier =
     | 'registry'
     | 'fandom'

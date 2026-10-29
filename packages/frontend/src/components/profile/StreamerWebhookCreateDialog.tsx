@@ -17,10 +17,6 @@ import { toast } from '@/lib/toast'
 import { streamerKeysApi } from '@/lib/api/streamer-keys'
 import type { PublicEventType, WebhookCreated, WebhookSummary } from '@the-box/types'
 
-// session.started, session.completed and rank.changed are dispatched as
-// webhooks. screenshot.scored is SSE-only (not delivered as a webhook) — it
-// gets a "soon" badge rather than being hidden, so a subscription that
-// includes it stays forward-compatible.
 const EVENT_OPTIONS: { value: PublicEventType; live: boolean }[] = [
   { value: 'session.started', live: true },
   { value: 'session.completed', live: true },
@@ -29,10 +25,7 @@ const EVENT_OPTIONS: { value: PublicEventType; live: boolean }[] = [
 ]
 
 interface StreamerWebhookCreateDialogProps {
-  // Webhooks are meaningless without an opted-in public profile — the parent
-  // gates rendering, but we also disable the create button defensively.
   enabled: boolean
-  /** Notifies the parent so the new webhook (sans secret) can be listed. */
   onCreated: (summary: WebhookSummary) => void
 }
 
@@ -42,7 +35,6 @@ function stripSecret(c: WebhookCreated): WebhookSummary {
   return rest
 }
 
-// Maps the backend's SSRF-guard error codes to a human message.
 function webhookErrorMessage(
   code: string | undefined,
   t: (key: string) => string
@@ -140,11 +132,6 @@ function createWebhookReducer(
   }
 }
 
-/**
- * Self-contained "add webhook" affordance: owns the entire create flow state
- * (open / url / label / events / creating / error / secret / copied) and
- * surfaces only the created webhook summary back to the parent.
- */
 export function StreamerWebhookCreateDialog({
   enabled,
   onCreated,
@@ -171,8 +158,6 @@ export function StreamerWebhookCreateDialog({
       onCreated(stripSecret(result))
     } catch (err) {
       const code = (err as { code?: string }).code
-      // The SSRF guard returns specific codes — surface them inline so the
-      // user understands *why* their URL was rejected.
       dispatch({ type: 'createFailed', error: webhookErrorMessage(code, t) })
     }
   }

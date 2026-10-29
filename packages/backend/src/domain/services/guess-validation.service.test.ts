@@ -10,9 +10,6 @@ describe('resolveMatchPrecision', () => {
   const ANSWER = 42
 
   it('refuses credit for empty text even with the correct gameId', () => {
-    // The anti-leak rule. Image-proxy enumeration lets any logged-in user
-    // discover the screenshot -> gameId mapping, so a gameId-only submit
-    // would be a one-shot answer leak.
     assert.equal(
       resolveMatchPrecision({
         trimmedGuess: '',
@@ -37,8 +34,6 @@ describe('resolveMatchPrecision', () => {
   })
 
   it('preserves a partial match rather than promoting it', () => {
-    // A franchise-only answer must stay partial — promoting it to exact
-    // would hand out full points for an incomplete identification.
     assert.equal(
       resolveMatchPrecision({
         trimmedGuess: 'Halo',
@@ -51,7 +46,6 @@ describe('resolveMatchPrecision', () => {
   })
 
   it('uses a correct gameId only to break a tie on non-empty text', () => {
-    // An autocomplete pick whose text didn't clear the matcher.
     assert.equal(
       resolveMatchPrecision({
         trimmedGuess: 'halo ce',
@@ -78,7 +72,7 @@ describe('resolveMatchPrecision', () => {
 
 describe('resolveRoundTimer', () => {
   const NOW = new Date('2026-05-01T12:00:10.000Z').getTime()
-  const STARTED = new Date('2026-05-01T12:00:00.000Z') // 10s before NOW
+  const STARTED = new Date('2026-05-01T12:00:00.000Z')
 
   const valid = {
     roundStartedAt: STARTED,
@@ -94,7 +88,6 @@ describe('resolveRoundTimer', () => {
   })
 
   it('rejects a submit for a different position than the stamped one', () => {
-    // Out-of-order POST, or a client replaying an old round.
     const result = resolveRoundTimer({ ...valid, submittedPosition: 5 })
     assert.equal(result.valid, false)
   })
@@ -105,8 +98,6 @@ describe('resolveRoundTimer', () => {
   })
 
   it('takes the SLOWER of server and client elapsed', () => {
-    // The whole anti-cheat point: a forged `roundTimeTakenMs: 1` must not
-    // buy the 2x speed multiplier.
     const result = resolveRoundTimer({ ...valid, clientElapsedMs: 1 })
 
     assert.equal(result.valid, true)
@@ -116,7 +107,6 @@ describe('resolveRoundTimer', () => {
   })
 
   it('accepts a client time slower than the server measurement', () => {
-    // A user whose clock runs fast only ever hurts themselves, so trust it.
     const result = resolveRoundTimer({ ...valid, clientElapsedMs: 12_000 })
 
     assert.equal(result.valid, true)
@@ -125,8 +115,6 @@ describe('resolveRoundTimer', () => {
   })
 
   it('never reports negative elapsed when the clock moves backwards', () => {
-    // An NTP correction between serving and submitting must not produce a
-    // negative elapsed that sails past every speed tier.
     const result = resolveRoundTimer({
       ...valid,
       now: new Date('2026-05-01T11:59:50.000Z').getTime(),

@@ -10,21 +10,12 @@ import {
 } from '@the-box/types'
 import { SITE_CATEGORY, SITE_NAME, SITE_TAGLINE } from './brand'
 
-// The product shipped seven tagline literals for six different promises before
-// docs/brand.md existed. Four copies still have to exist — @the-box/types (the
-// canonical one, read by the backend's OG cards), src/lib/brand.ts (the types
-// package compiles to CommonJS, so Rollup cannot re-export its values),
-// index.html and the PWA manifest (both read before types is built). This
-// suite is what keeps all four identical, and what stops an eighth variant
-// from being written into a component.
-
 const here = path.dirname(fileURLToPath(import.meta.url))
 const frontendRoot = path.resolve(here, '../..')
 const repoRoot = path.resolve(frontendRoot, '../..')
 
 const read = (rel: string) => readFileSync(path.join(repoRoot, rel), 'utf-8')
 
-/** Tagline and category variants retired by docs/brand.md. */
 const RETIRED = [
   'Daily Video Game Guessing Challenge',
   'Identify video games from screenshots',
@@ -34,7 +25,6 @@ const RETIRED = [
   'Devinez des jeux vidéo à partir de screenshots',
 ]
 
-/** Every file allowed to carry a brand string, literal or not. */
 const BRAND_SURFACES = [
   'packages/frontend/index.html',
   'packages/frontend/vite.config.ts',

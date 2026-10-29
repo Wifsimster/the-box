@@ -5,11 +5,6 @@ import {
   type FetchOutcomeReport,
 } from './maps-fetch-runtime.js'
 
-/**
- * Pipeline-aware Fandom map fetcher. Requires wiki_subdomain + wiki_page_title
- * to be resolved on the games row (the metadata-resolve worker fills these in
- * automatically; admins can also set them manually).
- */
 export async function runMapsFetchFandom(input: {
   gameId: number
   correlationId?: string
@@ -34,9 +29,6 @@ export async function runMapsFetchFandom(input: {
         if (result.imported) {
           return { outcome: 'success', itemsIngested: 1 }
         }
-        // Reasons range from "already imported" (idempotent re-run) to
-        // "no backgroundImage in API response". Treat as empty either way;
-        // cooldown engages and the orchestrator advances.
         return {
           outcome: 'empty',
           errorCode: 'FANDOM_NOT_IMPORTED',

@@ -9,10 +9,7 @@ import { createCountryLeaderboardHandler } from './country-leaderboard.handler.j
 
 const router = Router()
 
-// Get public session details (for viewing other players' answers)
 router.get('/session/:sessionId', optionalAuthMiddleware, async (req, res, next) => {
-  // Prevent any intermediate proxy from caching a 200 across the day
-  // boundary — the anti-cheat gate is time-sensitive.
   res.setHeader('Cache-Control', 'no-store')
   try {
     const { sessionId } = req.params
@@ -55,9 +52,6 @@ router.get('/session/:sessionId', optionalAuthMiddleware, async (req, res, next)
 
 const SESSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// Authoritative standing of the caller's own session (results page). Rank,
-// total and score all come from the stored session in one statement, so a
-// device holding a stale local score still gets the real standing.
 router.get('/session/:sessionId/standing', authMiddleware, async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store')
   try {
@@ -85,7 +79,6 @@ router.get('/session/:sessionId/standing', authMiddleware, async (req, res, next
   }
 })
 
-// Get today's leaderboard
 router.get('/today', async (_req, res, next) => {
   try {
     const data = await leaderboardService.getTodayLeaderboard()
@@ -99,10 +92,6 @@ router.get('/today', async (_req, res, next) => {
   }
 })
 
-// Public lightweight player count for today's challenge — powers the home
-// page "joined by N players today" social-proof badge. No auth: it's an
-// aggregate with no per-user data. Short cache so the number feels live
-// without hammering the DB on every homepage view.
 router.get('/today/count', async (_req, res, next) => {
   try {
     const data = await leaderboardService.getTodayPlayerCount()
@@ -113,7 +102,6 @@ router.get('/today/count', async (_req, res, next) => {
   }
 })
 
-// Get percentile ranking for a score on today's challenge
 router.get('/today/percentile', async (req, res, next) => {
   try {
     const scoreParam = req.query.score as string | undefined
@@ -138,7 +126,6 @@ router.get('/today/percentile', async (req, res, next) => {
   }
 })
 
-// Monthly country ranking (self-declared countries, min. players per country)
 router.get(
   '/monthly/:year/:month/countries',
   optionalAuthMiddleware,
@@ -149,12 +136,10 @@ router.get(
   })
 )
 
-// Get monthly leaderboard - MUST be before /:date to prevent pattern conflict
 router.get('/monthly/:year/:month', async (req, res, next) => {
   try {
     const { year, month } = req.params
 
-    // Validate year (4 digits, reasonable range)
     const yearNum = Number(year)
     if (!/^\d{4}$/.test(year!) || yearNum < 2020 || yearNum > 2100) {
       res.status(400).json({
@@ -164,7 +149,6 @@ router.get('/monthly/:year/:month', async (req, res, next) => {
       return
     }
 
-    // Validate month (1-12)
     const monthNum = Number(month)
     if (!/^\d{1,2}$/.test(month!) || monthNum < 1 || monthNum > 12) {
       res.status(400).json({
@@ -192,12 +176,10 @@ router.get('/monthly/:year/:month', async (req, res, next) => {
   }
 })
 
-// Get leaderboard for specific date
 router.get('/:date', async (req, res, next) => {
   try {
     const { date } = req.params
 
-    // Validate date format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date!)) {
       res.status(400).json({
         success: false,

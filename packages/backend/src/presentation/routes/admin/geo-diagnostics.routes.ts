@@ -7,11 +7,6 @@ import { findRegistryEntryBySlug } from '../../../infrastructure/queue/workers/g
 
 const router = Router()
 
-// ---------- Per-game tier diagnosis ----------
-
-// Returns the four-tier ingestion state for a single game so the admin can see
-// at a glance which tiers were tried, which tombstoned, and which would run
-// next. Drives the Maps tab's side panel.
 router.get('/geo/games/:id/sources', async (req, res, next) => {
   try {
     const id = Number(req.params.id)
@@ -105,9 +100,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
     ): ReturnType<typeof tier> | null => {
       const list = candidatesBySource.get(key)
       if (!list || list.length === 0) return null
-      // Surface the active candidate first when present, so the existing
-      // "matched" caption (license / sourceUrl) reflects what is currently
-      // serving in-game; siblings remain available for the admin to pick.
       const primary = list.find((c) => c.isActive) ?? list[0]!
       return tier(key, {
         status: 'matched',
@@ -118,7 +110,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       })
     }
 
-    // Tier 1 — Registry
     const registryMatched = matchedTier('registry', 'curated registry')
     if (registryMatched) {
       sources.push(registryMatched)
@@ -142,7 +133,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       )
     }
 
-    // Tier 2 — Fandom
     const fandomMatched = matchedTier(
       'fandom',
       `${game.wiki_subdomain ?? '?'}.fandom.com`,
@@ -169,7 +159,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       )
     }
 
-    // Tier 3 — StrategyWiki (probes inline, always eligible until tombstoned)
     const strategyMatched = matchedTier('strategywiki', 'strategywiki.org')
     if (strategyMatched) {
       sources.push(strategyMatched)
@@ -189,7 +178,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       }
     }
 
-    // Tier 4 — Fextralife (probes inline, always eligible until tombstoned)
     const fextralifeMatched = matchedTier('fextralife', 'wiki.fextralife.com')
     if (fextralifeMatched) {
       sources.push(fextralifeMatched)
@@ -209,7 +197,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       }
     }
 
-    // Tier 5 — Wand (probes inline by slug, always eligible until tombstoned)
     const wandMatched = matchedTier('wand', `wand.com/maps/${game.slug}`)
     if (wandMatched) {
       sources.push(wandMatched)
@@ -229,7 +216,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       }
     }
 
-    // Tier 6 — Wikidata
     const wikidataMatched = matchedTier('wikidata', game.wikidata_qid ?? 'P242')
     if (wikidataMatched) {
       sources.push(wikidataMatched)
@@ -253,7 +239,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       )
     }
 
-    // Tier 7 — Manual
     const manualMatched = matchedTier('manual', 'admin upload')
     if (manualMatched) {
       sources.push(manualMatched)
@@ -261,11 +246,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
       sources.push(tier('manual', { status: 'untried' }))
     }
 
-    // Multi-map: enabledMaps is the new authoritative list the admin UI
-    // renders. `activeMap` is kept on the wire for one release so a
-    // stale frontend keeps working — it now carries the capture-default
-    // row (the one Steam/RAWG attaches to), which is the closest analog
-    // to the legacy single-active row.
     const enabledMaps = allMaps.filter((m) => m.isActive)
     const captureDefault =
       enabledMaps.find((m) => m.isCaptureDefault) ?? enabledMaps[0] ?? null
@@ -287,8 +267,6 @@ router.get('/geo/games/:id/sources', async (req, res, next) => {
         gameId: game.id,
         gameName: game.name,
         slug: game.slug,
-        // Deprecated: kept for back-compat; consumers should switch to
-        // `enabledMaps` and `captureDefaultMap`.
         activeMap: captureDefault ? mapSummary(captureDefault) : null,
         enabledMaps: enabledMaps.map(mapSummary),
         captureDefaultMap: captureDefault ? mapSummary(captureDefault) : null,

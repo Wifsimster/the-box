@@ -20,7 +20,6 @@ export const logger = pino({
   },
 })
 
-// Child loggers for different modules
 export const dbLogger = logger.child({ module: 'database' })
 export const repoLogger = logger.child({ module: 'repository' })
 export const serviceLogger = logger.child({ module: 'service' })
@@ -29,7 +28,6 @@ export const authLogger = logger.child({ module: 'auth' })
 export const socketLogger = logger.child({ module: 'socket' })
 export const queueLogger = logger.child({ module: 'queue' })
 
-// Helper for timing operations
 export function withTiming<T>(
   operation: string,
   log: pino.Logger,
@@ -47,7 +45,6 @@ export function withTiming<T>(
     })
 }
 
-// Helper for database queries with parameters
 export function logQuery(
   log: pino.Logger,
   table: string,

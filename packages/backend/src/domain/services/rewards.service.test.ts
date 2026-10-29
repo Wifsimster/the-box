@@ -5,7 +5,6 @@ import type { RewardGrant, RewardGrantPayload } from '@the-box/types'
 import type { RewardRepository } from '../ports/repositories.js'
 import type { DomainLogger } from '../ports/logger.js'
 
-// Silent logger that satisfies the port without spamming test output.
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
   debug: () => {},
@@ -92,7 +91,6 @@ describe('rewardsService.grant', () => {
     assert.deepEqual(call.payload.items, [
       { itemType: 'powerup', itemKey: 'hint_letter', quantity: 1 },
     ])
-    // milestone is in the auto-unlock set
     assert.equal(call.autoUnlock, true)
     assert.equal(result.grant.unlockedAt, '2026-05-03T12:00:00.000Z')
   })
@@ -278,8 +276,6 @@ describe('rewardsService.grant', () => {
       const items: RewardGrantPayload['items'] = [
         { itemType: 'powerup', itemKey: 'x', quantity: 1 },
       ]
-      // Use a source that matches the prefix when applicable; the service
-      // does not enforce source/sourceRef cross-validation.
       await service.grant({
         userId: 'user-1',
         source: 'milestone',

@@ -15,8 +15,6 @@ export function EmailConsentCard({ initialConsent, updatedAt }: EmailConsentCard
   const { t, i18n } = useTranslation()
   const checkboxId = useId()
   const [consent, setConsent] = useState(initialConsent)
-  // Local override applied only after a successful save. While null we fall
-  // back to the `updatedAt` prop, so the timestamp isn't derived state.
   const [savedUpdatedAt, setSavedUpdatedAt] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 

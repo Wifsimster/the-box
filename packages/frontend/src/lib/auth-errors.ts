@@ -1,30 +1,19 @@
-/**
- * Maps Better Auth error messages to i18n translation keys
- */
-
 interface BetterAuthError {
     message?: string;
     code?: string;
     status?: number;
 }
 
-/**
- * Maps Better Auth error to a translation key
- * @param error - The error object from Better Auth
- * @returns Translation key string
- */
 function mapAuthErrorToTranslationKey(error: unknown): string {
     if (!error) {
         return 'auth.unknownError';
     }
 
-    // Handle Better Auth error objects
     if (typeof error === 'object' && error !== null) {
         const authError = error as BetterAuthError;
         const message = authError.message?.toLowerCase() || '';
         const code = authError.code?.toLowerCase() || '';
 
-        // Email already exists / User already exists
         if (
             message.includes('already exists') ||
             message.includes('already registered') ||
@@ -34,7 +23,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.userAlreadyExists';
         }
 
-        // User not found
         if (
             message.includes('user not found') ||
             message.includes('no user found') ||
@@ -43,7 +31,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.userNotFound';
         }
 
-        // Invalid credentials / Wrong password
         if (
             message.includes('invalid credentials') ||
             message.includes('invalid password') ||
@@ -55,7 +42,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.invalidPassword';
         }
 
-        // Email not verified
         if (
             message.includes('email not verified') ||
             message.includes('verify your email') ||
@@ -64,7 +50,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.emailNotVerified';
         }
 
-        // Weak password
         if (
             message.includes('password is too weak') ||
             message.includes('weak password') ||
@@ -74,7 +59,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.weakPassword';
         }
 
-        // Invalid email format
         if (
             message.includes('invalid email') ||
             message.includes('email is invalid') ||
@@ -83,7 +67,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.emailInvalid';
         }
 
-        // Username issues
         if (
             message.includes('username') &&
             (message.includes('taken') || message.includes('exists'))
@@ -91,7 +74,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.usernameTaken';
         }
 
-        // Rate limiting
         if (
             message.includes('too many') ||
             message.includes('rate limit') ||
@@ -101,7 +83,6 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.tooManyAttempts';
         }
 
-        // Network errors
         if (
             message.includes('network') ||
             message.includes('fetch failed') ||
@@ -110,13 +91,11 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
             return 'auth.errors.networkError';
         }
 
-        // Server errors
         if (authError.status && authError.status >= 500) {
             return 'auth.errors.serverError';
         }
     }
 
-    // Handle string errors
     if (typeof error === 'string') {
         const errorStr = error.toLowerCase();
 
@@ -134,17 +113,12 @@ function mapAuthErrorToTranslationKey(error: unknown): string {
         }
     }
 
-    // Default fallback
     return 'auth.errors.unknownError';
 }
 
-/**
- * Maps login-specific errors
- */
 export function mapLoginError(error: unknown): string {
     const key = mapAuthErrorToTranslationKey(error);
 
-    // If we got a generic unknown error, use login-specific fallback
     if (key === 'auth.errors.unknownError') {
         return 'auth.loginError';
     }
@@ -152,13 +126,9 @@ export function mapLoginError(error: unknown): string {
     return key;
 }
 
-/**
- * Maps registration-specific errors
- */
 export function mapRegisterError(error: unknown): string {
     const key = mapAuthErrorToTranslationKey(error);
 
-    // If we got a generic unknown error, use register-specific fallback
     if (key === 'auth.errors.unknownError') {
         return 'auth.registerError';
     }
@@ -166,13 +136,9 @@ export function mapRegisterError(error: unknown): string {
     return key;
 }
 
-/**
- * Maps password reset-specific errors
- */
 export function mapPasswordResetError(error: unknown): string {
     const key = mapAuthErrorToTranslationKey(error);
 
-    // If we got a generic unknown error, use reset-specific fallback
     if (key === 'auth.errors.unknownError') {
         return 'auth.resetError';
     }

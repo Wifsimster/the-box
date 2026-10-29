@@ -6,7 +6,6 @@ export function markWelcomePending(): void {
   try {
     localStorage.setItem(WELCOME_FLAG, '1')
   } catch {
-    // storage blocked — silently skip, welcome simply won't appear
   }
 }
 
@@ -40,11 +39,6 @@ function getWelcomeActive(): boolean {
   return welcomeActive
 }
 
-/**
- * True while the first-run WelcomeModal is on screen. Other auto-opening
- * surfaces (daily reward, changelog, home tour) wait for it so a new player
- * never gets two dialogs stacked on top of each other.
- */
 export function useWelcomeActive(): boolean {
   return useSyncExternalStore(subscribeWelcomeActive, getWelcomeActive, () => false)
 }

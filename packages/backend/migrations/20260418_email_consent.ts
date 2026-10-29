@@ -1,12 +1,5 @@
 import type { Knex } from 'knex'
 
-/**
- * CNIL/GDPR-compliant marketing consent tracking.
- *
- * `email_marketing_consent` defaults to false — opt-in must be an
- * explicit user action. `email_consent_updated_at` records the last
- * change so audit requests can be answered.
- */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('user', (table) => {
     table.boolean('email_marketing_consent').notNullable().defaultTo(false)

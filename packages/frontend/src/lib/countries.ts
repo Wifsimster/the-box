@@ -1,6 +1,3 @@
-// Mirror of COUNTRY_CODES in @the-box/types. That package compiles to
-// CommonJS and Rollup cannot re-export its values, so the list is copied here;
-// `countries.test.ts` fails if the two copies diverge.
 import type { CountryCode } from '@the-box/types'
 
 export const COUNTRY_CODES: readonly CountryCode[] = [
@@ -22,7 +19,6 @@ export const COUNTRY_CODES: readonly CountryCode[] = [
   'VN', 'VU', 'WF', 'WS', 'YE', 'YT', 'ZA', 'ZM', 'ZW',
 ]
 
-/** Localised country name, falling back to the code when Intl has no name. */
 export function countryName(code: string, locale: string): string {
   try {
     return new Intl.DisplayNames([locale], { type: 'region' }).of(code) ?? code
@@ -31,7 +27,6 @@ export function countryName(code: string, locale: string): string {
   }
 }
 
-/** Codes sorted by their localised name, for the profile select. */
 export function sortedCountryOptions(locale: string): Array<{ code: CountryCode; name: string }> {
   const collator = new Intl.Collator(locale)
   return COUNTRY_CODES.map((code) => ({ code, name: countryName(code, locale) })).sort((a, b) =>

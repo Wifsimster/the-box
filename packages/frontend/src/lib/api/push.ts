@@ -4,8 +4,6 @@ interface ApiResponse<T> {
   error?: { code: string; message: string }
 }
 
-// Stable error codes the UI can branch on. The hook and the card both read
-// `code` to pick the right localized toast — never compare error.message.
 export type PushApiErrorCode =
   | 'NETWORK_ERROR'
   | 'SERVER_UNAVAILABLE'
@@ -47,8 +45,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return json.data
 }
 
-// fetch() throws TypeError on network failure / DNS / offline. Wrap so the
-// caller sees a stable PushApiError code instead of having to sniff for it.
 async function safeFetch(input: string, init?: RequestInit): Promise<Response> {
   try {
     return await fetch(input, init)
@@ -67,9 +63,6 @@ export interface SubscribePayload {
 }
 
 export const pushApi = {
-  // Returns null when the server hasn't been issued VAPID keys yet (503 with
-  // PUSH_NOT_CONFIGURED). The caller should hide the opt-in UI in that case
-  // rather than treat it as a hard error.
   async getVapidPublicKey(): Promise<string | null> {
     const response = await safeFetch('/api/push/vapid-public-key', { credentials: 'include' })
     if (response.status === 503) return null

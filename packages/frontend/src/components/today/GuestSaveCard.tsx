@@ -6,21 +6,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 interface GuestSaveCardProps {
-  /**
-   * Where the guest's stored score would land on today's board (the standing
-   * endpoint places an unranked session hypothetically). `null` hides it.
-   */
   rank: number | null
   totalPlayers: number | null
   className?: string
 }
 
-/**
- * The account ask shown to a guest once today's box is done. Guests are never
- * ranked, so when we know where their score would land we say it: that is
- * the reason to create the account. The backend carries the guest's session
- * over on signup (onLinkAccount), so the score then shows on the board.
- */
 export function GuestSaveCard({ rank, totalPlayers, className }: GuestSaveCardProps) {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()

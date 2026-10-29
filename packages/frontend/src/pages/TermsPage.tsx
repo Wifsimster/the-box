@@ -6,9 +6,6 @@ import { STUDIO } from '@/lib/studio'
 export default function TermsPage() {
   const { t } = useTranslation()
 
-  // Rendered apart from the plain sections so the studio site can be a real
-  // link: LCEN art. 6-III expects the publisher's identity to be reachable,
-  // not just spelled out.
   const publisher = t('legal.termsPublisher', {
     studio: STUDIO.name,
     legalName: STUDIO.legalName,

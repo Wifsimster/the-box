@@ -1,10 +1,6 @@
 import type { GeoMap } from '@the-box/types'
 import { fetchAdminJson } from './admin'
 
-// ===== Wire types =====
-// These mirror the response shapes from /api/admin/geo-fetch/*. Keep
-// them aligned with packages/backend/src/presentation/routes/geo-fetch.routes.ts.
-
 export type GeoFetchStage =
   | 'queued'
   | 'fetching_map'
@@ -37,9 +33,6 @@ export interface GeoFetchGamesPage {
   games: GeoFetchGameRow[]
   limit: number
   offset: number
-  // Surfaced by the backend so the panel can render "X of Y" honestly.
-  // Optional for back-compat with deploys that haven't shipped the
-  // pagination metadata yet.
   total?: number
   hasMore?: boolean
 }
@@ -77,8 +70,6 @@ export interface GeoFetchZoneGroup {
 export interface GeoFetchMapsResponse {
   zones: GeoFetchZoneGroup[]
 }
-
-// ===== API =====
 
 export const geoFetchApi = {
   status: () => fetchAdminJson<GeoFetchStatus>('/api/admin/geo-fetch/status'),

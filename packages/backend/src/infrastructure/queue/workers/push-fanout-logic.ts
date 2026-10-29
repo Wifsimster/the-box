@@ -15,8 +15,6 @@ export interface FanOutResult {
   retryable: number
 }
 
-// Minimal subscription shape the fan-out needs. Decoupled from the full DB
-// row so the unit tests don't have to fabricate every column.
 export interface FanOutSubscription {
   endpoint: string
   user_id: string
@@ -24,9 +22,6 @@ export interface FanOutSubscription {
   auth: string
 }
 
-// Ports for the fan-out worker. Concrete adapters wire these to the
-// repository and web-push at the composition root in queues/workers.ts;
-// tests pass fakes via `createFanOut(deps)`.
 export interface FanOutDeps {
   isPushConfigured: () => boolean
   listActiveForUser: (userId: string) => Promise<FanOutSubscription[]>
@@ -57,9 +52,6 @@ const productionDeps: FanOutDeps = {
   log: defaultLog,
 }
 
-// Per-user fan-out. Each device send is isolated with `Promise.allSettled`
-// so one stuck provider doesn't poison the batch, and the result tells the
-// BullMQ worker whether to fail (retry) or succeed.
 export function createFanOut(deps: FanOutDeps = productionDeps) {
   const log = deps.log ?? { info: () => {}, warn: () => {} }
 
@@ -104,8 +96,6 @@ export function createFanOut(deps: FanOutDeps = productionDeps) {
     let retryable = 0
     for (const o of outcomes) {
       if (o.status !== 'fulfilled') {
-        // The send branch threw before classifying (DB error in mark*).
-        // Treat as retryable so BullMQ re-runs the job — it's idempotent.
         retryable += 1
         continue
       }
@@ -130,5 +120,4 @@ export function createFanOut(deps: FanOutDeps = productionDeps) {
   }
 }
 
-// Default export wired with concrete adapters; the BullMQ worker calls this.
 export const fanOutPush = createFanOut()

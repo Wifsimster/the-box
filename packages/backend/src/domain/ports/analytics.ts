@@ -1,18 +1,3 @@
-/**
- * Admin analytics port.
- *
- * The admin dashboard's engagement + growth panels used to be ~480 lines of
- * raw SQL living directly inside an Express handler. That put persistence
- * (Knex), business rules (churn/retention math) and transport (JSON shaping)
- * in one function in the presentation layer.
- *
- * This port is the seam: it describes the *raw counters* the domain needs,
- * in domain terms, with no Knex types in the signature. The infrastructure
- * repository satisfies it with SQL; the domain service turns the counters
- * into rates and report DTOs without ever knowing a database exists.
- */
-
-/** A count returned by Postgres — `COUNT(*)` arrives as a string. */
 export type Counter = string | number | null | undefined
 
 export interface UserTotalsCounters {
@@ -22,7 +7,6 @@ export interface UserTotalsCounters {
   banned: Counter
 }
 
-/** Counts bucketed by a trailing 24h / 7d / 30d window. */
 export interface WindowedCounters {
   d1: Counter
   d7: Counter
@@ -126,7 +110,6 @@ export interface AtRiskStreakRow {
   total_score: Counter
 }
 
-/** Everything the user-analytics report is derived from, already unwrapped. */
 export interface UserAnalyticsCounters {
   totals: UserTotalsCounters | null
   activeUsers: WindowedCounters | null
@@ -152,7 +135,6 @@ export interface TopReferrerRow {
   count: Counter
 }
 
-/** Everything the growth-stats report is derived from, already unwrapped. */
 export interface GrowthStatsCounters {
   referralsClaimed: Counter
   consented: Counter
@@ -166,12 +148,6 @@ export interface GrowthStatsCounters {
   relanceEmailLastSentAt: Date | null
 }
 
-/**
- * The single outward dependency of the admin analytics service. Two calls,
- * each returning plain counters — narrow enough that a unit test can
- * implement it inline (see admin-analytics.service.test.ts) without any
- * `as unknown as` cast.
- */
 export interface AdminAnalyticsRepository {
   fetchUserAnalytics(): Promise<UserAnalyticsCounters>
   fetchGrowthStats(): Promise<GrowthStatsCounters>

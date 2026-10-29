@@ -11,7 +11,6 @@ interface TopPlayersListProps {
   icon: React.ReactNode
   rows: UserAnalytics['topBySessions'] | UserAnalytics['topByScore']
   lang: string
-  /** Selects which trailing stat the rows render. */
   variant: TopPlayersVariant
 }
 

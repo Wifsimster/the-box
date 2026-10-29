@@ -8,9 +8,6 @@ import {
   emailLogRepository,
 } from '../../../infrastructure/repositories/index.js'
 
-// Cap even admin-triggered sends so a mistake or compromised admin
-// account can't spray mail on Resend's dime. Keyed by user id so two
-// admins don't starve each other out.
 const testEmailLimiter = createRateLimiter({
   windowMs: 60_000,
   max: 10,
@@ -19,9 +16,6 @@ const testEmailLimiter = createRateLimiter({
 
 const router = Router()
 
-// === Email Settings ===
-
-// Get email configuration status
 router.get('/email/config', async (_req, res, next) => {
   try {
     const hasApiKey = !!env.RESEND_API_KEY
@@ -40,7 +34,6 @@ router.get('/email/config', async (_req, res, next) => {
   }
 })
 
-// Send test email
 const testEmailSchema = z.object({
   email: z.string().email().optional(),
 })
@@ -50,7 +43,6 @@ router.post('/email/test', testEmailLimiter, async (req, res, next) => {
     const user = req.user
     const { email } = testEmailSchema.parse(req.body)
 
-    // Use provided email or fallback to user's email
     const recipientEmail = email || user?.email
 
     if (!recipientEmail) {
@@ -147,8 +139,6 @@ router.post('/email/test', testEmailLimiter, async (req, res, next) => {
     next(error)
   }
 })
-
-// === Email Log ===
 
 const emailTypeValues = [
   'password-reset',

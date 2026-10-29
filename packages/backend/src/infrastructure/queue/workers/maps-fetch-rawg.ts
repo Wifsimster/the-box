@@ -6,10 +6,6 @@ import {
   type FetchOutcomeReport,
 } from './maps-fetch-runtime.js'
 
-/**
- * Pipeline-aware RAWG candidate fetcher. Mirrors the Steam shim — wraps the
- * existing importer with rate-limit + circuit-breaker + attempt-log.
- */
 export async function runMapsFetchRawg(input: {
   gameId: number
   correlationId?: string

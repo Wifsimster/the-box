@@ -1,20 +1,3 @@
-/**
- * GeoGamers Daily Challenge Creation Logic
- *
- * Recurring job that picks one eligible geo screenshot per UTC day and marks
- * it the current GeoGamers challenge. Idempotent per date.
- *
- * Eligibility (all must hold):
- *   - the screenshot has a consensus/admin canonical pin (it's a geo_screenshot_meta)
- *   - its map is active and its game is present
- *   - the screenshot has never been a GeoGamers challenge before
- *   - its game hasn't been featured within the cooldown window
- *
- * Content gate: if fewer than GEOGAMERS_MIN_ELIGIBLE_GAMES distinct games are
- * eligible, creation is SKIPPED (a "guess the game" round is meaningless with
- * too small a pool) and a warning is logged for admins.
- */
-
 import { queueLogger } from '../../logger/logger.js'
 import { env } from '../../../config/env.js'
 import { geoGamersChallengeRepository } from '../../repositories/geogamers-challenge.repository.js'
@@ -31,18 +14,11 @@ export interface GeoGamersChallengeResult {
   message: string
 }
 
-/** Today's date in YYYY-MM-DD (UTC). Accepts the job's scheduled-fire ms so a
- *  near-midnight container restart doesn't skip a day (same guard as the
- *  classic daily-challenge worker). */
 function getTodayDateUTC(referenceMs?: number): string {
   const ref = typeof referenceMs === 'number' ? new Date(referenceMs) : new Date()
   return ref.toISOString().split('T')[0]!
 }
 
-/**
- * Create today's GeoGamers challenge. Idempotent — skips if one exists for the
- * date. Gated on eligible-game count.
- */
 export async function createGeoGamersChallenge(options?: {
   referenceMs?: number
   targetDate?: string

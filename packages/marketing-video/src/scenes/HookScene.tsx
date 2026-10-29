@@ -9,11 +9,6 @@ import { GridBackground } from "../components/GridBackground";
 import { Reveal } from "../components/Reveal";
 import { fontStack, theme } from "../theme";
 
-/**
- * Mocked screenshot tile that pulses like a thumbnail in the carousel.
- * No real screenshot bundled — we render a stylised placeholder so the
- * video stays self-contained.
- */
 const ScreenshotTile: React.FC<{ delay: number; hue: number; label: string }> = ({
   delay,
   hue,
@@ -90,7 +85,6 @@ const ScreenshotTile: React.FC<{ delay: number; hue: number; label: string }> = 
 
 export const HookScene: React.FC = () => {
   const frame = useCurrentFrame();
-  // Headline pop on first beat
   const headlineScale = interpolate(frame, [0, 14], [0.92, 1], {
     extrapolateRight: "clamp",
   });

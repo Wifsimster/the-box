@@ -1,12 +1,3 @@
-// Lightweight PNG / JPEG / WEBP dimension probe used by tiers that discover
-// a map URL but get no dimensions from the upstream API (Fextralife scrapes
-// an `og:image` tag, StrategyWiki sometimes returns thumbnail metadata).
-//
-// We deliberately do NOT pull `sharp` or `image-size` — we only need width
-// and height of three formats whose headers fit in the first ~64 KiB. Doing
-// it inline keeps the backend dependency surface small and avoids a native
-// build step.
-
 const HEADER_BYTES = 65536
 
 export interface ProbedDimensions {
@@ -39,8 +30,6 @@ export async function probeImageDimensions(
 export function parseDimensions(buf: Uint8Array): ProbedDimensions | null {
   if (buf.length < 12) return null
 
-  // PNG: \x89PNG\r\n\x1a\n then IHDR with width/height as big-endian uint32
-  // at offsets 16 and 20.
   if (
     buf[0] === 0x89 &&
     buf[1] === 0x50 &&
@@ -54,9 +43,6 @@ export function parseDimensions(buf: Uint8Array): ProbedDimensions | null {
     return null
   }
 
-  // JPEG: SOI marker FFD8, then walk segments looking for SOFn (FFC0..FFCF
-  // except FFC4/FFC8/FFCC). The two bytes after the segment-length field are
-  // precision (1 byte) then height (2 bytes BE) then width (2 bytes BE).
   if (buf[0] === 0xff && buf[1] === 0xd8) {
     let i = 2
     while (i < buf.length - 9) {
@@ -69,7 +55,6 @@ export function parseDimensions(buf: Uint8Array): ProbedDimensions | null {
         i += 2
         continue
       }
-      // SOFn frames are 0xC0..0xCF except DHT (C4), JPG (C8), DAC (CC).
       const isSof =
         marker >= 0xc0 &&
         marker <= 0xcf &&
@@ -88,7 +73,6 @@ export function parseDimensions(buf: Uint8Array): ProbedDimensions | null {
     return null
   }
 
-  // WEBP: RIFF....WEBP
   if (
     buf.length >= 30 &&
     buf[0] === 0x52 &&
@@ -107,7 +91,6 @@ export function parseDimensions(buf: Uint8Array): ProbedDimensions | null {
       if (width > 0 && height > 0) return { width, height, format: 'webp' }
     }
     if (chunk === 'VP8L' && buf.length >= 25) {
-      // Lossless: 14 bits width-1 then 14 bits height-1, little-endian.
       const b0 = buf[21]!
       const b1 = buf[22]!
       const b2 = buf[23]!
@@ -118,7 +101,6 @@ export function parseDimensions(buf: Uint8Array): ProbedDimensions | null {
       if (width > 0 && height > 0) return { width, height, format: 'webp' }
     }
     if (chunk === 'VP8X' && buf.length >= 30) {
-      // Extended: 24-bit canvas width-1 / height-1 LE at offsets 24 and 27.
       const width = 1 + (buf[24]! | (buf[25]! << 8) | (buf[26]! << 16))
       const height = 1 + (buf[27]! | (buf[28]! << 8) | (buf[29]! << 16))
       if (width > 0 && height > 0) return { width, height, format: 'webp' }

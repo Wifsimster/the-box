@@ -8,8 +8,6 @@ import type {
 import { geoGamersApi, GeoGamersApiError } from '../lib/api/geogamers'
 import { getApiErrorMessage } from '../lib/api-errors'
 
-// UI phase, distinct from the server-side run phase: it also models the
-// loading / result / error states the page renders.
 type Phase =
     | 'idle'
     | 'loading'
@@ -23,27 +21,20 @@ interface GeoGamersState {
     errorMessage: string | null
     run: GeoGamersRunView | null
 
-    // identify
     guessText: string
     lastCorrect: boolean | null
     lastProximity: 'far' | 'close' | 'very_close' | null
 
-    // locate
     selectedMapId: number | null
     pendingPin: GeoPoint | null
 
-    // result
     result: GeoGamersGuessLocationResult | null
 
-    // guest run token persisted so a reload resumes the same run and the
-    // one-run-per-device soft cap holds; cleared on a fresh ranked start.
     guestRunToken: string | null
 
-    // claim (guest -> account)
     claiming: boolean
     claimed: boolean
 
-    // actions
     start: () => Promise<void>
     setGuessText: (v: string) => void
     submitGameGuess: () => Promise<void>
@@ -80,7 +71,6 @@ export const useGeoGamersStore = create<GeoGamersState>()(
             async start() {
                 set({ phase: 'loading', errorMessage: null, result: null })
                 try {
-                    // Resume a persisted guest run when possible; otherwise start fresh.
                     const token = get().guestRunToken
                     let run: GeoGamersRunView
                     if (token) {
@@ -129,8 +119,6 @@ export const useGeoGamersStore = create<GeoGamersState>()(
             },
 
             selectMap(id) {
-                // A pin is expressed in the coordinate space of its map, so a
-                // draft pin can't survive a map switch.
                 if (id !== get().selectedMapId) {
                     set({ selectedMapId: id, pendingPin: null })
                 }
@@ -149,7 +137,6 @@ export const useGeoGamersStore = create<GeoGamersState>()(
                         geoMapId: selectedMapId,
                         guess: pendingPin,
                     })
-                    // Refresh the run view so phase flips to done.
                     const refreshed = await geoGamersApi.getRun(run.runToken)
                     set({ result, run: refreshed, phase: 'result' })
                 } catch (err) {
@@ -174,8 +161,6 @@ export const useGeoGamersStore = create<GeoGamersState>()(
                 }
             },
 
-            // Called after a successful signup while a completed guest run is in
-            // memory. Silent on failure — an expired/ineligible claim is expected.
             async claimAfterSignup() {
                 const { run } = get()
                 if (!run) return false
@@ -212,8 +197,6 @@ export const useGeoGamersStore = create<GeoGamersState>()(
         }),
         {
             name: 'geogamers-run',
-            // Persist ONLY the guest run token (the soft one-run-per-device
-            // handle). Run state itself is always re-fetched from the server.
             partialize: (s) => ({ guestRunToken: s.guestRunToken }),
         },
     ),

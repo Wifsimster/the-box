@@ -36,10 +36,6 @@ describe('evaluateConsensus', () => {
   })
 
   it('handles a single pin: accepts (sigma=0 short-circuit) but does not promote', () => {
-    // n=1 → σ=0 on both axes. The σ-cutoff branch is short-circuited via
-    // the `cutoff > 0` guard so the lone pin is ACCEPTED (it's literally
-    // the centroid). It still doesn't promote because we require
-    // GEO_CONSENSUS_MIN_PINS_TO_PROMOTE accepted pins.
     const out = evaluateConsensus([pin(1, 0.5, 0.5)], RADIUS)
     assert.equal(out.acceptedCount, 1)
     assert.equal(out.rejectedCount, 0)
@@ -49,9 +45,6 @@ describe('evaluateConsensus', () => {
   })
 
   it('all-identical pins: σ=0, all accepted, confidence=1', () => {
-    // Same point repeated — sigma is 0 on both axes, distance is 0, so
-    // every pin sits inside the (zero) σ-cutoff (guarded by cutoff > 0)
-    // AND inside the consensus radius. Confidence = 1 - 0/RADIUS = 1.
     const pins = Array.from({ length: 7 }, (_, i) => pin(i + 1, 0.42, 0.31))
     const out = evaluateConsensus(pins, RADIUS)
     assert.equal(out.acceptedCount, 7)
@@ -61,8 +54,6 @@ describe('evaluateConsensus', () => {
   })
 
   it('promotes exactly at the minimum-pins threshold (5 accepted, tight cluster)', () => {
-    // Exactly GEO_CONSENSUS_MIN_PINS_TO_PROMOTE pins, all very close
-    // → confidence well above 0.5 → promote.
     const pins: GeoPinLike[] = [
       pin(1, 0.5, 0.5),
       pin(2, 0.5005, 0.5005),
@@ -77,8 +68,6 @@ describe('evaluateConsensus', () => {
   })
 
   it('does not promote when pin spread exceeds the radius', () => {
-    // Pins spread across the whole map: sigma ≈ 0.4, radius is 0.05,
-    // confidence floors at 0 → no promotion regardless of count.
     const pins: GeoPinLike[] = [
       pin(1, 0.05, 0.05),
       pin(2, 0.95, 0.05),
@@ -93,15 +82,12 @@ describe('evaluateConsensus', () => {
   })
 
   it('rejects pins outside the consensus radius', () => {
-    // Tight cluster of 4 + one obvious outlier far away. σ-cutoff catches
-    // the outlier on the X axis; even if sigma allows it, the radius gate
-    // is also tripped.
     const pins: GeoPinLike[] = [
       pin(1, 0.5, 0.5),
       pin(2, 0.501, 0.501),
       pin(3, 0.499, 0.5),
       pin(4, 0.5, 0.499),
-      pin(5, 0.95, 0.5), // outlier
+      pin(5, 0.95, 0.5),
     ]
     const out = evaluateConsensus(pins, RADIUS)
     const outlierDecision = out.decisions.find((d) => d.pinId === 5)!
@@ -110,18 +96,11 @@ describe('evaluateConsensus', () => {
   })
 
   it('emits the current algorithm version on every result', () => {
-    // Bumping GEO_CONSENSUS_VERSION lets the worker tell old vs new
-    // decisions apart on a retroactive re-run.
     const out = evaluateConsensus([pin(1, 0.5, 0.5)], RADIUS)
     assert.equal(out.version, GEO_CONSENSUS_VERSION)
   })
 
   it('confidence weights pull the centroid toward the "sure" pin', () => {
-    // Three pins on a horizontal line. The lone "sure" (weight 1.0)
-    // pin sits at x=0.4; the two "guess" (weight 0.33) pins sit at
-    // x=0.6. Unweighted mean would land at 0.533; weighted mean must
-    // be < 0.5 because the "sure" pin outweighs both "guess" pins
-    // combined (1.0 vs 0.66).
     const pins: GeoPinLike[] = [
       pin(1, 0.4, 0.5, 1),
       pin(2, 0.6, 0.5, 3),
@@ -132,14 +111,10 @@ describe('evaluateConsensus', () => {
       out.centroid.x < 0.5,
       `expected weighted centroid < 0.5 but got ${out.centroid.x}`,
     )
-    assert.ok(out.centroid.x < 0.533) // strictly tighter than unweighted
+    assert.ok(out.centroid.x < 0.533)
   })
 
   it('all-equal confidences match the unweighted result', () => {
-    // Same set of pin positions, once with no confidence and once
-    // with every pin marked "approx" (weight 0.66). Centroids and
-    // sigmas must agree because the weights factor out of both the
-    // numerator and the denominator.
     const positions: Array<[number, number]> = [
       [0.4, 0.4],
       [0.45, 0.42],
@@ -162,18 +137,12 @@ describe('evaluateConsensus', () => {
   })
 
   it('exposes a 1.0/0.66/0.33 weight table for confidences 1/2/3', () => {
-    // The weights are part of the algorithm's public contract — if a
-    // future tweak changes them, the version bump will trip the
-    // version test, and this test pins the values themselves.
     assert.equal(GEO_CONSENSUS_CONFIDENCE_WEIGHTS[1], 1.0)
     assert.equal(GEO_CONSENSUS_CONFIDENCE_WEIGHTS[2], 0.66)
     assert.equal(GEO_CONSENSUS_CONFIDENCE_WEIGHTS[3], 0.33)
   })
 
   it('a low-confidence outlier shifts the centroid less than a high-confidence one', () => {
-    // Tight cluster of four "sure" pins around (0.5, 0.5) plus one
-    // outlier at (0.7, 0.5). When the outlier is "sure" it pulls the
-    // mean further than when it is a "guess".
     const cluster: GeoPinLike[] = [
       pin(1, 0.5, 0.5, 1),
       pin(2, 0.501, 0.5, 1),
@@ -189,9 +158,6 @@ describe('evaluateConsensus', () => {
   })
 
   it('mixing legacy (no confidence) pins with rated pins is supported', () => {
-    // Legacy rows have NULL confidence; the formula treats them as
-    // "sure" so a v2 re-run over a pre-confidence dataset produces
-    // the same result as v1 would on it.
     const allLegacy = evaluateConsensus(
       [
         pin(1, 0.5, 0.5),
@@ -236,9 +202,6 @@ describe('grantsForAcceptedPin', () => {
   })
 
   it('accepted pin inside 0.5σ → +1 hint_letter + 1 second_chance', () => {
-    // The old publisher/developer alternation died with the metadata-hint
-    // retirement — the tight-pin bonus is a flat second_chance regardless
-    // of the user's accepted count parity.
     const odd = grantsForAcceptedPin({
       distanceFromCentroid: 0.001,
       sigmaX: 0.01,
@@ -260,12 +223,11 @@ describe('grantsForAcceptedPin', () => {
 
   it('every 10th accepted pin → +1 streak_freeze', () => {
     const out = grantsForAcceptedPin({
-      distanceFromCentroid: 0.005, // outside 0.5σ but inside 1σ
+      distanceFromCentroid: 0.005,
       sigmaX: 0.01,
       sigmaY: 0.01,
       userAcceptedCountAfterThis: 10,
     })
-    // Inside 1σ → hint_letter. 10 % 10 === 0 → streak_freeze. Count: 2.
     const keys = out.map((g) => g.itemKey)
     assert.ok(keys.includes('hint_letter'))
     assert.ok(keys.includes('streak_freeze'))
@@ -278,9 +240,6 @@ describe('grantsForAcceptedPin', () => {
       sigmaY: 0.01,
       userAcceptedCountAfterThis: 0,
     })
-    // 0 is the "first ever pin not yet counted" case; the implementation
-    // explicitly excludes it from the every-10th bonus to avoid silly
-    // behavior on a fresh user.
     const keys = out.map((g) => g.itemKey)
     assert.ok(!keys.includes('streak_freeze'))
   })
@@ -288,18 +247,14 @@ describe('grantsForAcceptedPin', () => {
 
 describe('pinsToNextConsensusThreshold', () => {
   it('targets the first threshold (5) below it', () => {
-    // "One pin away": a candidate with 4 pins needs 1 more to hit the first
-    // recompute at 5, the same count that can promote.
     assert.equal(pinsToNextConsensusThreshold(4), 1)
     assert.equal(pinsToNextConsensusThreshold(0), GEO_CONSENSUS_THRESHOLDS[0])
   })
 
   it('returns the gap to the NEXT threshold, not the current one', () => {
-    // Exactly on a threshold → the recompute for that count already fired, so
-    // the meaningful next target is the following threshold.
-    assert.equal(pinsToNextConsensusThreshold(5), 5) // → 10
-    assert.equal(pinsToNextConsensusThreshold(7), 3) // → 10
-    assert.equal(pinsToNextConsensusThreshold(10), 10) // → 20
+    assert.equal(pinsToNextConsensusThreshold(5), 5)
+    assert.equal(pinsToNextConsensusThreshold(7), 3)
+    assert.equal(pinsToNextConsensusThreshold(10), 10)
   })
 
   it('returns 0 once past the top threshold (no further recompute)', () => {
@@ -315,8 +270,6 @@ describe('consensus v3 — agent pins never promote (the #331 invariant)', () =>
   })
 
   it('a tight cluster of 8 agent pins does NOT promote (0 human accepted)', () => {
-    // Enough pins, tight enough cluster to clear confidence — but all machine.
-    // Promotion must stay false regardless.
     const pins = Array.from({ length: 8 }, (_, i) =>
       agentPin(i + 1, 0.5 + (i % 2) * 0.0005, 0.5, 'agent_structured'),
     )
@@ -362,8 +315,6 @@ describe('consensus v3 — agent pins never promote (the #331 invariant)', () =>
       agentPin(100 + i, 0.5, 0.5, 'agent_structured'),
     )
     const out = evaluateConsensus([...humans, ...agents], RADIUS)
-    // At most 4 human pins are accepted (a tight agent cluster may even reject
-    // a slightly-off human via the σ gate) — either way, below the gate.
     assert.ok(out.humanAcceptedCount < GEO_CONSENSUS_MIN_PINS_TO_PROMOTE)
     assert.equal(out.promote, false)
   })
@@ -375,9 +326,6 @@ describe('consensus v3 — agent pins never promote (the #331 invariant)', () =>
   })
 
   it('an agent pin pulls the centroid less than a human pin at the same spot', () => {
-    // 4 humans clustered at 0.5 + one outlier at 0.7. When the outlier is a
-    // (downweighted) vision agent pin it shifts the mean less than when it is
-    // a full-weight human pin.
     const cluster: GeoPinLike[] = [
       pin(1, 0.5, 0.5),
       pin(2, 0.501, 0.5),

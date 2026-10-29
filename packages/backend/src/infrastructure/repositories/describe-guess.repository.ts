@@ -25,7 +25,6 @@ const SHEET_COLUMNS = [
   'games.platforms',
 ] as const
 
-/** Pool sizes fetched from the catalogue; the domain draws from them. */
 const SERIES_POOL = 20
 const GENRE_POOL = 40
 const RANDOM_POOL = 40
@@ -205,7 +204,6 @@ export const describeGuessRepository: DescribeAttemptPort & {
   },
 }
 
-/** Catalogue titles for the trigger's "is this a title?" check, cached 10 min. */
 const CATALOGUE_TTL_MS = 10 * 60_000
 let catalogueCache: { titles: CatalogueTitle[]; loadedAt: number } | null = null
 

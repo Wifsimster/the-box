@@ -16,12 +16,10 @@ describe('shouldPauseAgentKey', () => {
   })
 
   it('pauses when the ratio exceeds the bar at/above the floor', () => {
-    // 10 submitted, 7 rejected → 0.7 > 0.6 → pause.
     assert.equal(shouldPauseAgentKey({ submitted: 10, rejected: 7 }), true)
   })
 
   it('does not pause exactly at the bar (strictly greater required)', () => {
-    // 10 submitted, 6 rejected → 0.6, not > 0.6.
     assert.equal(shouldPauseAgentKey({ submitted: 10, rejected: 6 }), false)
   })
 

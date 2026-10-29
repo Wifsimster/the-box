@@ -1,16 +1,3 @@
-/**
- * Admin analytics repository.
- *
- * The only place these engagement/growth queries live. It implements the
- * `AdminAnalyticsRepository` port: every method returns plain counter rows,
- * already unwrapped from Knex's `{ rows: [...] }` envelope, so nothing
- * downstream needs to know Knex is underneath.
- *
- * All counts exclude guest accounts (anonymous Better Auth sessions whose
- * emails end in @guest.thebox.local) so they reflect the real, identified
- * user base. Queries run in parallel — the dashboard renders in one
- * round-trip.
- */
 import { db } from '../database/connection.js'
 import type {
   AdminAnalyticsRepository,
@@ -35,7 +22,6 @@ import type {
 
 const GUEST_EMAIL_LIKE = '%@guest.thebox.local'
 
-/** Knex `.first()` yields `undefined` for an empty result; the port says `null`. */
 function orNull<T>(row: T | undefined): T | null {
   return row ?? null
 }
@@ -59,7 +45,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       funnelRow,
       atRiskStreakRows,
     ] = await Promise.all([
-    // Total non-guest users + how many have ever played
     db('user')
       .select<{ total: string; verified: string; ever_played: string; banned: string }>(
         db.raw('COUNT(*) AS total'),
@@ -69,7 +54,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       )
       .whereNot('email', 'like', GUEST_EMAIL_LIKE)
       .first(),
-    // Active users by login window
     db('user')
       .select<{ d1: string; d7: string; d30: string }>(
         db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" > NOW() - INTERVAL '24 hours') AS d1`),
@@ -78,7 +62,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       )
       .whereNot('email', 'like', GUEST_EMAIL_LIKE)
       .first(),
-    // New signups (createdAt window)
     db('user')
       .select<{ d1: string; d7: string; d30: string }>(
         db.raw(`COUNT(*) FILTER (WHERE "createdAt" > NOW() - INTERVAL '24 hours') AS d1`),
@@ -87,7 +70,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       )
       .whereNot('email', 'like', GUEST_EMAIL_LIKE)
       .first(),
-    // Game session totals scoped to non-guest users
     db.raw<{ rows: Array<{ total: string; completed: string; catch_up: string }> }>(
       `SELECT
          COUNT(*)::text AS total,
@@ -98,9 +80,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
        WHERE u.email NOT LIKE ?`,
       [GUEST_EMAIL_LIKE],
     ),
-    // Average sessions / completed sessions per user who has played at
-    // least once. Bypasses zero-division by guarding against an empty
-    // denominator on the application side.
     db.raw<{ rows: Array<{ avg_sessions: string | null; avg_completed: string | null; players: string }> }>(
       `SELECT
          AVG(per_user.session_count)::text AS avg_sessions,
@@ -117,8 +96,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
        ) per_user`,
       [GUEST_EMAIL_LIKE],
     ),
-    // Engagement buckets: split players by lifetime session count so we
-    // can spot the long tail (1 session = curious, 20+ = power users).
     db.raw<{ rows: Array<{ b1: string; b2_5: string; b6_20: string; b21_plus: string; never: string }> }>(
       `WITH per_user AS (
          SELECT u.id,
@@ -137,9 +114,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
        FROM per_user`,
       [GUEST_EMAIL_LIKE],
     ),
-    // Login-streak distribution. Pulled from user_login_streaks (NOT
-    // game streaks) — the daily-login feature is the closest proxy for
-    // "did this person come back today?".
     db('user_login_streaks as s')
       .innerJoin('user as u', 'u.id', 's.user_id')
       .whereNot('u.email', 'like', GUEST_EMAIL_LIKE)
@@ -149,8 +123,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
         db.raw('COUNT(*) FILTER (WHERE s.current_login_streak > 0)::text AS with_streak'),
       )
       .first(),
-    // Daily Active Users — count distinct logins per day for 14 days.
-    // generate_series fills the gaps so the UI doesn't have to.
     db.raw<{ rows: Array<{ day: string; active: string; new_signups: string }> }>(
       `WITH days AS (
          SELECT generate_series(
@@ -170,7 +142,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
        ORDER BY d.day ASC`,
       [GUEST_EMAIL_LIKE, GUEST_EMAIL_LIKE],
     ),
-    // Top 10 players by lifetime sessions
     db.raw<{ rows: Array<{ user_id: string; username: string | null; name: string; sessions: string; completed: string; total_score: string; last_played_at: Date | null }> }>(
       `SELECT u.id AS user_id, u.username, u.name, u.total_score::text AS total_score,
               u.last_played_at,
@@ -184,7 +155,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
        LIMIT 10`,
       [GUEST_EMAIL_LIKE],
     ),
-    // Top 10 by all-time score
     db('user')
       .select<Array<{ id: string; username: string | null; name: string; total_score: number; current_streak: number; last_played_at: Date | null }>>(
         'id', 'username', 'name', 'total_score', 'current_streak', 'last_played_at',
@@ -193,8 +163,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       .where('total_score', '>', 0)
       .orderBy('total_score', 'desc')
       .limit(10),
-    // Most recently active 15 users — handy for the admin to spot bot
-    // signups and see who's around right now.
     db('user')
       .select<Array<{ id: string; username: string | null; name: string; email: string; createdAt: Date; lastLoginAt: Date | null; last_played_at: Date | null; total_score: number; current_streak: number; banned: boolean }>>(
         'id', 'username', 'name', 'email', 'createdAt', 'lastLoginAt', 'last_played_at', 'total_score', 'current_streak', 'banned',
@@ -203,10 +171,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       .whereNotNull('lastLoginAt')
       .orderBy('lastLoginAt', 'desc')
       .limit(15),
-    // Churn windows: of all users that ever logged in, how many have
-    // gone silent past 30/60/90 days. Denominator excludes "never
-    // logged in" so the rate reflects abandonment of real users rather
-    // than the never-activated long tail.
     db('user')
       .select<{ ever_active: string; inactive_30d: string; inactive_60d: string; inactive_90d: string }>(
         db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" IS NOT NULL) AS ever_active`),
@@ -216,9 +180,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       )
       .whereNot('email', 'like', GUEST_EMAIL_LIKE)
       .first(),
-    // Dormancy distribution: bucket every non-guest user by days since
-    // last login. Drives the lifecycle bar so the admin can see at a
-    // glance how much of the base is healthy vs. at-risk vs. lost.
     db('user')
       .select<{ never_logged: string; active: string; warm: string; at_risk: string; dormant: string; lost: string }>(
         db.raw(`COUNT(*) FILTER (WHERE "lastLoginAt" IS NULL) AS never_logged`),
@@ -230,10 +191,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       )
       .whereNot('email', 'like', GUEST_EMAIL_LIKE)
       .first(),
-    // Signup → first-play funnel over the last 30 days. Surfaces how
-    // many fresh signups actually start a session, and how many are
-    // still active 7 days in. Sized to the same 30d window everything
-    // else on the page uses.
     db('user')
       .select<{ signed_up: string; played: string; still_active_7d: string }>(
         db.raw('COUNT(*) AS signed_up'),
@@ -243,10 +200,6 @@ export const adminAnalyticsRepository: AdminAnalyticsRepository = {
       .whereNot('email', 'like', GUEST_EMAIL_LIKE)
       .where('createdAt', '>', db.raw(`NOW() - INTERVAL '30 days'`))
       .first(),
-    // Streak-at-risk: users carrying a real streak (≥3) who haven't
-    // logged in for 36h–7d. They still have a recoverable streak — an
-    // admin can nudge them before they drop off. Past 7 days the
-    // streak is almost certainly gone so we exclude that tail.
     db('user')
       .select<Array<{ id: string; username: string | null; name: string; email: string; current_streak: number; lastLoginAt: Date | null; last_played_at: Date | null; total_score: number }>>(
         'id', 'username', 'name', 'email', 'current_streak', 'lastLoginAt', 'last_played_at', 'total_score',

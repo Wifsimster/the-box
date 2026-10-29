@@ -13,11 +13,6 @@ export class ReferralError extends Error {
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// Reward table — kept flat so the viral loop stays predictable. Both sides
-// receive power-ups; the referrer additionally earns an "ambassador"
-// cosmetic badge that shows up on their public profile — brag-worthy
-// social proof is a stronger loop driver than the soft currency alone.
-// (Legacy metadata hints retired 2026-06 — letter reveals replace them.)
 const REFEREE_REWARDS = [
   { itemType: 'powerup', itemKey: 'hint_letter', quantity: 2 },
   { itemType: 'powerup', itemKey: 'second_chance', quantity: 1 },
@@ -41,20 +36,12 @@ export interface ReferralStats {
 }
 
 export interface ReferralService {
-  /**
-   * Claim a referral code. Grants power-ups to both the referee (caller)
-   * and the referrer. Each user may only claim once and guests cannot
-   * claim -- they must register first.
-   */
   claim(refereeId: string, referrerCode: string): Promise<ReferralClaimResult>
   getStats(userId: string): Promise<ReferralStats>
 }
 
 export interface ReferralServiceDeps {
   logger: DomainLogger
-  /**
-   * Only the referral columns.
-   */
   userRepository: ReferralUserStore
   inventoryRepository: InventoryRepository
 }
@@ -92,9 +79,6 @@ export function createReferralService(deps: ReferralServiceDeps): ReferralServic
         throw new ReferralError('REFERRER_INVALID', 'Referrer account is not eligible')
       }
 
-      // Persist the link first -- the reward grant is idempotent per side
-      // but the `referred_by` write is the source of truth for the one-shot
-      // rule.
       const linked = await userRepository.linkReferral(refereeId, referrer.id, new Date())
 
       if (!linked) {

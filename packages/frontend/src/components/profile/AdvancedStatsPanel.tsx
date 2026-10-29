@@ -12,10 +12,6 @@ function formatMs(ms: number): string {
   return `${(ms / 1000).toFixed(1)} s`
 }
 
-// Premium-only stats panel. The parent is responsible for not rendering
-// this for free users; if it mounts and the server still 402s (race
-// against entitlement change), the panel renders the empty state rather
-// than crashing.
 export function AdvancedStatsPanel() {
   const { t } = useTranslation()
   const [stats, setStats] = useState<AdvancedStats | null>(null)
@@ -76,9 +72,6 @@ export function AdvancedStatsPanel() {
     )
   }
 
-  // Empty-state: brand-new premium user with zero completed sessions yet.
-  // Skip the percentile/time blocks they wouldn't make sense for and show
-  // a single explanatory card instead.
   if (stats.totalCompletedSessions === 0) {
     return (
       <Card>
@@ -108,7 +101,6 @@ export function AdvancedStatsPanel() {
         <CardDescription>{t('advancedStats.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Headline aggregates */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatTile
             icon={<Sparkles className="size-4 text-warning" />}
@@ -132,7 +124,6 @@ export function AdvancedStatsPanel() {
           />
         </div>
 
-        {/* Solve-time percentiles */}
         <section>
           <h3 className="flex items-center gap-2 text-sm font-semibold mb-2">
             <Clock className="size-4 text-muted-foreground" />
@@ -146,7 +137,6 @@ export function AdvancedStatsPanel() {
           </div>
         </section>
 
-        {/* Hint usage */}
         <section>
           <h3 className="flex items-center gap-2 text-sm font-semibold mb-2">
             <Lightbulb className="size-4 text-muted-foreground" />
@@ -154,8 +144,6 @@ export function AdvancedStatsPanel() {
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatTile label={t('advancedStats.hintLetter')} value={String(stats.hintUsage.hintLetter)} dim />
-            {/* Historical rollup of the four metadata hints retired 2026-06 —
-                only shown when the user actually used them pre-retirement. */}
             {stats.hintUsage.legacyMetadataHints > 0 && (
               <StatTile
                 label={t('advancedStats.legacyMetadataHints')}
@@ -166,7 +154,6 @@ export function AdvancedStatsPanel() {
           </div>
         </section>
 
-        {/* 6-month progression bar chart, inline SVG-free for portability */}
         {stats.monthlyScores.length > 0 && (
           <section>
             <h3 className="flex items-center gap-2 text-sm font-semibold mb-2">

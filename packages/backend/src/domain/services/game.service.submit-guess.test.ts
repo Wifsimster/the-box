@@ -13,22 +13,6 @@ const silentLogger: DomainLogger = {
 
 const TOTAL_SCREENSHOTS = 10
 
-/**
- * Minimal in-memory test harness for `submitGuess`. The real service talks to
- * Postgres via injected repository ports; here we model just enough of the
- * `guesses` / `tier_sessions` tables to exercise the completion-tally and
- * anti-replay logic, which is where the two bugs found by the persona bug
- * hunt live:
- *
- *  1. Off-by-one completion: `saveGuess` runs BEFORE `getCorrectAnswersCount`,
- *     so the count already includes the current correct guess; the extra
- *     `+ (isCorrect ? 1 : 0)` in the service double-counted it and the
- *     challenge finished after 9 of 10 screenshots.
- *  2. Replay: nothing stopped a client from re-POSTing a winning answer for a
- *     position it had already solved (the round-timer guard only checks
- *     `round_position === position`, which is never cleared after a correct
- *     guess), re-banking score and inserting another correct row.
- */
 function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
   const guesses: Array<{
     position: number
@@ -37,11 +21,7 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
     hintFromInventory: boolean
     scoreEarned: number
   }> = []
-  // Records every inventoryRepository.useItems call so the retirement
-  // tests can prove a stale client's powerUpUsed never touches inventory.
   const useItemsCalls: Array<{ itemType: string; itemKey: string }> = []
-  // Records every proximity candidate lookup (guessText) so the anti-oracle
-  // gate can be asserted — see the gameRepository mock below.
   const candidateLookups: string[] = []
   const tierSession = {
     id: 'tier-1',
@@ -56,7 +36,6 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
     wrong_guesses: 0,
     game_total_score: 0,
     game_is_completed: false,
-    // Sessions started before the streak bonus shipped carry false.
     streak_bonus_enabled: opts.streakBonusEnabled ?? false,
     game_streak_bonus_total: 0,
   }
@@ -79,9 +58,6 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
         scoreEarned: data.scoreEarned,
       })
     },
-    // Mirrors the repository: number of DISTINCT positions with a correct
-    // guess. The just-saved guess is already visible here (autocommitted on a
-    // pooled connection before this read), exactly as in production.
     getCorrectAnswersCount: async () => {
       const solved = new Set(guesses.filter((g) => g.isCorrect).map((g) => g.position))
       return solved.size
@@ -90,7 +66,6 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
       guesses.some((g) => g.isCorrect && g.position === position),
     hasWrongGuessForPosition: async (_id: string, position: number) =>
       guesses.some((g) => !g.isCorrect && g.position === position),
-    // Mirrors the repository: solved positions with no wrong guess on them.
     getFirstTrySolvedPositions: async () =>
       [...new Set(guesses.filter((g) => g.isCorrect).map((g) => g.position))].filter(
         (position) => !guesses.some((g) => !g.isCorrect && g.position === position)
@@ -118,10 +93,7 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
   const deps = {
     logger: silentLogger,
     fuzzyMatchService: {
-      // The harness submits the literal answer 'right' for a correct guess.
       isMatch: (guess: string) => guess.trim() === 'right',
-      // Graded matcher used by submitGuess: 'right' = exact full title,
-      // 'franchise' = partial (franchise named, number omitted), else none.
       evaluateMatch: (guess: string) => {
         const g = guess.trim()
         if (g === 'right') return { matched: true, precision: 'exact' as const }
@@ -132,7 +104,6 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
     achievementService: {
       checkAchievementsAfterGame: async () => [],
     },
-    // Position N serves screenshot N (the harness submits screenshotId = position).
     challengeRepository: {
       findTiersByChallenge: async () => [{ id: 1 }],
       findScreenshotAtPosition: async (_tierId: number, position: number) => ({
@@ -167,8 +138,6 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
     },
     gameRepository: {
       getGenresById: async () => [],
-      // Records each call so the proximity anti-oracle gate can be asserted
-      // (the hint must be computed only on the FIRST wrong guess per position).
       findGuessMatchCandidates: async (guessText: string) => {
         candidateLookups.push(guessText)
         return []
@@ -186,13 +155,8 @@ function buildHarness(opts: { streakBonusEnabled?: boolean } = {}) {
   const service = createGameService(deps)
 
   const submit = (position: number, text: string, extraBodyFields?: Record<string, unknown>) => {
-    // Simulate the client fetching the screenshot for `position`, which is the
-    // only thing that stamps the round timer server-side.
     tierSession.round_position = position
     tierSession.round_started_at = new Date(Date.now() - 5000)
-    // `extraBodyFields` simulates a stale client smuggling retired fields
-    // (e.g. powerUpUsed) past the route's destructuring — the service
-    // contract is accept-and-ignore, never 400.
     return service.submitGuess({
       tierSessionId: tierSession.id,
       screenshotId: position,
@@ -243,7 +207,6 @@ describe('game.service submitGuess — completion tally', () => {
       'a second correct guess on the same position must be rejected'
     )
 
-    // The replay must not have banked a second correct row or extra score.
     assert.equal(
       h.guesses.filter((g) => g.isCorrect && g.position === 1).length,
       1,
@@ -270,7 +233,6 @@ describe('game.service submitGuess — completion tally', () => {
     assert.equal(wrong1.isCorrect, false)
     const wrong2 = await h.submit(1, 'still wrong')
     assert.equal(wrong2.isCorrect, false)
-    // A correct guess after wrong attempts must still be accepted.
     const correct = await h.submit(1, 'right')
     assert.equal(correct.isCorrect, true)
     assert.equal(correct.screenshotsFound, 1)
@@ -280,12 +242,8 @@ describe('game.service submitGuess — completion tally', () => {
 describe('game.service submitGuess — legacy metadata hints retired', () => {
   it('ignores a client-supplied powerUpUsed: no penalty, no inventory decrement, persists null', async () => {
     const h = buildHarness()
-    // A stale client still sending the retired field must get a normal,
-    // full-score guess back — never a 400, never a penalty.
     const res = await h.submit(1, 'right', { powerUpUsed: 'hint_genre' })
     assert.equal(res.isCorrect, true)
-    // 5s round → 1.5x multiplier → 150 points, untouched by the retired
-    // 20% metadata-hint penalty.
     assert.equal(res.scoreEarned, 150, 'no hint penalty may be applied')
     assert.ok(
       !('hintPenalty' in res) || (res as Record<string, unknown>)['hintPenalty'] === undefined,
@@ -314,7 +272,6 @@ describe('game.service submitGuess — legacy metadata hints retired', () => {
 describe('game.service submitGuess — partial (franchise) scoring', () => {
   it('awards a reduced score and solves the position for a partial match', async () => {
     const h = buildHarness()
-    // 5s round → exact would be 150; partial = round(150 × 0.4) = 60.
     const res = await h.submit(1, 'franchise')
     assert.equal(res.isCorrect, true, 'a franchise-level guess solves the screenshot')
     assert.equal(res.scoreEarned, 60, 'partial score = 40% of the exact (capped) score')
@@ -348,7 +305,6 @@ describe('game.service submitGuess — proximity hint anti-oracle gate', () => {
   it('computes the proximity hint only on the FIRST wrong guess for a position', async () => {
     const h = buildHarness()
 
-    // First wrong guess on position 1 → hint is eligible, candidates looked up.
     await h.submit(1, 'wrong one')
     assert.deepEqual(
       h.candidateLookups,
@@ -356,8 +312,6 @@ describe('game.service submitGuess — proximity hint anti-oracle gate', () => {
       'first wrong guess should trigger a candidate lookup'
     )
 
-    // Second wrong guess on the SAME position → gate short-circuits before the
-    // catalogue lookup, so a bot cannot iterate guesses to probe the answer.
     await h.submit(1, 'wrong two')
     assert.deepEqual(
       h.candidateLookups,
@@ -385,7 +339,6 @@ describe('game.service submitGuess — session / screenshot binding', () => {
   })
 
   it('rejects a screenshotId that is not the one served at that position', async () => {
-    // Replay the (screenshot 1, answer) pair against position 2.
     h.tierSession.round_position = 2
     h.tierSession.round_started_at = new Date(Date.now() - 5000)
     await assert.rejects(
@@ -417,13 +370,9 @@ describe('game.service submitGuess — in-game streak bonus', () => {
         assert.equal(res.streak, 3)
       }
     }
-    // 5 s rounds -> 150 each, + 25 at 3, + 50 at 5, + 100 at 10.
     assert.deepEqual(scores, [150, 150, 175, 150, 200, 150, 150, 150, 150, 250])
     assert.equal(h.tierSession.game_total_score, 150 * 10 + 175)
-    // Tracked separately so "perfect game" stays judged on the speed score.
     assert.equal(h.tierSession.game_streak_bonus_total, 175)
-    // The bonus is persisted inside scoreEarned, so leaderboards (which sum
-    // stored scores) pick it up with no client involvement.
     assert.equal(h.guesses[2]!.scoreEarned, 175)
   })
 

@@ -1,16 +1,5 @@
 import type { Knex } from 'knex'
 
-// Auto-ingestion support for the Geo Game dataset. Replaces the manual admin
-// forms (typed wiki subdomain / Steam app id / page title) with a curated-set
-// model where:
-//   - operators flip `games.geo_curated = true` for games to onboard,
-//   - a recurring resolver fills in `steam_app_id` / `wiki_subdomain` /
-//     `wiki_page_title` from heuristics (Steam storesearch, Fandom HEAD),
-//   - a recurring tick enqueues per-game Fandom + Steam imports,
-//   - permanent failures land in `geo_ingest_failure` so we stop retrying.
-//
-// All additions are nullable / defaulted so existing rows stay valid.
-
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('games', (table) => {
     table.integer('steam_app_id').nullable()

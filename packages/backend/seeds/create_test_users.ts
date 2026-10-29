@@ -3,11 +3,6 @@ import { randomBytes } from 'crypto'
 // @ts-ignore - from better-auth's dependency
 import { scryptAsync } from '@noble/hashes/scrypt.js'
 
-/**
- * Hash password using the same algorithm as better-auth.
- * Matches: N=16384, r=16, p=1, dkLen=64
- * Format: salt:key (both hex encoded)
- */
 async function hashPassword(password: string): Promise<string> {
   const saltBytes = randomBytes(16)
   const salt = saltBytes.toString('hex')
@@ -16,26 +11,17 @@ async function hashPassword(password: string): Promise<string> {
     r: 16,
     p: 1,
     dkLen: 64,
-    maxmem: 128 * 16384 * 16 * 2, // 64 MB
+    maxmem: 128 * 16384 * 16 * 2,
   })
   return `${salt}:${Buffer.from(key).toString('hex')}`
 }
 
-/**
- * Create test users for E2E testing
- *
- * Creates:
- * - testuser@example.com (regular user) - password: testpass123
- * - admin@example.com (admin user) - password: admin123
- */
 export async function seed(knex: Knex): Promise<void> {
   const now = new Date()
 
-  // Hash passwords
   const userPassword = await hashPassword('testpass123')
   const adminPassword = await hashPassword('admin123')
 
-  // Delete existing test users and their accounts
   const existingUsers = await knex('user').whereIn('email', [
     'testuser@example.com',
     'admin@example.com'
@@ -47,7 +33,6 @@ export async function seed(knex: Knex): Promise<void> {
     await knex('user').whereIn('id', userIds).del()
   }
 
-  // Insert test user
   const testUserId = randomBytes(16).toString('hex')
   await knex('user').insert({
     id: testUserId,
@@ -75,7 +60,6 @@ export async function seed(knex: Knex): Promise<void> {
     updatedAt: now,
   })
 
-  // Insert admin user
   const adminUserId = randomBytes(16).toString('hex')
   await knex('user').insert({
     id: adminUserId,

@@ -39,10 +39,6 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        // The list is `--control-h` tall (44px on touch) with `p-1`, so the
-        // trigger itself is 36px. On coarse pointers the `::after` extends the
-        // hit area over the list padding to the 44px target without changing
-        // the visual size (same technique as Checkbox / LetterRevealBar).
         "relative inline-flex shrink-0 self-stretch items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-raised",
         "pointer-coarse:after:absolute pointer-coarse:after:-inset-y-1 pointer-coarse:after:inset-x-0 pointer-coarse:after:content-['']",
         className

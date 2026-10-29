@@ -15,8 +15,6 @@ import { FreePricingCard } from './FreePricingCard'
 import { PricingCard } from './PricingCard'
 
 function PricingCardSkeleton() {
-  // Mirrors PricingCard's vertical rhythm so swapping in the real card
-  // doesn't shift layout once /api/billing/prices resolves.
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -53,9 +51,6 @@ export function PricingTable() {
     startCheckout,
   } = useBillingStore()
 
-  // Local mirror of which tier the user just clicked, so the spinner lives
-  // on the right card. Cleared in finally even if the store throws so the
-  // button doesn't get stuck mid-animation.
   const [pendingTier, setPendingTier] = useState<BillingTier | null>(null)
   const [retrying, setRetrying] = useState(false)
 
@@ -102,9 +97,6 @@ export function PricingTable() {
 
   const pricesUnavailable = pricesLoaded && prices.length === 0
 
-  // Card grid: Free (anchor) → Monthly → Annual (highlighted) → Lifetime.
-  // Stacked on phones with the recommended plan pulled to the top, two
-  // columns on tablet, four on desktop.
   return (
     <div className="space-y-4">
       <div

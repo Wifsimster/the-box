@@ -14,30 +14,16 @@ const PHASE_STYLES: Record<TimerPhase, { stroke: string; text: string; glow?: st
   critical: { stroke: 'stroke-error', text: 'text-error', glow: 'var(--glow-error)' },
 }
 
-/**
- * Circular per-screenshot countdown. Anchored top-left in a shell that mirrors
- * the score panel so the two top corners read as a matched pair, and kept top-
- * anchored so the mobile keyboard never covers it.
- *
- * Display-only: all timing lives in `useCountdownTimer`. Rendered without an
- * opacity entrance so visibility never depends on animation/clock state — which
- * also keeps it deterministic under Playwright's fake clock.
- */
 export function CountdownTimer({ state }: { state: CountdownState }) {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotionSafe()
 
-  // Only present while a round is actually being played.
   if (!state.isActive) return null
 
   const { seconds, phase, fraction } = state
   const styles = PHASE_STYLES[phase]
   const isCritical = phase === 'critical'
 
-  // `role="timer"` is an off live region — its ticking is silent to AT, so the
-  // permanent-miss clock is sighted-only. Announce coarse milestones (only at
-  // exact 30 s / 10 s thresholds) through a polite region; in-between seconds
-  // clear it so a screen reader isn't spammed every tick.
   const milestone =
     seconds === 30
       ? t('game.timer.announceHalfway')

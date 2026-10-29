@@ -23,8 +23,6 @@ export const positionSecondChanceRepository = {
         log.info({ userId, tierSessionId, position }, 'activate')
 
         return db.transaction(async (trx) => {
-            // 1. Hard-fail early if a row already exists for this slot —
-            // saves us from decrementing inventory for a no-op insert.
             const existing = await trx<PositionSecondChanceRow>(
                 'position_second_chances'
             )
@@ -34,9 +32,6 @@ export const positionSecondChanceRepository = {
                 return { ok: false, reason: 'ALREADY_ACTIVE' as const }
             }
 
-            // 2. Decrement inventory atomically. The WHERE quantity >= 1
-            // makes this safe under concurrent activations from two
-            // tabs — one of them will see 0 affected rows.
             const decremented = await trx('user_inventory')
                 .where({
                     user_id: userId,
@@ -51,10 +46,6 @@ export const positionSecondChanceRepository = {
                 return { ok: false, reason: 'NO_INVENTORY' as const }
             }
 
-            // 3. Insert the activation row. ON CONFLICT DO NOTHING so a
-            // race that snuck past step 1 yields a clean failure rather
-            // than blowing the transaction. We treat that case as
-            // "already-active" and refund inventory below.
             const inserted = await trx
                 .raw<{ rows: PositionSecondChanceRow[] }>(
                     `
@@ -67,8 +58,6 @@ export const positionSecondChanceRepository = {
                 )
 
             if (inserted.rows.length === 0) {
-                // Race lost: another concurrent activation got the row.
-                // Refund the inventory so the user doesn't lose a token.
                 await trx('user_inventory')
                     .where({
                         user_id: userId,
@@ -105,7 +94,6 @@ export const positionSecondChanceRepository = {
     },
 }
 
-// Type-level check: the repository must satisfy the domain port.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const _positionSecondChanceRepositoryTypeCheck: Port =
     positionSecondChanceRepository

@@ -10,7 +10,6 @@ import type { AppSettingRow, AppSettingsRepository, SecretCipher } from '../port
 import type { RecordedLog } from '../ports/logger.test-double.js'
 import type { DomainLogger } from '../ports/logger.js'
 
-/** In-memory repository that counts reads, so cache behaviour is observable. */
 function memoryRepo() {
   const rows = new Map<string, AppSettingRow>()
   const stats = { findAll: 0 }
@@ -29,7 +28,6 @@ function memoryRepo() {
   return { repo, rows, stats }
 }
 
-/** Reversible fake cipher with a switchable key, to simulate rotation. */
 function fakeCipher() {
   const state = { key: 'k1' }
   const cipher: SecretCipher = {

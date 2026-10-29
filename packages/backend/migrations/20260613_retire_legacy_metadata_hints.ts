@@ -1,38 +1,5 @@
 import type { Knex } from 'knex'
 
-// Retire the four legacy metadata hints (hint_year / hint_publisher /
-// hint_developer / hint_genre) and the dead `timer_extension` key from the
-// economy, converting earned inventory into the letter-reveal currency.
-//
-//  1. `legacy_hint_retirement_log` — audit ledger. Every converted
-//     inventory row and every rewritten calendar row is recorded here
-//     BEFORE it changes, so support can answer "where did my hints go?"
-//     and `down()` can restore state exactly.
-//  2. Inventory conversion (atomic, single DELETE … RETURNING CTE so a
-//     concurrent old replica can't double-spend mid-migration):
-//       - the four legacy hint keys convert POOLED 2:1 into `hint_letter`
-//         (CEIL, so any user who held at least one legacy hint gets at
-//         least one letter),
-//       - `timer_extension` converts 1:1 into `streak_freeze`.
-//  3. Rewards-inbox announcement: one auto-unlocked `reward_grants` row
-//     per converted user (source_ref `legacy-hint-sunset-2026-06`) so the
-//     inbox shows an upgrade card. Announcement only — the inventory
-//     upsert happens in the conversion CTE, NOT via the grant flow, so
-//     there is no double-add.
-//  4. Daily-login calendar + day-7 chest rewrite to the post-retirement
-//     reward table (read-modify-write like 20260612, but each affected
-//     row is snapshotted verbatim into the ledger first).
-//
-// ⚠ This migration DELIBERATELY OVERRIDES 20260509_day7_chest_new_hints'
-// "never touch mid-cycle days" rule: days 1/2/4/5 of a live reward cycle
-// are rewritten in place, per explicit PO directive. Decision record:
-// tasks/legacy-hint-retirement-letter-dock-meeting.html (D1–D4).
-//
-// Idempotency: re-running up() is a no-op — the conversion CTEs match
-// zero rows once the legacy keys are gone, calendar backups are guarded
-// by NOT EXISTS, and the announcement insert is ON CONFLICT DO NOTHING.
-// Knex wraps the whole migration in a transaction.
-
 const LEGACY_HINT_KEYS = ['hint_year', 'hint_publisher', 'hint_developer', 'hint_genre']
 
 const LEDGER_TABLE = 'legacy_hint_retirement_log'
@@ -60,9 +27,6 @@ interface CalendarRow {
   icon_url: string | null
 }
 
-// Post-retirement reward table for the days the meeting decided on
-// (D4). `points` of null means "keep the row's existing points" (the
-// day-7 chest keeps its 500).
 const CALENDAR_REWRITES: Record<
   number,
   { items: CalendarItem[]; display_name: string; description: string; icon_url: string }
@@ -110,10 +74,6 @@ function containsLegacyKey(payload: CalendarPayload): boolean {
   return (payload.items ?? []).some((item) => LEGACY_HINT_KEYS.includes(item.key))
 }
 
-// Generic fallback for calendar rows that hold legacy keys but are NOT one
-// of the decided day numbers (customised envs / test fixtures): strip the
-// legacy items and fold them pooled 2:1 (ceil) into hint_letter, mirroring
-// the inventory conversion. Decided days never reach this path.
 function genericLegacyRewrite(payload: CalendarPayload): CalendarPayload {
   const kept = (payload.items ?? []).filter((item) => !LEGACY_HINT_KEYS.includes(item.key))
   const legacyTotal = (payload.items ?? [])
@@ -130,17 +90,11 @@ function genericLegacyRewrite(payload: CalendarPayload): CalendarPayload {
 }
 
 export async function up(knex: Knex): Promise<void> {
-  // ---- 1. Audit ledger -------------------------------------------------
   const hasLedger = await knex.schema.hasTable(LEDGER_TABLE)
   if (!hasLedger) {
     await knex.schema.createTable(LEDGER_TABLE, (table) => {
       table.bigIncrements('id').primary()
-      // Null for kind='calendar_backup' rows (calendar rows are global,
-      // not per-user).
       table.text('user_id').nullable()
-      // For kind='inventory': the converted item key, or the granted key
-      // ('hint_letter') on per-user summary rows. For
-      // kind='calendar_backup': `day_<n>`.
       table.string('item_key', 100).notNullable()
       table.integer('quantity_converted').nullable()
       table.integer('letters_granted').nullable()
@@ -153,12 +107,6 @@ export async function up(knex: Knex): Promise<void> {
     })
   }
 
-  // ---- 2a. Legacy metadata hints → hint_letter (pooled 2:1, ceil) -----
-  // One statement: the DELETE … RETURNING CTE is the only reader of the
-  // legacy rows, so concurrent old replicas spending from inventory
-  // either see the rows (and this DELETE waits) or see nothing. Per-key
-  // rows log what was taken; one summary row per user (item_key
-  // 'hint_letter') logs what was granted, which is what down() reverses.
   await knex.raw(
     `
     WITH deleted AS (
@@ -213,10 +161,6 @@ export async function up(knex: Knex): Promise<void> {
     `
   )
 
-  // ---- 2b. timer_extension → streak_freeze (1:1) -----------------------
-  // Dead key with live grants (consumed by nothing anywhere). Same atomic
-  // pattern; 1:1 means the per-key log row can carry both sides
-  // (quantity_converted = taken, letters_granted = streak_freezes given).
   await knex.raw(
     `
     WITH deleted AS (
@@ -238,23 +182,17 @@ export async function up(knex: Knex): Promise<void> {
     `
   )
 
-  // Leftover zero-quantity legacy rows carry no value to convert — just
-  // drop them so the retired keys vanish from user_inventory entirely.
   await knex('user_inventory')
     .where('item_type', 'powerup')
     .whereIn('item_key', [...LEGACY_HINT_KEYS, 'timer_extension'])
     .where('quantity', '<=', 0)
     .del()
 
-  // ---- 3. Daily-login calendar + day-7 chest rewrite -------------------
   const rows = await knex<CalendarRow>('daily_login_rewards').select('*')
   for (const row of rows) {
     const payload = parsePayload(row.reward_value)
     if (!containsLegacyKey(payload)) continue
 
-    // Snapshot the row verbatim BEFORE touching it — but only once, so a
-    // re-run (or a re-up after a partial down) can't overwrite the true
-    // pre-migration state with an already-rewritten one.
     const backupKey = `day_${row.day_number}`
     const existingBackup = await knex(LEDGER_TABLE)
       .where({ kind: 'calendar_backup', item_key: backupKey })
@@ -283,16 +221,12 @@ export async function up(knex: Knex): Promise<void> {
       await knex('daily_login_rewards')
         .where({ id: row.id })
         .update({
-          // Keep the row's existing points (the day-7 chest keeps 500;
-          // power-up days keep 0).
           reward_value: JSON.stringify({ items: decided.items, points: payload.points }),
           display_name: decided.display_name,
           description: decided.description,
           icon_url: decided.icon_url,
         })
     } else {
-      // Unexpected day carrying legacy keys (customised env): generic
-      // pooled 2:1 fold into hint_letter, copy untouched.
       await knex('daily_login_rewards')
         .where({ id: row.id })
         .update({ reward_value: JSON.stringify(genericLegacyRewrite(payload)) })
@@ -304,7 +238,6 @@ export async function down(knex: Knex): Promise<void> {
   const hasLedger = await knex.schema.hasTable(LEDGER_TABLE)
   if (!hasLedger) return
 
-  // ---- 1. Restore calendar rows verbatim from the backups --------------
   const backups = await knex(LEDGER_TABLE).where({ kind: 'calendar_backup' }).select('*')
   for (const backup of backups) {
     const snapshot =
@@ -321,14 +254,10 @@ export async function down(knex: Knex): Promise<void> {
       })
   }
 
-  // ---- 2. Remove the inbox announcement cards --------------------------
   await knex('reward_grants')
     .where({ source: ANNOUNCEMENT_SOURCE, source_ref: ANNOUNCEMENT_SOURCE_REF })
     .del()
 
-  // ---- 3. Reverse the inventory conversion -----------------------------
-  // 3a. Take back the granted hint_letter (per-user summary rows),
-  // clamped at zero — the user may have spent some letters since.
   await knex.raw(
     `
     UPDATE user_inventory ui
@@ -342,7 +271,6 @@ export async function down(knex: Knex): Promise<void> {
     `
   )
 
-  // 3b. Take back the streak_freeze granted for timer_extension, clamped.
   await knex.raw(
     `
     UPDATE user_inventory ui
@@ -356,8 +284,6 @@ export async function down(knex: Knex): Promise<void> {
     `
   )
 
-  // 3c. Re-insert the converted legacy rows (per-key log rows), including
-  // timer_extension. Upsert-add in case a row reappeared meanwhile.
   await knex.raw(
     `
     INSERT INTO user_inventory (user_id, item_type, item_key, quantity, created_at, updated_at)
@@ -371,6 +297,5 @@ export async function down(knex: Knex): Promise<void> {
     `
   )
 
-  // ---- 4. Drop the ledger ----------------------------------------------
   await knex.schema.dropTableIfExists(LEDGER_TABLE)
 }

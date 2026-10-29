@@ -8,10 +8,6 @@ import {
 } from '@/lib/api/geo-fetch'
 import { getApiErrorMessage } from '@/lib/api-errors'
 
-// Single store for the geo-fetch admin tab. Server is the source of truth on
-// initial mount + reconnect; sockets push deltas in between. Game rows are
-// keyed by gameId for cheap merging.
-
 interface GeoFetchState {
   status: GeoFetchStatus | null
   games: Record<number, GeoFetchGameRow>
@@ -32,7 +28,6 @@ interface GeoFetchState {
   setFilterStage: (stage: GeoFetchStage | null) => void
   setSearch: (q: string) => void
 
-  // Socket-driven mutators (called from the panel's useEffect)
   applyProgress: (payload: { gameId: number; source: string; stage: string }) => void
   applyGameDone: (payload: { gameId: number; mapsFound: number; zonesTotal: number; finalStage: string }) => void
   applyMapSelected: (payload: { gameId: number; mapId: number }) => void

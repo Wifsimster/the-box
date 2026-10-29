@@ -7,16 +7,9 @@ export interface CountryLeaderboardHandlerDeps {
     month: number,
     viewer?: { countryCode: CountryCode | null },
   ): Promise<CountryLeaderboardResponse>
-  /** Declared country of a signed-in player (`null` when not set). */
   findViewerCountry(userId: string): Promise<CountryCode | null>
 }
 
-/**
- * GET /api/leaderboard/monthly/:year/:month/countries. Public; when the
- * request carries a session (optional auth runs first), the response adds
- * the viewer's country and its player count for the month. Anonymous and
- * guest sessions get no `viewer` block.
- */
 export function createCountryLeaderboardHandler(deps: CountryLeaderboardHandlerDeps): RequestHandler {
   return async (req, res, next) => {
     try {

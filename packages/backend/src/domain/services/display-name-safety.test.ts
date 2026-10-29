@@ -22,7 +22,6 @@ describe('isDisplayNameSafe', () => {
   })
 
   it('rejects accented slurs after diacritic stripping', () => {
-    // "enculé" → normalized "encule" hits the blocklist.
     assert.equal(isDisplayNameSafe('Enculé'), false)
   })
 

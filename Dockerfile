@@ -1,63 +1,46 @@
-# Build arguments
 ARG VERSION=dev
 ARG BUILD_DATE
 ARG VCS_REF
 
-# Stage 1: Install dependencies
 FROM node:24-alpine AS deps
 WORKDIR /app
 
-# Copy workspace configuration
 COPY package.json package-lock.json ./
 COPY packages/types/package.json ./packages/types/
 COPY packages/backend/package.json ./packages/backend/
 COPY packages/frontend/package.json ./packages/frontend/
 
-# Install all dependencies
 RUN npm ci
 
-# Stage 2: Build everything
 FROM deps AS builder
 WORKDIR /app
 
-# Copy source files
 COPY packages/types ./packages/types
 COPY packages/backend ./packages/backend
 COPY packages/frontend ./packages/frontend
 COPY tsconfig.json ./
 
-# Build types first (shared dependency)
 RUN npm run build:types
 
-# Build backend
 RUN npm run build:backend
 
-# Build frontend (API calls go to same origin /api)
-# Pass version to frontend build
 ARG VERSION
 ENV VITE_APP_VERSION=${VERSION}
 ENV VITE_API_URL=""
-# Koe support widget — VITE_* must be present at build time (baked into bundle)
 ARG VITE_KOE_PROJECT_KEY=the-box
 ARG VITE_KOE_API_URL=https://koe.battistella.ovh
 ENV VITE_KOE_PROJECT_KEY=${VITE_KOE_PROJECT_KEY}
 ENV VITE_KOE_API_URL=${VITE_KOE_API_URL}
 RUN npm run build:frontend
 
-# Stage 3: Production runtime
 FROM node:24-alpine AS runner
 
-# Fonts for server-side OG image rasterization (resvg-js renders the daily
-# challenge SVG to PNG for Twitter/WhatsApp/LinkedIn previews — Alpine has
-# no fonts by default, so glyphs would otherwise render as tofu).
 RUN apk add --no-cache font-dejavu
 
-# Build arguments for labels
 ARG VERSION
 ARG BUILD_DATE
 ARG VCS_REF
 
-# Image metadata
 LABEL org.opencontainers.image.title="The Box" \
     org.opencontainers.image.description="Screenshot guessing game" \
     org.opencontainers.image.version="${VERSION}" \
@@ -69,69 +52,43 @@ LABEL org.opencontainers.image.title="The Box" \
 
 WORKDIR /app
 
-# Create non-root user for node app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 thebox
 
-# Copy package files for production install
 COPY package.json package-lock.json ./
 COPY packages/types/package.json ./packages/types/
 COPY packages/backend/package.json ./packages/backend/
 
-# Install production dependencies only + tsx for migrations + better-auth CLI.
-# --ignore-scripts on both installs skips lifecycle scripts: prepare (husky)
-# on the workspace install, and native build scripts on @better-auth/cli's
-# transitive better-sqlite3 dependency. We use Postgres, so the sqlite native
-# binding is never loaded — building it would otherwise fail on alpine-arm64
-# where prebuilds aren't always available and python/g++ aren't installed.
-# @better-auth/cli is pinned to keep Docker builds reproducible.
 RUN npm ci --omit=dev --ignore-scripts && \
     npm install --ignore-scripts -w @the-box/backend tsx @better-auth/cli@1.4.10
 
-# Copy built backend artifacts
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 
-# Strip source maps from the production image so original TS source and
-# variable names aren't shipped to anyone who pulls the public image.
 RUN find ./packages/backend/dist ./packages/types/dist -name '*.js.map' -delete
 
-# Copy migrations, seeds, and knexfile
 COPY packages/backend/migrations ./packages/backend/migrations
 COPY packages/backend/seeds ./packages/backend/seeds
 COPY packages/backend/knexfile.ts ./packages/backend/knexfile.ts
 
-# Copy runtime data files (e.g. geo-map-registry.json read by the
-# Tier 1 geo ingestion path at packages/backend/data/...)
 COPY packages/backend/data ./packages/backend/data
 
-# Copy built frontend to be served by Node.js
 COPY --from=builder /app/packages/frontend/dist ./packages/frontend/dist
 
-# Create uploads directory
 RUN mkdir -p /app/uploads && chown -R thebox:nodejs /app/uploads
 
-# Set ownership of app directory
 RUN chown -R thebox:nodejs /app
 
-# Expose port (Node.js serves on 80)
 EXPOSE 80
 
-# Copy startup script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Copy backup scripts
 COPY scripts/db-backup.sh /scripts/db-backup.sh
 COPY scripts/db-backup-cron /etc/crontabs/root
 RUN chmod +x /scripts/db-backup.sh
 
-# Health check. Probes /healthz (DB + Redis liveness) rather than /health
-# (which only reports the process is up). A backend stuck behind a dead
-# Postgres still returns 200 on /health, which would keep Traefik routing
-# traffic to it.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80/healthz || exit 1
 
-# Start services
 CMD ["/docker-entrypoint.sh"]

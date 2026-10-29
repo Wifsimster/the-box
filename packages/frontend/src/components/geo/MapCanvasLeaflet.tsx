@@ -17,23 +17,9 @@ import { formatTileUrl } from '@/lib/geo-tile-url'
 import { MapErrorFallback } from './MapErrorFallback'
 import type { MapCanvasProps } from './map-canvas-types'
 
-// Leaflet-based map canvas. Same public API as MapCanvas so the pages are
-// drop-in compatible. Uses CRS.Simple (no real-world projection) and an
-// ImageOverlay sized by map dimensions so pan/zoom works naturally.
-//
-// Coordinates in the public API are still normalized [0..1]. We convert
-// to pixel (or image) space for Leaflet and back on click.
-
 const FUCHSIA_DIVICON = createDiv('fuchsia')
 const EMERALD_DIVICON = createDiv('emerald')
 
-// Colors + box-shadow are sourced from the design tokens exposed on :root
-// in src/index.css so this stays in sync with the rest of the UI. The
-// fuchsia variant carries `geo-map-marker-pop` so the player's pin
-// animates in on placement (CSS keyframe in index.css, gated on
-// prefers-reduced-motion). The emerald canonical marker is intentionally
-// static — it appears at round-end and shouldn't compete with the result
-// overlay for attention.
 function createDiv(color: 'fuchsia' | 'emerald'): L.DivIcon {
     const fill = color === 'fuchsia' ? 'var(--neon-pink)' : 'var(--success)'
     const className =
@@ -58,8 +44,6 @@ export function MapCanvasLeaflet({
     className,
     showGuessLine,
 }: MapCanvasProps) {
-    // CRS.Simple: y=0 at top, +y downward in our normalized space; Leaflet's
-    // default Simple CRS has +y upward. Flip y at the conversion boundary.
     const bounds: LatLngBoundsExpression = useMemo(
         () => [
             [0, 0],
@@ -68,16 +52,6 @@ export function MapCanvasLeaflet({
         [widthPx, heightPx],
     )
 
-    // See MapCanvas.tsx for the rationale: placeholder URLs may load OK, real
-    // 404s won't surface through Leaflet's ImageOverlay, so probe with a hidden
-    // <img> in addition to the proactive placeholder check. For tile maps,
-    // the thumbnail probe is decorative — TileLayer handles its own errors.
-    //
-    // `errored` is derived during render rather than stored, so it stays in
-    // sync with `imageUrl` for free — a new URL is re-evaluated against the
-    // placeholder check with no prev-URL bookkeeping. We only persist the
-    // *probe failure*, keyed by the URL that failed, so an onError for an old
-    // URL can't shadow a freshly-swapped one.
     const [failedUrl, setFailedUrl] = useState<string | null>(null)
     const errored = isPlaceholderImageUrl(imageUrl) || failedUrl === imageUrl
 
@@ -94,11 +68,6 @@ export function MapCanvasLeaflet({
     }
 
     return (
-        // `isolate` (CSS isolation) opens a fresh stacking context so
-        // Leaflet's baked-in z-indexes on `.leaflet-pane` (200-700) and
-        // `.leaflet-control` (800-1000) stay scoped to this container.
-        // Without it, the +/- zoom controls and tile layers paint over
-        // any Radix Sheet/Dialog (z-50) that opens above the page.
         <div
             className={cn(
                 'relative isolate w-full overflow-hidden rounded-lg',
@@ -121,10 +90,6 @@ export function MapCanvasLeaflet({
                 bounds={bounds}
                 maxBounds={bounds}
                 attributionControl={false}
-                // Default top-left collides with the panel's "Map" badge at
-                // left-3 top-3 (see ImmersiveLayout). Anchor the +/- pair
-                // bottom-right so it stays reachable on mobile (right thumb)
-                // and clear of the FullscreenToggle in the deck's top-right.
                 zoomControl={false}
                 scrollWheelZoom
                 doubleClickZoom={false}
@@ -162,10 +127,6 @@ export function MapCanvasLeaflet({
                         eventHandlers={
                             !disabled && onPin
                                 ? {
-                                      // Drag-to-refine: after the initial
-                                      // tap-drop, the player can slide the
-                                      // pin into a better spot without
-                                      // re-aiming.
                                       dragend: (e) => {
                                           const { lat, lng } = (e.target as L.Marker).getLatLng()
                                           onPin({
@@ -199,10 +160,6 @@ export function MapCanvasLeaflet({
     )
 }
 
-// Renders a Leaflet tile pyramid using a custom L.TileLayer subclass so we
-// can express schemes that the standard {z}/{x}/{y} template can't (zero-pad,
-// inverted z). The world rectangle in CRS.Simple stays [0..heightPx,widthPx]
-// so click→[0..1] math is identical to the ImageOverlay path.
 function TilePyramidLayer({
     tiles,
     widthPx,
@@ -213,13 +170,6 @@ function TilePyramidLayer({
     heightPx: number
 }) {
     const map = useMap()
-    // Depend on the *shallow scalar* tile config so a parent re-rendering
-    // with a fresh `tiles` object literal (same values, new identity)
-    // doesn't tear down and rebuild the entire layer — that triggers a
-    // full tile re-fetch on every parent state change. We rebuild the
-    // minimal config that `formatTileUrl` reads from those same scalars
-    // (scheme, urlTemplate, min/maxZoom) so the effect captures nothing but
-    // the listed deps — no `tiles` object identity in the closure.
     const { scheme, urlTemplate, tileSize, minZoom, maxZoom } = tiles
     useEffect(() => {
         const tileConfig = {
@@ -241,22 +191,14 @@ function TilePyramidLayer({
             tileSize,
             minZoom,
             maxZoom,
-            // Clamp tile requests to the world rectangle so OOB tiles (e.g.
-            // the asymmetric 85x69 grid in WoW) don't 404-spam.
             bounds: [
                 [0, 0],
                 [heightPx, widthPx],
             ],
             noWrap: true,
-            // Decorative placeholder for missing tiles — Leaflet's default
-            // is a transparent gap that looks like a successful load.
             errorTileUrl:
                 'data:image/svg+xml;utf8,' +
                 encodeURIComponent(
-                    // Text contrast bumped from #555 (~3:1 on #111) to
-                    // #999 (~7:1) to clear WCAG 1.4.11 for informational
-                    // text. The label is sub-fold rare, but readable
-                    // when it does appear.
                     '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="%23111" /><text x="50%" y="50%" fill="%23999" font-family="sans-serif" font-size="14" text-anchor="middle" dominant-baseline="central">tile missing</text></svg>',
                 ),
         })
@@ -268,18 +210,11 @@ function TilePyramidLayer({
     return null
 }
 
-/**
- * Leaflet only re-measures itself on window resize — a container-level
- * resize (the desktop focus-expand split, the fullscreen toggle) leaves
- * its hit-testing and tile math sized for the old box. Watch the
- * container with a ResizeObserver and invalidate on change.
- */
 function AutoInvalidateSize() {
     const map = useMap()
     useEffect(() => {
         const container = map.getContainer()
         const observer = new ResizeObserver(() => {
-            // pan:false — re-measure without nudging the current view.
             map.invalidateSize({ pan: false })
         })
         observer.observe(container)
@@ -288,14 +223,6 @@ function AutoInvalidateSize() {
     return null
 }
 
-/**
- * On reveal, glide the viewport to frame the guess→answer segment so the
- * payoff (how far off was I?) is visible without hunting for the line.
- * On unmount (next round / result dismissed) the full map view is
- * restored so a fresh round never starts zoomed into last round's
- * corner. Both moves respect prefers-reduced-motion by snapping
- * instead of animating.
- */
 function RevealFocus({
     guess,
     canonical,
@@ -306,9 +233,6 @@ function RevealFocus({
     worldBounds: LatLngBoundsExpression
 }) {
     const map = useMap()
-    // Depend on the scalar coordinates, not the array identities — the
-    // parent rebuilds those tuples every render and the effect must fire
-    // exactly once per (guess, canonical) pair.
     const [gLat, gLng] = guess as [number, number]
     const [cLat, cLng] = canonical as [number, number]
     useEffect(() => {
@@ -316,27 +240,17 @@ function RevealFocus({
             .matches
         map.fitBounds(L.latLngBounds([gLat, gLng], [cLat, cLng]), {
             padding: [48, 48],
-            // Near-perfect guesses collapse the bounds to a point;
-            // without a cap fitBounds would zoom in absurdly far.
             maxZoom: map.getZoom() + 3,
             animate,
         })
         return () => {
-            // Only restore the view when the map outlives the reveal
-            // (same game, next round). When the reveal ends because the
-            // whole MapContainer is unmounting (game/map switch), Leaflet
-            // is mid-teardown and fitBounds throws on removed panes.
             const container = map.getContainer?.()
             if (!container || !container.isConnected) return
             try {
                 map.fitBounds(worldBounds, { animate: false })
             } catch {
-                /* map mid-teardown — nothing left to restore */
             }
         }
-        // worldBounds is stable per map (memoized on widthPx/heightPx
-        // upstream); listing scalars keeps the zoom from re-firing on
-        // unrelated parent renders.
     }, [map, gLat, gLng, cLat, cLng, worldBounds])
     return null
 }
@@ -353,10 +267,6 @@ function ClickHandler({
     useMapEvents({
         click(e) {
             const { lat, lng } = e.latlng
-            // Leaflet's Simple CRS has y increasing upward, but our image
-            // bounds were declared with lat=[0..heightPx] where lat=0 is the
-            // image's top-left corner (no flip, since ImageOverlay respects
-            // the bounds literally). Normalize both axes to [0..1].
             const y = clamp01(lat / heightPx)
             const x = clamp01(lng / widthPx)
             onPick({ x, y })

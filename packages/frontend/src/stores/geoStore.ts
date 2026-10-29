@@ -16,19 +16,13 @@ interface GeoState {
     phase: Phase
     errorMessage: string | null
 
-    // Crowdsource flow
     currentCandidate: GeoScreenshotCandidate | null
     currentCandidateMap: GeoMap | null
     pendingPin: GeoPoint | null
-    // Self-reported confidence on the pending pin (1=sure, 2=approx,
-    // 3=guess). Optional — null means the player hasn't picked,
-    // which the server treats as "sure".
     pendingConfidence: GeoPinConfidence | null
 
-    // Contributor profile block
     contributor: GeoContributorMe | null
 
-    // Realtime feed (latest-first; capped)
     recentRewards: GeoRewardedEvent[]
     latestTierUp: GeoTierUpEvent | null
 
@@ -115,7 +109,6 @@ export const useGeoStore = create<GeoState>()((set, get) => ({
             const data = await geoApi.getContributorMe()
             set({ contributor: data })
         } catch {
-            // Silent: the profile card degrades to the no-stats placeholder.
         }
     },
 

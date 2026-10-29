@@ -32,11 +32,6 @@ function Verdict({ row }: { row: DescribeGuessAdminEntry }) {
   )
 }
 
-/**
- * Read-only list of "describe the game" shadow-mode rows, newest first, for
- * labelling: what the player wrote, the expected game, the model's choice,
- * its probability and the verdict at the 0.8 threshold.
- */
 export function DescribeGuessPanel() {
   const { t, i18n } = useTranslation()
   const [page, setPage] = useState(1)

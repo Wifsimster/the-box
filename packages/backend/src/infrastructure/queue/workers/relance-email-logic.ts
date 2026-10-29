@@ -8,18 +8,10 @@ const log = queueLogger.child({ worker: 'relance-email' })
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// How often we are willing to re-nudge the same user. Mirrors the
-// streak-risk cooldown so lapsed users never get two marketing emails
-// from us inside a single calendar day.
 const MIN_HOURS_BETWEEN_EMAILS = 20
 
-// Minimum account age before a user is eligible for relance nudges.
-// Keeps us off the toes of the welcome flow for brand-new signups.
 const MIN_ACCOUNT_AGE_HOURS = 48
 
-// Safety cap on the first production run — if the candidate set balloons
-// past this, something is off with the query (migration race, wrong env)
-// and it is safer to abort than to blast the whole user base.
 const MAX_CANDIDATES_PER_RUN = 5000
 
 export interface RelanceEmailResult {
@@ -39,18 +31,6 @@ interface RelanceCandidate {
   current_day_in_cycle: number
 }
 
-/**
- * Returns users who:
- *   - have opted in to marketing emails,
- *   - own a non-guest account at least 48h old,
- *   - have a login-streak row whose daily reward was not claimed today,
- *   - did not log in today (otherwise the claim modal handles it),
- *   - were not already nudged by relance or streak-risk within the
- *     cooldown window (mutual exclusion).
- *
- * All date comparisons run against the database clock in UTC, matching
- * the rest of the recurring jobs in the system.
- */
 async function findCandidates(): Promise<RelanceCandidate[]> {
   const rows = await db('user as u')
     .join('user_login_streaks as s', 's.user_id', 'u.id')

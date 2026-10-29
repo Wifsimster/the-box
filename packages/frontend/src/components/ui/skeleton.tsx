@@ -25,7 +25,6 @@ export function Skeleton({
   )
 }
 
-// Pre-built skeleton patterns for common use cases
 export function JobCardSkeleton() {
   return (
     <div className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50">

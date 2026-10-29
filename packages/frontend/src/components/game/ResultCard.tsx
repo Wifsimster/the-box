@@ -12,7 +12,6 @@ import { ResultScoreDisplay } from './ResultScoreDisplay'
 
 const AUTO_CLOSE_SECONDS = 5
 
-// Format time display (e.g., "5s", "1:23", "10:05"). Pure helper — no component state.
 function formatTime(seconds: number): string {
   if (seconds < 60) {
     return `${seconds}s`
@@ -40,24 +39,13 @@ export function ResultCard() {
     setShowCompletionChoice,
   } = useGameStore()
 
-  // Auto-close countdown state (must be before early return)
   const [countdown, setCountdown] = useState(AUTO_CLOSE_SECONDS)
 
-  // Move focus to the primary "Next" action when the result dialog opens so
-  // keyboard / screen-reader users land inside the dialog (and Enter-to-advance
-  // has a sensible focus target) instead of being stranded on the now-disabled
-  // guess input behind the overlay.
   const nextButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Memoize nextPosition calculation
   const nextPosition = lastResult ? findNextUnfinished(currentPosition) : null
 
   const handleNext = useCallback(() => {
-    // A completion-choice prompt was queued behind this result (the last correct
-    // guess with skipped positions still remaining). Now that the player has seen
-    // whether that guess was correct, reveal the choice modal. Switching to
-    // 'playing' unmounts this ResultCard so the modal shows over the game surface
-    // instead of stacking on top of the (now hidden) result card.
     if (pendingCompletionChoice) {
       setPendingCompletionChoice(false)
       setGamePhase('playing')
@@ -65,9 +53,7 @@ export function ResultCard() {
       return
     }
     if (nextPosition) {
-      // Navigate to next unfinished position
       navigateToPosition(nextPosition)
-      // Initialize position state if not visited
       const nextState = positionStates[nextPosition]
       if (!nextState || nextState.status === 'not_visited') {
         useGameStore.setState((state) => ({
@@ -83,19 +69,14 @@ export function ResultCard() {
       }
       setGamePhase('playing')
     } else {
-      // No next position - check if we should auto-complete
       const isDailyGame = challengeId !== null
       const hasMissingGames = Object.values(positionStates).some(
         (state) => state.status !== 'correct'
       )
 
-      // In daily games, only auto-complete if all games are discovered
-      // Otherwise, stay on game screen to allow manual ending
       if (isDailyGame && hasMissingGames) {
-        // Stay in playing phase to allow user to navigate and manually end
         setGamePhase('playing')
       } else {
-        // All positions finished - show completion
         setGamePhase('challenge_complete')
       }
     }
@@ -110,30 +91,19 @@ export function ResultCard() {
     setShowCompletionChoice,
   ])
 
-  // Auto-navigation fires from the timer when it reaches zero. Wrapped as an
-  // Effect Event so it always reads the latest state without being a reactive
-  // dependency of the timer effect.
   const onAutoAdvance = useEffectEvent(() => {
-    // Block auto-navigation while completion choice modal is visible
     if (showCompletionChoice) return
-    // Only auto-navigate if there's a next position OR session is not completed
     const shouldAutoNavigate = nextPosition !== null || !isSessionCompleted
     if (shouldAutoNavigate) {
       handleNext()
     }
   })
 
-  // Auto-close timer - only runs when there's a next position OR session is not completed yet
-  // Timer is paused when completion choice modal is visible
   useEffect(() => {
     if (!lastResult) return
 
-    // Pause countdown when completion choice modal is visible
     if (showCompletionChoice) return
 
-    // Auto-close if:
-    // 1. There's a next position to navigate to, OR
-    // 2. Session is not completed (even if on last round, user can still navigate back)
     const shouldAutoClose = nextPosition !== null || !isSessionCompleted
 
     if (!shouldAutoClose) return
@@ -142,8 +112,6 @@ export function ResultCard() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          // Trigger navigation directly when the countdown elapses instead of
-          // routing through a "countdown === 0" effect.
           onAutoAdvance()
           return 0
         }
@@ -154,8 +122,6 @@ export function ResultCard() {
     return () => clearInterval(timer)
   }, [lastResult, nextPosition, isSessionCompleted, showCompletionChoice])
 
-  // Handle Enter key to advance. handleNext is read only inside the listener,
-  // so it's wrapped as an Effect Event and kept out of the dependency array.
   const onEnterKey = useEffectEvent(() => {
     handleNext()
   })
@@ -174,13 +140,10 @@ export function ResultCard() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [lastResult])
 
-  // Focus the primary action once the dialog has a result to show.
-  // `preventScroll` avoids yanking the screenshot on mobile.
   useEffect(() => {
     if (lastResult) nextButtonRef.current?.focus({ preventScroll: true })
   }, [lastResult])
 
-  // Early return after all hooks
   if (!lastResult) return null
 
   const { isCorrect, correctGame, scoreEarned, timeTakenMs, userGuess, hintPenalty, letterPenalty, wrongGuessPenalty, streakBonus, streak, matchPrecision } = lastResult
@@ -188,24 +151,19 @@ export function ResultCard() {
   const scorePercentage = (scoreEarned / maxScore) * 100
   const timeTakenSeconds = Math.round(timeTakenMs / 1000)
 
-  // Check if there are any unfinished positions (for button text)
   const hasSkippedPositions = Object.values(positionStates).some(
     (state) => state.status === 'skipped'
   )
 
   const timeDisplay = formatTime(timeTakenSeconds)
 
-  // Determine button text
   const getButtonText = () => {
-    // A completion choice is queued behind this result — advancing opens it.
     if (pendingCompletionChoice) {
       return t('game.continue', 'Continue')
     }
-    // Show "View Results" only when session is completed
     if (isSessionCompleted) {
       return t('game.viewResults')
     }
-    // Otherwise, show navigation text
     if (hasSkippedPositions && nextPosition && nextPosition < currentPosition) {
       return t('game.navigation.reviewSkipped', 'Review Skipped')
     }
@@ -219,7 +177,6 @@ export function ResultCard() {
       exit={{ opacity: 0 }}
       className="absolute inset-0 z-40 flex overflow-y-auto overscroll-contain bg-background/90 backdrop-blur-lg px-4 py-6"
     >
-      {/* Success particles/glow effect */}
       {isCorrect && (
         <m.div
           initial={{ opacity: 0, scale: 0.5 }}
@@ -240,10 +197,6 @@ export function ResultCard() {
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className="relative m-auto max-w-sm w-full"
       >
-        {/* Single concise outcome line for assistive tech — the visual card is
-            built from animated fragments that don't read as one coherent
-            announcement. Polite so it doesn't interrupt the miss/correct
-            announcement already fired by the guess input. */}
         <div role="status" aria-live="polite" className="sr-only">
           {t('game.resultAnnounce', {
             outcome: isCorrect
@@ -262,7 +215,6 @@ export function ResultCard() {
           variant={isCorrect ? 'success' : 'error'}
           className="relative border-2 p-(--card-padding) pt-6 shadow-2xl"
         >
-        {/* Round Progress Badge */}
         <m.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -272,7 +224,6 @@ export function ResultCard() {
           {t('game.round')} {currentPosition} / {totalScreenshots}
         </m.div>
 
-        {/* Result Status Header */}
         <m.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -292,8 +243,6 @@ export function ResultCard() {
             {isCorrect ? (
               matchPrecision === 'partial' ? (
                 <>
-                  {/* Distinct icon from the exact-match check so the partial
-                      state isn't differentiated by colour alone (WCAG 1.4.1). */}
                   <Target className="size-5" aria-hidden="true" />
                   {t('game.partialMatch')}
                 </>
@@ -312,10 +261,8 @@ export function ResultCard() {
           </div>
         </m.div>
 
-        {/* Revealed game details */}
         <ResultGameInfo game={correctGame} isCorrect={isCorrect} userGuess={userGuess} />
 
-        {/* Score Display */}
         <ResultScoreDisplay
           isCorrect={isCorrect}
           scoreEarned={scoreEarned}
@@ -331,7 +278,6 @@ export function ResultCard() {
           matchPrecision={matchPrecision}
         />
 
-        {/* Next Button */}
         <m.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -345,7 +291,6 @@ export function ResultCard() {
             onClick={handleNext}
             className="w-full gap-2 font-bold"
           >
-            {/* Show countdown only when auto-closing (session not completed or has next position) */}
             {(nextPosition !== null || !isSessionCompleted) ? (
               <>
                 {getButtonText()}

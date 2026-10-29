@@ -25,7 +25,6 @@ describe('resolveUploadRelativePath', () => {
 })
 
 describe('sendUploadFile', () => {
-  // The checkout path contains a dot-directory, as in `.worktrees/<name>`.
   let tmp: string
   let uploadsPath: string
   let server: Server

@@ -21,14 +21,12 @@ describe('computeAvatarDrawParams', () => {
   })
 
   it('clamps a rounding overflow past the right/bottom edge without stretching', () => {
-    // Cropper rounded the area one pixel past a 1000x1000 image.
     const params = computeAvatarDrawParams({ x: 1, y: 1, width: 1000, height: 1000 }, { width: 1000, height: 1000 })
     assert.ok(params)
     assert.equal(params.sw, 999)
     assert.equal(params.sh, 999)
     assert.equal(params.dx, 0)
     assert.equal(params.dy, 0)
-    // Same scale on both axes: 512 / 1000 per source pixel.
     assert.ok(Math.abs(params.dw - 999 * 0.512) < 1e-9)
     assert.ok(Math.abs(params.dh - 999 * 0.512) < 1e-9)
   })

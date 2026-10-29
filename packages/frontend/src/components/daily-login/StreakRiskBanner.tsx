@@ -17,11 +17,6 @@ function startOfUTCDay(iso: string): number {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }
 
-/**
- * Loads the minimal profile and returns the active streak count when (and
- * only when) the user is at risk of losing it today, otherwise null. Kept at
- * module scope so the data access lives outside the React render/effect path.
- */
 async function fetchStreakAtRisk(signal: AbortSignal): Promise<number | null> {
   const res = await fetch('/api/user/me', {
     credentials: 'include',
@@ -34,7 +29,6 @@ async function fetchStreakAtRisk(signal: AbortSignal): Promise<number | null> {
   if (signal.aborted || !json.success || !json.data) return null
   const { currentStreak = 0, lastPlayedAt } = json.data
 
-  // Need an active multi-day streak to be worth warning about.
   if (currentStreak < 2 || !lastPlayedAt) return null
 
   const todayUTC = Date.UTC(
@@ -44,22 +38,13 @@ async function fetchStreakAtRisk(signal: AbortSignal): Promise<number | null> {
   )
   const lastDayUTC = startOfUTCDay(lastPlayedAt)
 
-  // Already played today → no risk.
   if (lastDayUTC === todayUTC) return null
 
-  // If a full day or more has already passed since last play, the
-  // streak-grace logic will handle it; the banner is for *today* only.
   if (todayUTC - lastDayUTC > 24 * 60 * 60 * 1000) return null
 
   return currentStreak
 }
 
-/**
- * Shows a banner when a logged-in user with an active streak hasn't played
- * today yet — complements the existing streak-risk email so users see the
- * nudge in-app too. It sits right above the home Play button, so it carries
- * no CTA of its own. Dismissal persists only for the current UTC day.
- */
 export function StreakRiskBanner() {
   const { t } = useTranslation()
   const { data: session } = useSession()
@@ -83,7 +68,6 @@ export function StreakRiskBanner() {
         setStreak(atRiskStreak)
       })
       .catch(() => {
-        // non-fatal — banner just won't appear
       })
 
     return () => {
@@ -96,7 +80,6 @@ export function StreakRiskBanner() {
     try {
       localStorage.setItem(DISMISS_KEY, todayKey)
     } catch {
-      // storage blocked — dismissal won't persist across reloads
     }
     setDismissed(true)
   }

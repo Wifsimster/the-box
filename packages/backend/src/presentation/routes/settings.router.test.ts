@@ -11,10 +11,6 @@ import type { AppSettingRow } from '../../domain/ports/app-settings.js'
 import { silentLogger } from '../../domain/ports/logger.test-double.js'
 import { createSecretBox } from '../../infrastructure/crypto/secret-box.js'
 
-// The agent chain as mounted at /api/agent/v1/settings, with the DB-backed
-// pieces swapped: key lookup comes from a header, the settings store is in
-// memory, the cipher is the real AES-256-GCM box with a test secret.
-
 const SECRET = 'sk-ant-api03-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-9876'
 
 const KEYS: Record<string, { id: number; user_id: string; scopes: ApiKeyScope[] }> = {
@@ -47,7 +43,6 @@ describe('settings over the agent API (MCP surface)', () => {
     const app = express()
     app.use(express.json())
     const agent = express.Router()
-    // Stand-in for requireApiKey: 401 without a key, else attach it.
     agent.use((req, res, next) => {
       const key = KEYS[req.header('x-test-key') ?? '']
       if (!key) {

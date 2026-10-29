@@ -1,7 +1,3 @@
-# Public API — Streamer Kit. Machine-readable contract for /api/public/v1.
-# Hand-maintained alongside docs/public-api.md and the route handlers in
-# packages/backend/src/presentation/routes/public.routes.ts. Keep all three
-# in sync on every change to the surface.
 openapi: 3.1.0
 info:
   title: The Box — Public API (Streamer Kit)
@@ -16,7 +12,7 @@ servers:
     description: Local development
 
 security:
-  - {}                       # most reads allow anonymous access
+  - {}
   - apiKey: []
 
 tags:

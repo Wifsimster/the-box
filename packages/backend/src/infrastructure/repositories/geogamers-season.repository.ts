@@ -4,19 +4,14 @@ import type { GeoGamersSeasonStanding, GeoGamersSeasonMe } from '@the-box/types'
 
 const log = repoLogger.child({ repository: 'geogamers-season' })
 
-// Season parameters. A player's season score drops their N worst days, but
-// ONLY once they've played at least MIN_DAYS (until then the raw total stands
-// and they're flagged provisional).
 export const SEASON_DROP_WORST = 3
 export const SEASON_MIN_DAYS_FOR_DROP = 10
 
-/** Current season month (YYYY-MM, UTC). */
 export function currentSeasonMonth(referenceMs?: number): string {
   const ref = typeof referenceMs === 'number' ? new Date(referenceMs) : new Date()
   return ref.toISOString().slice(0, 7)
 }
 
-/** [start, end) date bounds for a YYYY-MM season, as YYYY-MM-DD strings. */
 export function seasonBounds(month: string): { start: string; end: string } {
   const [y, m] = month.split('-').map(Number) as [number, number]
   const start = `${month}-01`
@@ -36,9 +31,6 @@ interface StandingRow {
   rank: string | number
 }
 
-// The shared ranking CTE. Computes each day's rank-from-worst per user, folds
-// them into a season score that drops the N worst days once MIN_DAYS is hit,
-// then ranks users. Bound parameters keep it injection-safe.
 function rankingCte(month: string) {
   const { start, end } = seasonBounds(month)
   return db.raw(
@@ -155,7 +147,6 @@ export const geoGamersSeasonRepository = {
         'r.joker_used',
       )
 
-    // Mark the N worst days as dropped (only when past the min-days gate).
     const base = mapStanding(row)
     const sortedByWorst = [...dailyRows]
       .map((d, idx) => ({ d, idx, total: Number(d.total_points ?? 0) }))

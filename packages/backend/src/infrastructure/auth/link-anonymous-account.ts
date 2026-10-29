@@ -1,14 +1,3 @@
-// Moves a guest's progress onto the account they register (or sign in to).
-//
-// Better Auth's anonymous plugin deletes the guest user right after a
-// sign-up / sign-in made from a guest session, and every game table
-// cascades on user deletion — so without this transfer a guest who
-// registers mid-day loses today's daily game.
-//
-// Rows that would collide with the target account (it already played the
-// same challenge, already owns the achievement) are left on the guest and
-// disappear with it: the real account's data always wins.
-
 export interface QueryClient {
   query(text: string, values?: unknown[]): Promise<unknown>
 }
@@ -23,8 +12,6 @@ export const TRANSFER_STATEMENTS: readonly string[] = [
        AND NOT EXISTS (
          SELECT 1 FROM game_sessions t
           WHERE t.user_id = $2 AND t.daily_challenge_id = g.daily_challenge_id)`,
-  // Descriptions follow the game session they belong to (moved just above);
-  // the rest stay on the guest and disappear with it.
   `UPDATE describe_guess_attempts AS d SET user_id = $2
      WHERE d.user_id = $1
        AND EXISTS (
@@ -67,7 +54,7 @@ export async function transferAnonymousUserData(
     }
     await client.query('COMMIT')
   } catch (error) {
-    try { await client.query('ROLLBACK') } catch { /* ignore */ }
+    try { await client.query('ROLLBACK') } catch { }
     throw error
   } finally {
     client.release()

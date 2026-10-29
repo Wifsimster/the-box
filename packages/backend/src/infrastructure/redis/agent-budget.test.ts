@@ -15,9 +15,7 @@ import {
 
 describe('secondsToUtcMidnight', () => {
   it('counts seconds to the next UTC midnight', () => {
-    // 23:00:00Z → 1h = 3600s.
     assert.equal(secondsToUtcMidnight(new Date('2026-07-10T23:00:00.000Z')), 3600)
-    // 00:00:00Z → a full day, never 0 (the key would already have rolled).
     assert.equal(secondsToUtcMidnight(new Date('2026-07-10T00:00:00.000Z')), 86400)
   })
 

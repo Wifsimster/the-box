@@ -6,11 +6,6 @@ import {
   type FetchOutcomeReport,
 } from './maps-fetch-runtime.js'
 
-/**
- * Pipeline-aware Steam candidate fetcher. Anchors candidates to the currently
- * selected map for the game (no zone slug); skips if there's no map yet — the
- * pipeline only reaches this stage after map sources have produced one.
- */
 export async function runMapsFetchSteam(input: {
   gameId: number
   correlationId?: string
@@ -46,7 +41,6 @@ export async function runMapsFetchSteam(input: {
         if (status === 404) return { outcome: 'not_found', httpStatus: 404 }
         if (status === 429) return { outcome: 'rate_limited', httpStatus: 429 }
         if (status && status >= 500) return { outcome: 'http_5xx', httpStatus: status }
-        // Bubble up: BullMQ will retry, runtime records `parse_error`.
         throw err
       }
     },
@@ -54,8 +48,6 @@ export async function runMapsFetchSteam(input: {
 }
 
 async function pickAnchorMap(gameId: number) {
-  // Prefer the admin-selected map for the world (NULL zone_slug). Fall back
-  // to any selected zone, then the first enabled map.
   const world = await geoMapRepository.findSelectedByZone(gameId, null)
   if (world) return world
   const list = await geoMapRepository.listEnabledByGameId(gameId)

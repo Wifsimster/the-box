@@ -11,7 +11,6 @@ import {
   calculateStreakBonus,
 } from './guess-scoring.service.js'
 
-/** Default inputs: an instant exact answer with no modifiers pending. */
 const base = {
   precision: 'exact' as const,
   effectiveTimeTakenMs: 0,
@@ -64,16 +63,12 @@ describe('calculateGuessScore', () => {
   })
 
   it('applies the partial factor AFTER the cap', () => {
-    // The ordering matters: 200 (capped) x 0.4 = 80. Applying the factor to
-    // the uncapped speed score first would let a partial exceed that.
     const fastest = calculateGuessScore({ ...base, precision: 'partial' })
     assert.equal(fastest.scoreEarned, Math.round(MAX_SCREENSHOT_SCORE * PARTIAL_MATCH_FACTOR))
     assert.equal(fastest.scoreEarned, 80)
   })
 
   it('keeps the fastest partial strictly below the slowest exact', () => {
-    // The property PARTIAL_MATCH_FACTOR exists to guarantee: naming the full
-    // title is ALWAYS the better play, however slowly you do it.
     const fastestPartial = calculateGuessScore({
       ...base,
       precision: 'partial',
@@ -99,7 +94,6 @@ describe('calculateGuessScore', () => {
   })
 
   it('applies the letter penalty to the partial score, not the full one', () => {
-    // partial first: 200 -> 80, then 25% of 80 = 20.
     const result = calculateGuessScore({
       ...base,
       precision: 'partial',
@@ -111,7 +105,6 @@ describe('calculateGuessScore', () => {
   })
 
   it('raises a low score to the second-chance floor and reports the boost', () => {
-    // Slowest exact scores 100; a 90% letter penalty drops it to 10.
     const result = calculateGuessScore({
       ...base,
       effectiveTimeTakenMs: 60_000,
@@ -132,8 +125,6 @@ describe('calculateGuessScore', () => {
   })
 
   it('applies the floor AFTER the letter penalty so a paid floor wins', () => {
-    // If the floor ran before the penalty, the penalty would eat into it and
-    // the player would finish below 70 despite paying for second chance.
     const result = calculateGuessScore({
       ...base,
       effectiveTimeTakenMs: 60_000,
@@ -166,7 +157,6 @@ describe('calculateGuessScore', () => {
 })
 
 describe('calculateStreakBonus', () => {
-  /** Solve positions 1..n in order, all on the first try; return each bonus. */
   const runInOrder = (n: number) => {
     const solved: number[] = []
     const bonuses: number[] = []
@@ -206,8 +196,6 @@ describe('calculateStreakBonus', () => {
       calculateStreakBonus({ position: 3, firstTry: false, firstTrySolvedPositions: [1, 2] }),
       { streak: 0, streakBonus: 0 }
     )
-    // Position 3 was solved after a miss, so it is not in the first-try set:
-    // the run restarts at 4.
     assert.equal(
       calculateStreakBonus({ position: 4, firstTry: true, firstTrySolvedPositions: [1, 2] }).streak,
       1
@@ -215,7 +203,6 @@ describe('calculateStreakBonus', () => {
   })
 
   it('breaks the run on a skipped (unsolved) position', () => {
-    // Player skipped 3 and answered 4 and 5: the run is 2 long, not 4 or 5.
     assert.equal(
       calculateStreakBonus({ position: 5, firstTry: true, firstTrySolvedPositions: [1, 2, 4] })
         .streakBonus,
@@ -224,8 +211,6 @@ describe('calculateStreakBonus', () => {
   })
 
   it('counts backwards only, so solving out of order never pays more', () => {
-    // Solve 4, 5 first, then 1, 2, 3. Filling the gap at 3 makes 1..5 a
-    // run, but the answer at 3 only sees 1..3 behind it.
     const order = [4, 5, 1, 2, 3]
     const solved: number[] = []
     let total = 0
@@ -253,7 +238,6 @@ describe('calculateGuessScore — streak bonus and cap', () => {
   })
 
   it('is not scaled by the partial factor or the letter penalty', () => {
-    // 0 ms -> 200, partial -> 80, 50 % letter cost -> 40, + 25 bonus = 65.
     const r = calculateGuessScore({
       ...base,
       precision: 'partial',
@@ -264,7 +248,6 @@ describe('calculateGuessScore — streak bonus and cap', () => {
   })
 
   it('applies after the second-chance floor', () => {
-    // 20 s -> 100, partial -> 40, floored to 70, + 25 = 95.
     const r = calculateGuessScore({
       ...base,
       precision: 'partial',

@@ -20,16 +20,10 @@ export function EmailSettings() {
   const [config, setConfig] = useState<EmailConfig | null>(null)
   const [settled, setSettled] = useState(false)
   const [testing, setTesting] = useState(false)
-  // Pre-seed the test field with the admin's address (a constant default) at
-  // mount rather than writing it from an effect.
   const [recipientEmail, setRecipientEmail] = useState('battistella@proton.me')
 
-  // `loading` is derived: the panel is loading until the first fetch settles
-  // (resolves or rejects). No separate loading state needed.
   const loading = !settled
 
-  // Effect Event: reads the latest translator without making the mount-only
-  // fetch effect re-fire on every language switch.
   const reportFetchError = useEffectEvent((error: unknown) => {
     toast.error(t('admin.email.fetchError'))
     console.error('Failed to fetch email config:', error)

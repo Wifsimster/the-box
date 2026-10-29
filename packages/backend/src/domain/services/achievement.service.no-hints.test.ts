@@ -30,12 +30,6 @@ const NO_HINTS_ACHIEVEMENT: AchievementRow = {
   created_at: new Date('2026-01-01T00:00:00Z'),
 }
 
-/**
- * Post-retirement integrity check (D9 of the 2026-06-11 meeting record):
- * `guesses.power_up_used` is always null on new guesses, so the
- * "hint-free game" achievement must ALSO require zero letter reveals for
- * the session — otherwise retirement makes it trivially earnable.
- */
 function buildHarness(opts: {
   sessionLetterReveals: number
   hintFreeCompletedGames?: number
@@ -57,9 +51,6 @@ function buildHarness(opts: {
     countHintFreeCompletedGames: async () => opts.hintFreeCompletedGames ?? 1,
   } as unknown as AchievementRepository
 
-  // Was `{} as unknown as UserRepository` — a fake of an empty object
-  // standing in for a 15-method interface. `AchievementUserContext` is the
-  // two methods this service actually calls, so the fake can be honest.
   const userRepository: AchievementUserContext = {
     findById: async () => null,
     getCurrentStreak: async () => 0,

@@ -207,11 +207,6 @@ geoWorker.on('failed', (job, err) => {
 
   if (!job || !shouldAdvanceAfterFailure(job)) return
 
-  // `runSourceFetch` in maps-fetch-runtime.ts records the attempt and rethrows
-  // on transient errors, so its post-recordAttempt `advancePipeline` call is
-  // unreachable on the throw path. Without re-enqueueing here the pipeline
-  // state would stay pinned at `fetching_*` with `active_source` on the dead
-  // source and BullMQ has no more retries to run.
   void advancePipeline({
     gameId: (data as MapsFetchChildJob).gameId,
     correlationId: (data as MapsFetchChildJob).correlationId,

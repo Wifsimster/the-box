@@ -3,12 +3,6 @@ import {
   billingService,
 } from '../../composition/services.js'
 
-// Gate a route on the caller having an active premium entitlement. Always
-// chain after authMiddleware — it relies on req.userId being populated.
-//
-// Failure mode: 402 Payment Required with a code the frontend can detect
-// to surface the upsell modal. Don't use 403 (forbidden) since the user
-// can resolve this by paying, not by getting permission.
 export async function requirePremium(
   req: Request,
   res: Response,

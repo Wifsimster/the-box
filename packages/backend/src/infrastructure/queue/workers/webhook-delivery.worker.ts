@@ -14,32 +14,19 @@ import {
 
 const log = queueLogger.child({ worker: 'webhook-delivery' })
 
-// One outbound HTTP call has a hard 10s ceiling — webhooks are not a place
-// to wait on a slow third-party. Combined with the 3-attempt retry budget
-// in queues.ts this caps the worst-case total time on a single delivery
-// at ~30s of wall clock + the 15s exponential backoff between retries.
 const DELIVERY_TIMEOUT_MS = 10_000
 
-// Final attempt count (BullMQ retries + per-delivery in-DB retries) before
-// we flip the row to `dead` and stop retrying. The row stays in the table
-// for 24h so the dashboard can show "your last webhook failed".
 const MAX_ATTEMPTS = 3
 
 function classifyHttpStatus(status: number): 'success' | 'retryable' | 'permanent' {
   if (status >= 200 && status < 300) return 'success'
-  // 429 + 5xx are server-side problems worth retrying.
   if (status === 429 || (status >= 500 && status < 600)) return 'retryable'
-  // Everything else (4xx) is the receiver telling us this delivery will
-  // never succeed — no point retrying.
   return 'permanent'
 }
 
 async function deliverOne(deliveryId: number): Promise<void> {
   const claimed = await webhookDeliveryRepository.markInProgress(deliveryId)
   if (!claimed) {
-    // Another worker already picked this up, or it's no longer pending
-    // (could be delivered, dead, or in_progress from a previous run that
-    // crashed mid-flight). Trust the DB state and stop.
     log.debug({ deliveryId }, 'delivery not claimable — skipping')
     return
   }
@@ -49,14 +36,11 @@ async function deliverOne(deliveryId: number): Promise<void> {
     log.warn({ deliveryId }, 'delivery row vanished after claim')
     return
   }
-  // Direct lookup — ownership was enforced at registration / list / delete
-  // endpoints, the worker just needs URL + active flag + the encrypted secret.
   const target = await db('webhooks')
     .where('id', delivery.webhook_id)
     .first<{ id: number; url: string; is_active: boolean; secret_enc: string | null }>()
 
   if (!target || !target.is_active) {
-    // Webhook revoked between enqueue and delivery — mark dead, don't retry.
     await webhookDeliveryRepository.markFailed({
       id: deliveryId,
       status: null,
@@ -67,7 +51,6 @@ async function deliverOne(deliveryId: number): Promise<void> {
     return
   }
 
-  // SSRF re-check at delivery time. Defeats DNS rebinding.
   const resolved = await resolveWebhookUrlSafely(target.url)
   if (!resolved.ok) {
     await webhookDeliveryRepository.markFailed({
@@ -80,11 +63,6 @@ async function deliverOne(deliveryId: number): Promise<void> {
     return
   }
 
-  // Decrypt the signing secret (AES-256-GCM, see secret-box.ts). Persisted
-  // encrypted-at-rest, so unlike the old in-memory cache this survives a
-  // process restart. `null` only happens for a pre-20260524 row or after a
-  // BETTER_AUTH_SECRET rotation — both rare and operator-driven; the
-  // delivery still goes out, unsigned, and the receiver can reject it.
   const secret = webhookRepository.decryptSecret(target)
   const body = JSON.stringify(delivery.payload)
   const sig = secret
@@ -108,7 +86,7 @@ async function deliverOne(deliveryId: number): Promise<void> {
       },
       body,
       signal: controller.signal,
-      redirect: 'manual', // never follow redirects — SSRF bypass risk
+      redirect: 'manual',
     })
   } catch (err) {
     networkError = err instanceof Error ? err.message : String(err)
@@ -132,15 +110,11 @@ async function deliverOne(deliveryId: number): Promise<void> {
       isDead,
     })
     if (!isDead) {
-      // BullMQ throw triggers the queue-level retry; combined with the DB
-      // state we get a single coherent attempt count.
       throw new Error(`retryable http ${response.status}`)
     }
     return
   }
 
-  // Network failure (timeout, DNS, ECONNREFUSED, …). Always retryable up
-  // to MAX_ATTEMPTS.
   const isDead = delivery.attempt_count + 1 >= MAX_ATTEMPTS
   await webhookDeliveryRepository.markFailed({
     id: deliveryId,
@@ -155,7 +129,6 @@ async function deliverOne(deliveryId: number): Promise<void> {
 }
 
 function retryDelay(attempt: number): number {
-  // 15s, 60s, 240s. Keeps the worst case bounded under 5 minutes wall clock.
   return 15_000 * 4 ** (attempt - 1)
 }
 

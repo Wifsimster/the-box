@@ -23,14 +23,8 @@ interface AvatarCropStepProps {
   onImageError: () => void
 }
 
-/** Pixels the image moves per arrow-key press (Shift: a fifth of that). */
 const KEYBOARD_STEP = 10
 
-/**
- * Square crop area with a round mask: drag (or arrow keys) to pan, slider,
- * wheel or pinch to zoom. Loaded lazily so react-easy-crop only ships when a
- * player actually picks a file.
- */
 export default function AvatarCropStep({
   image,
   crop,
@@ -48,8 +42,6 @@ export default function AvatarCropStep({
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      {/* touch-action and overscroll keep a drag inside the crop area from
-          scrolling the bottom sheet on phones. */}
       <div className="relative aspect-square w-full max-w-[min(20rem,42dvh)] touch-none overscroll-contain overflow-hidden rounded-lg bg-muted">
         <Cropper
           image={image}
@@ -66,8 +58,6 @@ export default function AvatarCropStep({
           onZoomChange={disabled ? undefined : (value) => onZoomChange(clampAvatarZoom(value))}
           onCropComplete={(_area: Area, areaPixels: Area) => onCropAreaChange(areaPixels)}
           mediaProps={{ onError: onImageError }}
-          // No className in cropperProps: it is spread last and would drop the
-          // library's own crop-area class (and with it the round mask).
           classes={{
             cropAreaClassName: 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
           }}

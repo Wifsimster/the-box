@@ -1,89 +1,36 @@
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
-
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
     testDir: './e2e',
-    /* Run tests in files in parallel */
     fullyParallel: true,
-    /* Fail the build on CI if you accidentally left test.only in the source code. */
     forbidOnly: !!process.env.CI,
-    /* Retry on CI only */
     retries: process.env.CI ? 2 : 0,
-    /* Allow parallel workers - use 2 in CI to balance speed vs resource usage */
     workers: process.env.CI ? 2 : 4,
-    /* Reporter to use. See https://playwright.dev/docs/test-reporters */
     reporter: process.env.CI ? [['html'], ['github']] : 'html',
-    /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
-        /* Base URL to use in actions like `await page.goto('/')`. */
         baseURL: 'http://localhost:5173',
 
-        /* Pre-seed the GDPR consent choice in localStorage so the consent
-         * banner never overlays the UI during tests. Without this every page
-         * load shows the banner, which intercepts clicks and makes locators
-         * ambiguous. No spec tests the banner itself. */
         storageState: './e2e/consent-storage-state.json',
 
-        /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
         trace: 'on-first-retry',
 
-        /* Screenshot on failure */
         screenshot: 'only-on-failure',
     },
 
-    /* Configure projects for major browsers */
     projects: [
         {
             name: 'chromium',
             use: { ...devices['Desktop Chrome'] },
         },
 
-        // Firefox and WebKit disabled in CI for speed - enable for full browser testing
-        // {
-        //     name: 'firefox',
-        //     use: { ...devices['Desktop Firefox'] },
-        // },
 
-        // {
-        //     name: 'webkit',
-        //     use: { ...devices['Desktop Safari'] },
-        // },
-
-        /* Test against mobile viewports. */
         {
             name: 'Mobile Chrome',
             use: { ...devices['Pixel 5'] },
         },
 
-        // Mobile Safari requires WebKit — disabled in CI for speed, mirror of Desktop WebKit above.
-        // {
-        //   name: 'Mobile Safari',
-        //   use: { ...devices['iPhone 12'] },
-        // },
-
-        /* Test against branded browsers. */
-        // {
-        //   name: 'Microsoft Edge',
-        //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-        // },
-        // {
-        //   name: 'Google Chrome',
-        //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-        // },
     ],
 
-    /* Run your local dev server before starting the tests */
-    /* In CI, the workflow manages servers externally */
     webServer: process.env.CI
         ? undefined
         : {

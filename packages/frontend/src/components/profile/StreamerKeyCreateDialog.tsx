@@ -16,17 +16,11 @@ import { streamerKeysApi } from '@/lib/api/streamer-keys'
 import type { ApiKeyCreated, ApiKeySummary } from '@the-box/types'
 
 interface StreamerKeyCreateDialogProps {
-  /** Whether the public profile is enabled — gates creating new keys. */
   enabled: boolean
-  /** Notifies the parent so the new key (sans plaintext) can be listed. */
   onCreated: (summary: ApiKeySummary) => void
 }
 
-// Convert the create response back to the list-summary shape (the create
-// endpoint returns an ApiKeyCreated which extends ApiKeySummary, so we just
-// drop the plaintext field).
 function serverSummary(c: ApiKeyCreated): ApiKeySummary {
-  // Destructure to strip the plaintext we never want to keep in state.
   const { plaintext: _unused, ...rest } = c
   void _unused
   return rest
@@ -84,11 +78,6 @@ function createKeyReducer(
   }
 }
 
-/**
- * Self-contained "create API key" affordance: owns the open/label/creating/
- * plaintext/copied state for the whole create flow, surfacing only the
- * resulting key summary back to the parent.
- */
 export function StreamerKeyCreateDialog({
   enabled,
   onCreated,

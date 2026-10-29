@@ -168,8 +168,6 @@ function LeaderboardList({
                   </span>
                 )}
               </div>
-              {/* Wraps instead of truncating: the stats are inline-flex runs,
-                  so `truncate` clipped them mid-value with no ellipsis at 390px. */}
               <div className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
                 <span className="min-w-0 truncate">@{row.username}</span>
                 {row.meta}
@@ -233,8 +231,6 @@ interface PodiumData {
   scoreText: string
 }
 
-// Purely decorative recap of the top three — the ranked list below carries
-// the same data for assistive tech, so the podium is hidden from it.
 function Podium({ entries }: { entries: PodiumData[] }) {
   const reducedMotion = useReducedMotionSafe()
   if (entries.length < 3) return null
@@ -262,7 +258,6 @@ function Podium({ entries }: { entries: PodiumData[] }) {
               PODIUM_COLORS[displayIndex],
             )}
           >
-            {/* Dark numeral: white on the gold / silver medal fill was 1.7:1 / 2.6:1. */}
             <span className="text-xl sm:text-2xl font-bold text-background">{entry.rank}</span>
           </div>
         </m.div>
@@ -301,7 +296,6 @@ function EmptyState({ icon: Icon = Users, message, action }: { icon?: LucideIcon
   )
 }
 
-// Same treatment as the country / Panorama panels' failed state.
 function FailedState({ icon: Icon, onRetry }: { icon: LucideIcon; onRetry: () => void }) {
   const { t } = useTranslation()
   return (
@@ -394,7 +388,6 @@ export function DailyLeaderboardPanel({
   onPlayerClick,
 }: {
   entries: LeaderboardEntry[]
-  /** Guests who finished that day's box: never ranked, only counted. */
   guestPlayers?: number
   loading: boolean
   selectedDate: Date
@@ -458,8 +451,6 @@ export function DailyLeaderboardPanel({
         />
       )}
 
-      {/* Guests play without an account and stay off the board; saying they
-          played keeps a one-row board from reading as "nobody played". */}
       {!loading && !failed && guestPlayers > 0 && (
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
           <Users className="size-4 shrink-0" aria-hidden="true" />

@@ -1,12 +1,5 @@
-/**
- * Avatar crop → canvas helpers. The math is pure (unit tested); the canvas
- * helpers are thin wrappers that only run in a browser.
- */
-
-/** Side, in pixels, of the square avatar sent to the server. */
 export const AVATAR_OUTPUT_SIZE = 512
 
-/** Encoder quality for the exported avatar (WebP, or the JPEG fallback). */
 export const AVATAR_EXPORT_QUALITY = 0.85
 
 export const AVATAR_MIN_ZOOM = 1
@@ -21,12 +14,10 @@ export interface PixelArea {
 }
 
 export interface DrawParams {
-  /** Source rectangle, in natural image pixels. */
   sx: number
   sy: number
   sw: number
   sh: number
-  /** Destination rectangle on the output canvas. */
   dx: number
   dy: number
   dw: number
@@ -35,14 +26,6 @@ export interface DrawParams {
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
 
-/**
- * Map the area picked in the cropper (natural image pixels, possibly a pixel
- * off the image edge because the cropper rounds) onto a square output canvas.
- *
- * The square area is first clamped to the image; the part that remains is
- * drawn where it belongs on the canvas, so a rounding overflow never stretches
- * the picture. Returns `null` when nothing of the image is inside the area.
- */
 export function computeAvatarDrawParams(
   area: PixelArea,
   image: { width: number; height: number },
@@ -72,7 +55,6 @@ export function computeAvatarDrawParams(
   }
 }
 
-/** Keep a zoom value inside the slider range, snapped to its step. */
 export function clampAvatarZoom(zoom: number): number {
   if (!Number.isFinite(zoom)) return AVATAR_MIN_ZOOM
   const snapped = Math.round(zoom / AVATAR_ZOOM_STEP) * AVATAR_ZOOM_STEP
@@ -89,10 +71,6 @@ export const AVATAR_EXPORT_FORMATS: readonly ExportFormat[] = [
   { type: 'image/jpeg', filename: 'avatar.jpg' },
 ]
 
-/**
- * A browser that cannot encode the requested type silently hands back a PNG.
- * Accept the blob only when it really has the type we asked for.
- */
 export function isExpectedBlob(blob: Blob | null, format: ExportFormat): blob is Blob {
   return blob !== null && blob.size > 0 && blob.type === format.type
 }
@@ -110,11 +88,6 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number):
   return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
 }
 
-/**
- * Render the cropped square at 512x512 and encode it (WebP, JPEG fallback).
- * Re-drawing through a canvas also drops EXIF/GPS and keeps only the first
- * frame of an animated GIF.
- */
 export async function renderAvatarCrop(src: string, area: PixelArea): Promise<File> {
   const image = await loadImage(src)
   const params = computeAvatarDrawParams(area, { width: image.naturalWidth, height: image.naturalHeight })

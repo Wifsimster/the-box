@@ -12,17 +12,9 @@ interface RateLimitOptions {
   key?: (req: Request) => string
 }
 
-/**
- * Minimal in-memory fixed-window rate limiter keyed by client IP (or a
- * caller-supplied key). Good enough for protecting public endpoints on a
- * single backend instance — a multi-instance deployment would need a
- * Redis-backed replacement, but we don't run that topology today.
- */
 export function createRateLimiter({ windowMs, max, key }: RateLimitOptions) {
   const buckets = new Map<string, Bucket>()
 
-  // Periodic sweep so expired buckets can't leak memory. Works even
-  // when no new requests arrive for a while on the same key.
   const sweep = setInterval(() => {
     const now = Date.now()
     for (const [k, bucket] of buckets) {

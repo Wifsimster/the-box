@@ -1,13 +1,5 @@
 import type { Variants, Transition } from 'framer-motion'
 
-/**
- * Centralized animation configurations for Framer Motion
- * Provides reusable variants and transitions for consistent animations
- */
-
-// ============================================================================
-// Spring Configurations
-// ============================================================================
 
 export const springConfig = {
   gentle: { type: 'spring', stiffness: 120, damping: 14 } as Transition,
@@ -15,19 +7,11 @@ export const springConfig = {
   bouncy: { type: 'spring', stiffness: 300, damping: 10 } as Transition,
 }
 
-// ============================================================================
-// Directional Fade Animations
-// ============================================================================
-
 export const fadeInLeft: Variants = {
   initial: { opacity: 0, x: -20 },
   animate: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: 20 },
 }
-
-// ============================================================================
-// List and Table Animations
-// ============================================================================
 
 export const tableRow: Variants = {
   initial: { opacity: 0, x: -20 },
@@ -42,10 +26,6 @@ export const tableRow: Variants = {
     transition: { duration: 0.15 },
   },
 }
-
-// ============================================================================
-// Page and Tab Transitions
-// ============================================================================
 
 export const pageTransition: Variants = {
   initial: { opacity: 0, y: 10 },

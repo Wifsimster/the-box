@@ -25,11 +25,6 @@ interface TodayDoneProps {
   streak: number | null
 }
 
-/**
- * The daily loop once today's box is open: score, streak, countdown to the
- * next box, share, yesterday's box — and only then the secondary surfaces
- * (Panorama, Premium). This is where the home page's former teasers live now.
- */
 export function TodayDone({ isGuest, streak }: TodayDoneProps) {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
@@ -54,7 +49,6 @@ export function TodayDone({ isGuest, streak }: TodayDoneProps) {
         if (!cancelled) setResults(mergeSessionResults(details))
       })
       .catch(() => {
-        /* the card falls back to the skeleton-free empty values */
       })
     return () => {
       cancelled = true
@@ -64,7 +58,6 @@ export function TodayDone({ isGuest, streak }: TodayDoneProps) {
   const score = today?.userSession?.totalScore ?? 0
   const found = today?.userSession?.screenshotsFound ?? 0
   const total = today?.totalScreenshots ?? 10
-  // Standing of the stored session (same source as /results, #412).
   const { percentile, rank, totalPlayers } = usePercentileRank({
     sessionId: today?.userSession?.sessionId ?? null,
     score,
@@ -157,9 +150,6 @@ export function TodayDone({ isGuest, streak }: TodayDoneProps) {
         </Card>
       )}
 
-      {/* Yesterday's box (D6): your answers if you finished it, otherwise a
-          catch-up (off the leaderboard). Never the answers of a box you did
-          not play: that would spoil the 7-day catch-up. */}
       {yesterdayNext && (
         <Card data-testid="today-yesterday">
           <CardContent className="flex items-center gap-3 pt-(--card-padding)">
@@ -179,7 +169,6 @@ export function TodayDone({ isGuest, streak }: TodayDoneProps) {
         </Card>
       )}
 
-      {/* Secondary surfaces: only after the daily loop is done. */}
       {(panoramaEnabled || !isPremium) && (
         <section aria-labelledby="today-more" className="space-y-2 pt-2">
           <h2 id="today-more" className="text-sm font-semibold text-muted-foreground">

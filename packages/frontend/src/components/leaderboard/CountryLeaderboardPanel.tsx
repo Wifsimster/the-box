@@ -36,11 +36,6 @@ function RankCell({ rank }: { rank: number }) {
   )
 }
 
-/**
- * Monthly country ranking: each country's average score this month, for
- * countries with at least `minPlayers` players. Countries are self-declared
- * on the profile, so the panel also nudges a signed-in player without one.
- */
 export function CountryLeaderboardPanel({
   selectedMonth,
   maxDate,
@@ -61,7 +56,6 @@ export function CountryLeaderboardPanel({
   const year = selectedMonth.getFullYear()
   const month = selectedMonth.getMonth() + 1
 
-  // Intentional fetch-in-effect, same as LeaderboardPage: no query library here.
   // oxlint-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     let alive = true

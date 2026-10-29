@@ -9,13 +9,7 @@ import { toast } from '@/lib/toast'
 import { streamerKeysApi } from '@/lib/api/streamer-keys'
 import type { WebhookSummary } from '@the-box/types'
 
-// Webhook management — the third Streamer Kit section, below API keys.
-// Self-contained: fetches its own data, owns its own dialogs. Rendered by
-// StreamerKitCard only when the public profile is enabled.
-
 interface Props {
-  // Webhooks are meaningless without an opted-in public profile — the parent
-  // gates rendering, but we also disable the create button defensively.
   enabled: boolean
 }
 
@@ -146,7 +140,6 @@ export function StreamerWebhooksSection({ enabled }: Props) {
         </ul>
       )}
 
-      {/* Revoke confirmation */}
       <ConfirmDialog
         open={revokeTargetId !== null}
         onOpenChange={(open) => {

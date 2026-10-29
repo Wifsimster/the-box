@@ -13,11 +13,9 @@ const filters = ['all', 'unlocked', 'locked'] as const
 
 function sortByDifficulty(list: AchievementWithProgress[]) {
     return list.toSorted((a, b) => {
-        // First sort by tier (easiest first: 1, 2, 3)
         if (a.tier !== b.tier) {
             return a.tier - b.tier
         }
-        // Then by points within same tier (lowest points = easiest)
         return a.points - b.points
     })
 }

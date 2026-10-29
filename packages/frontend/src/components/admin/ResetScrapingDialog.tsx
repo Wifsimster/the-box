@@ -20,8 +20,6 @@ interface ResetScrapingDialogProps {
     isLoading?: boolean
 }
 
-// Fallback if the locale ever ships without a confirmWord — keeps the
-// dialog usable instead of letting any input pass.
 const DEFAULT_CONFIRM_WORD = 'RESET'
 
 export function ResetScrapingDialog({
@@ -31,9 +29,6 @@ export function ResetScrapingDialog({
     isLoading = false,
 }: ResetScrapingDialogProps) {
     const { t } = useTranslation()
-    // Localized — French operators type RÉINITIALISER, English RESET.
-    // Compared case-insensitively + trim()'d so accent-keyboard quirks
-    // don't trap an operator who clearly understood the intent.
     const confirmWord = t('admin.geo.reset.dialog.confirmWord', DEFAULT_CONFIRM_WORD)
     const [typed, setTyped] = useState('')
 

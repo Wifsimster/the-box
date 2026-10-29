@@ -1,15 +1,5 @@
 import type { Knex } from 'knex'
 
-// Switches the Fandom map importer from scraping arbitrary `prop=images`
-// attachments off random wiki pages to the structured Fandom Interactive
-// Maps feature (namespace 2900, `Map:`). Two new columns track the source
-// map identity for re-resolution and change detection.
-//
-// Also resets curated games whose `wiki_page_title` was filled in by the
-// previous heuristic resolver (Interactive_Map / World_Map / Map / Maps /
-// Atlas) — those values are not real `Map:` page names, so the new
-// resolver must run again to discover the actual interactive map.
-
 const LEGACY_PAGE_TITLES = ['Interactive_Map', 'World_Map', 'Map', 'Maps', 'Atlas']
 
 export async function up(knex: Knex): Promise<void> {
@@ -32,8 +22,6 @@ export async function up(knex: Knex): Promise<void> {
       geo_metadata_resolved_at: null,
     })
 
-  // Drop tombstones from the previous metadata strategy so the resolver
-  // gets a clean run with the Map: namespace lookup.
   await knex('geo_ingest_failure').where({ source: 'metadata' }).delete()
   await knex('geo_ingest_failure').where({ source: 'fandom' }).delete()
 }

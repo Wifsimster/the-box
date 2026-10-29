@@ -1,6 +1,4 @@
-// Re-export all types from shared package
 export type {
-  // Domain Entities
   User,
   Game,
   Screenshot,
@@ -15,14 +13,12 @@ export type {
   LeaderboardEntry,
   LiveEvent,
 
-  // Game State
   GamePhase,
   GuessAttempt,
   GuessResult,
   PositionStatus,
   PositionState,
 
-  // API Types
   ApiResponse,
   ApiError,
   LoginRequest,
@@ -47,7 +43,6 @@ export type {
   GameHistoryResponse,
   GameSessionDetailsResponse,
 
-  // Job Management (Admin)
   JobType,
   JobStatus,
   Job,
@@ -57,18 +52,15 @@ export type {
   JobListResponse,
   RecurringJob,
 
-  // Full Import (Batch Processing)
   ImportStatus,
   ImportState,
 
-  // Email Log (Admin)
   EmailLogType,
   EmailLogStatus,
   EmailLogEntry,
   EmailLogResponse,
   EmailLogQuery,
 
-  // Billing
   BillingEntitlement,
   BillingTier,
   SubscriptionStatus,

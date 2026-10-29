@@ -11,7 +11,6 @@ interface Row {
   updated_at: Date | string
 }
 
-/** Knex adapter for the generic settings store. Holds ciphertext only for secrets. */
 export const appSettingsRepository: AppSettingsRepository = {
   async findAll(): Promise<AppSettingRow[]> {
     const rows = await db(TABLE).select<Row[]>('key', 'value', 'secret_ciphertext', 'updated_by', 'updated_at')
@@ -27,7 +26,6 @@ export const appSettingsRepository: AppSettingsRepository = {
   async upsert({ key, value, secretCiphertext, updatedBy }): Promise<void> {
     const row = {
       key,
-      // jsonb: pass a JSON string so booleans/numbers/strings round-trip as-is.
       value: value === null || value === undefined ? null : JSON.stringify(value),
       secret_ciphertext: secretCiphertext,
       updated_by: updatedBy,

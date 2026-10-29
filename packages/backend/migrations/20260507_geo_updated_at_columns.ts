@@ -1,15 +1,5 @@
 import type { Knex } from 'knex'
 
-// Forensics enabler: every geo write-heavy table now has `updated_at` so
-// the audit log can be cross-referenced with row-level last-touched
-// timestamps. Defaults to `created_at` (or NOW() where created_at doesn't
-// exist) so existing rows aren't NULL.
-//
-// We deliberately DO NOT add a database trigger to keep these in sync —
-// the app already mutates these tables through repositories, so the
-// repositories own the bump. A trigger would silently mask bugs where
-// a write path forgets to refresh updated_at.
-
 const TABLES_NEEDING_UPDATED_AT = [
   'geo_map',
   'geo_screenshot_candidate',
@@ -26,9 +16,6 @@ export async function up(knex: Knex): Promise<void> {
     await knex.schema.alterTable(table, (t) => {
       t.timestamp('updated_at', { useTz: true })
     })
-    // Backfill from created_at where present, else NOW(). Done as raw SQL
-    // because Knex.js' schema.alterTable doesn't support per-column
-    // backfill expressions cleanly.
     const hasCreatedAt = await knex.schema.hasColumn(table, 'created_at')
     if (hasCreatedAt) {
       await knex.raw(
@@ -43,11 +30,6 @@ export async function up(knex: Knex): Promise<void> {
     })
   }
 
-  // Retention helper: a single index on `attempted_at` enables a cheap
-  // `DELETE WHERE attempted_at < NOW() - INTERVAL '90 days'` retention
-  // sweep on `geo_ingest_attempt` (currently unbounded growth ~150k/day
-  // at projected catalog volume). The index is created here so the
-  // retention worker added in a follow-up commit lands cheap.
   const hasAttemptedAtIdx = await knex.schema
     .hasTable('geo_ingest_attempt')
     .then(async (exists) =>
@@ -65,7 +47,6 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  // Drop the retention index first; the column drop on its own is safe.
   const hasIdx = await knex.raw(
     `SELECT 1 FROM pg_indexes WHERE indexname = 'geo_ingest_attempt_attempted_at_idx'`,
   )

@@ -42,11 +42,6 @@ describe('resolveChangelogAutoOpen', () => {
     assert.equal(resolveChangelogAutoOpen('2.142.0', '2.142.0'), 'none')
   })
 
-  // Regression: markers written by the pre-fix code hold a *build* version,
-  // which runs ahead of the changelog registry (builds bump on every deploy).
-  // Those must read as already-seen — the old code compared the marker to the
-  // build version instead, so every deploy re-opened the dialog with the same
-  // stale notes.
   it('treats a marker ahead of the registry (legacy build-version marker) as seen', () => {
     assert.equal(resolveChangelogAutoOpen('2.142.0', '2.154.0'), 'none')
   })

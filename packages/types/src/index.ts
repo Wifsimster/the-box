@@ -1,37 +1,17 @@
-// ============================================
-// Brand — single source of truth
-// ============================================
-// `docs/brand.md` is the contract these constants enforce. A tagline written
-// as a literal anywhere else (index.html, the PWA manifest, og.routes.ts,
-// RouteSeo.tsx, a component) is a bug: the product shipped seven of them for
-// six different promises before this block existed.
-// `packages/frontend/src/lib/brand.test.ts` fails if one reappears.
-
 export type BrandLang = 'fr' | 'en'
 
 export const SITE_NAME = 'The Box'
 
-/** The promise. Hero, OG card, PWA manifest, social copy. */
 export const SITE_TAGLINE: Record<BrandLang, string> = {
   fr: 'Une capture. Un jeu à deviner.',
   en: 'One screenshot. One guess.',
 }
 
-/**
- * The category line. Page titles, meta descriptions, JSON-LD.
- * The name is deliberately short and opaque; this line carries the keywords
- * so discoverability never costs us the brand.
- */
 export const SITE_CATEGORY: Record<BrandLang, string> = {
   fr: 'The Box — le jeu quotidien du screenshot',
   en: 'The Box — the daily video-game screenshot game',
 }
 
-// ============================================
-// Domain Entities
-// ============================================
-
-// User types
 export interface User {
   id: string
   username: string
@@ -48,15 +28,10 @@ export interface User {
   createdAt: string
   emailMarketingConsent: boolean
   emailConsentUpdatedAt?: string
-  // Selected UI theme. Defaults to 'default' for everyone. Non-default
-  // values are premium-only; the frontend renders the user's selection
-  // and falls back to 'default' if the catalog drops a theme later.
   selectedTheme: string
-  /** Self-declared country (ISO 3166-1 alpha-2). Absent when not set. */
   country?: CountryCode
 }
 
-// Minimal public profile — safe to expose to unauthenticated visitors.
 export interface PublicProfile {
   username: string
   displayName: string
@@ -67,10 +42,6 @@ export interface PublicProfile {
   longestStreak: number
   gamesPlayed: number
   badges: Array<{ key: string; quantity: number }>
-  // `sessionId` is deliberately omitted: it would let an anonymous
-  // visitor pivot to /api/leaderboard/session/:sessionId to read the
-  // player's answers for today (gated server-side, but the id should
-  // not leak in the first place).
   recentSessions: Array<{
     challengeDate: string
     totalScore: number
@@ -78,7 +49,6 @@ export interface PublicProfile {
   }>
 }
 
-// Game catalog types
 export interface Game {
   id: number
   name: string
@@ -95,7 +65,6 @@ export interface Game {
   lastSyncedAt?: string
 }
 
-// Screenshot types
 export interface Screenshot {
   id: number
   gameId: number
@@ -104,10 +73,6 @@ export interface Screenshot {
   difficulty: 1 | 2 | 3
   locationHint?: string
 }
-
-// ============================================
-// Challenge Domain
-// ============================================
 
 export interface DailyChallenge {
   id: number
@@ -131,10 +96,6 @@ export interface TierScreenshot {
   position: number
   screenshot: Screenshot
 }
-
-// ============================================
-// Session Domain
-// ============================================
 
 export interface GameSession {
   id: string
@@ -173,20 +134,12 @@ export interface Guess {
   createdAt: string
 }
 
-// ============================================
-// Power-up Domain
-// ============================================
-
 export type PowerUpType =
   | 'x2_timer'
   | 'hint'
-  /** @deprecated Retired 2026-06 (legacy metadata hints) — appears on historical `guesses.power_up_used` values only, never on new guesses. */
   | 'hint_year'
-  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_publisher'
-  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_developer'
-  /** @deprecated Retired 2026-06 (legacy metadata hints) — historical values only. */
   | 'hint_genre'
   | 'hint_letter'
 
@@ -199,10 +152,6 @@ export interface PowerUp {
   usedAtRound?: number
 }
 
-// ============================================
-// Leaderboard Domain
-// ============================================
-
 export interface LeaderboardEntry {
   rank: number
   userId: string
@@ -212,13 +161,11 @@ export interface LeaderboardEntry {
   totalScore: number
   correctAnswers?: number
   totalTimeMs?: number
-  /** Average time to find a capture (correct guesses only), in ms */
   avgCaptureTimeMs?: number
   completedAt?: string
   sessionId?: string
 }
 
-// Live event types
 export interface LiveEvent {
   id: number
   dailyChallengeId: number
@@ -227,10 +174,6 @@ export interface LiveEvent {
   durationMinutes: number
   isActive: boolean
 }
-
-// ============================================
-// Achievement Domain
-// ============================================
 
 export interface Achievement {
   id: number
@@ -279,10 +222,6 @@ export interface NewlyEarnedAchievement {
   tier: number
 }
 
-// ============================================
-// Game State (Frontend)
-// ============================================
-
 export type GamePhase =
   | 'idle'
   | 'daily_intro'
@@ -292,7 +231,6 @@ export type GamePhase =
   | 'challenge_complete'
 
 export interface GuessAttempt {
-  /** Free-text the user entered (game name) for this attempt. */
   guess: string
   isCorrect: boolean
 }
@@ -305,28 +243,15 @@ export interface GuessResult {
   timeTakenMs: number
   scoreEarned: number
   hintPenalty?: number
-  /** Points deducted for letters of the title revealed on this position. */
   letterPenalty?: number
   wrongGuessPenalty?: number
-  /** In-game streak bonus included in scoreEarned (absent when none). */
   streakBonus?: number
-  /** Length of the first-try run this answer extended (absent when none). */
   streak?: number
-  /**
-   * `partial` when the player named the franchise but omitted the sequel
-   * number / full subtitle — the screenshot is solved at a reduced score.
-   * `exact` (or absent) for a full-title identification.
-   */
   matchPrecision?: 'exact' | 'partial'
   screenshot?: Screenshot
-  /** All guesses the user made for this position, in chronological order. */
   attempts?: GuessAttempt[]
 }
 
-// Position tracking for navigation.
-// `timed_out` is a terminal state: the player ran out of time on this
-// screenshot. Unlike `skipped` it is NOT revisitable and is revealed as an
-// unfound game at the end of the challenge.
 export type PositionStatus = 'not_visited' | 'in_progress' | 'skipped' | 'correct' | 'timed_out'
 
 export interface PositionState {
@@ -335,38 +260,11 @@ export interface PositionState {
   isCorrect: boolean
   screenshotData?: ScreenshotResponse
   hasIncorrectGuess?: boolean
-  /**
-   * True once the user has spent a `second_chance` for this position in
-   * the current tier session. Drives the modal's "show once" behaviour
-   * and the disabled state of the inventory item.
-   */
   secondChanceActivated?: boolean
-  /**
-   * Latest masked-title reveal state for this position, written after each
-   * successful POST /reveal-letter. Seeded from ScreenshotResponse on
-   * fetch so refresh/navigation restores the same mask.
-   */
   letterReveal?: LetterRevealState
-  /**
-   * Total active (on-screen) milliseconds already spent guessing this
-   * position, excluding the segment currently in progress. Lets the countdown
-   * timer RESUME from the remaining budget when the player navigates back to a
-   * skipped position instead of resetting to the full limit. Persisted with
-   * `positionStates`, so a refresh can't reset it either.
-   */
   timeSpentMs?: number
-  /**
-   * Latest "warmer" hint for this position, set after a wrong guess that we
-   * could relate to the answer (same franchise / developer / publisher).
-   * Rendered under the guess input; kept across navigation so revisiting the
-   * screenshot still shows the last clue. Cleared once the position is solved.
-   */
   proximityHint?: GuessProximityHint
 }
-
-// ============================================
-// API Types
-// ============================================
 
 export interface ApiResponse<T> {
   success: boolean
@@ -379,7 +277,6 @@ export interface ApiError {
   message: string
 }
 
-// Auth API
 export interface LoginRequest {
   email: string
   password: string
@@ -396,7 +293,6 @@ export interface AuthResponse {
   token: string
 }
 
-// Challenge API
 export interface TodayChallengeResponse {
   challengeId: number | null
   date: string
@@ -408,23 +304,16 @@ export interface TodayChallengeResponse {
     currentPosition: number
     isCompleted: boolean
     totalScore: number
-    /** Positions where user has guessed correctly */
     correctPositions: number[]
-    /** Count of screenshots found (correct answers) */
     screenshotsFound: number
-    /** Session start time */
     sessionStartedAt: string
-    /** Whether this is a catch-up session (previous day play) */
     isCatchUp?: boolean
   } | null
-  /** Yesterday's challenge info (only for today's challenge, signed-in players) */
   yesterdayChallenge?: {
     challengeId: number
     date: string
     hasPlayed: boolean
-    /** If played, whether it was completed */
     isCompleted?: boolean
-    /** If played, the player's session (links to their answers) */
     sessionId?: string | null
   } | null
 }
@@ -436,60 +325,28 @@ export interface StartChallengeResponse {
   sessionStartedAt: string
 }
 
-// Backwards compatibility alias
 export type StartTierResponse = StartChallengeResponse
 
 export interface ScreenshotResponse {
   screenshotId: number
   position: number
   imageUrl: string
-  /**
-   * Seconds the player has to guess this screenshot before it times out.
-   * Sourced from the tier's `time_limit_seconds` (defaults to 45). Drives
-   * the in-game countdown timer.
-   */
   timeLimitSeconds: number
-  /**
-   * Server-authoritative masked-title state for the letter-reveal hint.
-   * Before the first paid reveal `maskedTitle` is empty — even the
-   * skeleton (word count + lengths) stays hidden; revealed letters reflect
-   * prior POST /reveal-letter calls so a page refresh restores the exact
-   * same state. The full title is NEVER sent to the client before the
-   * position is solved.
-   */
   letterReveal?: LetterRevealState
 }
 
-/**
- * Masked-title reveal state for one (tierSession, position). All values
- * are computed server-side from the canonical game name — the client only
- * ever sees the masked string.
- */
 export interface LetterRevealState {
-  /**
-   * Empty string until the first paid reveal (the word-shape skeleton is
-   * part of what a reveal buys). Afterwards e.g. "E____ R___" — structural
-   * chars (spaces, digits, punctuation) and leading articles come free.
-   */
   maskedTitle: string
   lettersRevealed: number
-  /** Hard cap on reveals for this title: min(2, ceil(maskable × 0.3)). */
   maxLetters: number
-  /** Cumulative score penalty (percent of the round's earned score) accrued so far. */
   penaltyPct: number
-  /** Penalty the NEXT reveal would add, or null once the cap is reached. */
   nextPenaltyPct: number | null
 }
 
-// Letter-reveal API (POST /api/game/reveal-letter)
 export interface RevealLetterResponse extends LetterRevealState {
-  /** True when this reveal consumed a `hint_letter` inventory item (ranked daily is inventory-gated). */
   fromInventory: boolean
 }
 
-// Guess API. Note: legacy clients may still send a `powerUpUsed` field
-// (metadata hints, retired 2026-06); the server accepts and ignores it —
-// it is no longer part of the contract.
 export interface GuessRequest {
   tierSessionId: string
   screenshotId: number
@@ -499,12 +356,6 @@ export interface GuessRequest {
   roundTimeTakenMs: number
 }
 
-/**
- * How a *wrong* guess relates to the hidden answer. Surfaced as a
- * "warmer / colder" signal so the player learns something from a near-miss
- * (e.g. they named a different game by the same studio) without the answer
- * itself ever leaking. Ordered most-specific first.
- */
 export type GuessProximityRelation =
   | 'same_franchise'
   | 'same_developer'
@@ -512,21 +363,13 @@ export type GuessProximityRelation =
 
 export interface GuessProximityHint {
   relation: GuessProximityRelation
-  /**
-   * The shared attribute to echo back — the franchise name, developer, or
-   * publisher. Safe to reveal because it is an attribute of the game the
-   * player *just named themselves*, so it never discloses the answer's title.
-   */
   value: string
 }
 
-/** Admin labelling list row (GET /api/admin/describe-guesses). */
 export interface DescribeGuessAdminEntry {
   id: number
   createdAt: string
-  /** The wrong guess exactly as typed in the normal guess input. */
   guessText: string
-  /** Normalised text sent to the judge. */
   description: string
   locale: string
   isGuest: boolean
@@ -551,20 +394,7 @@ export interface DescribeGuessAdminPage {
 
 export interface GuessResponse {
   isCorrect: boolean
-  /**
-   * The answer for this position. Only present once the round is over for
-   * the player — on a correct guess or session completion. Wrong-guess
-   * responses omit it: shipping the name (plus year/publisher/developer)
-   * on every miss let one bad guess read the answer from devtools, which
-   * defeats both the hint economy and the masked-title letter reveal.
-   */
   correctGame?: Game
-  /**
-   * Present only on a *wrong* guess that we could resolve to a known game
-   * sharing a franchise / developer / publisher with the answer. Drives the
-   * in-game "warmer" banner. Absent when the guess was correct, empty, or
-   * unrecognised, or when it shares nothing with the answer.
-   */
   proximityHint?: GuessProximityHint
   scoreEarned: number
   totalScore: number
@@ -572,47 +402,15 @@ export interface GuessResponse {
   nextPosition: number | null
   isCompleted: boolean
   completionReason?: 'all_found' | 'forfeit'
-  /**
-   * Points deducted from this round's score because the player revealed
-   * letters of the title (cumulative percent locked in at reveal time,
-   * applied after the speed-multiplier cap). Absent when no letters were
-   * revealed for this position.
-   */
   letterPenalty?: number
   wrongGuessPenalty?: number
-  /**
-   * Set on the response that follows a correct guess where a previously
-   * activated `second_chance` floor was applied. The frontend uses it to
-   * surface a small "+X (seconde chance)" badge so the player understands
-   * why their score was bumped up. Absent (`undefined`) when no floor was
-   * applied, including when the player guessed correctly without an
-   * active activation.
-   */
   secondChanceFloorBoost?: number
-  /**
-   * In-game streak bonus: flat points included in `scoreEarned` when this
-   * answer completes a run of 3, 5 or 10 consecutive screenshots solved on
-   * the first try. Absent when no tier was reached, and always absent on
-   * sessions started before the bonus shipped.
-   */
   streakBonus?: number
-  /**
-   * Length of the first-try run ending at this screenshot (1 = run started).
-   * Absent on a wrong guess, a non-first-try answer, or a pre-bonus session.
-   */
   streak?: number
-  /**
-   * Precision of a correct guess. `exact` = the full title was identified;
-   * `partial` = only the franchise was named (sequel number / full subtitle
-   * omitted), which still solves the screenshot but at a reduced score. Absent
-   * on a wrong guess. The frontend surfaces a "franchise recognised" badge for
-   * `partial` so the player understands the reduced points.
-   */
   matchPrecision?: 'exact' | 'partial'
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
-// End game (forfeit) API
 export interface EndGameResponse {
   totalScore: number
   screenshotsFound: number
@@ -628,7 +426,6 @@ export interface EndGameResponse {
   newlyEarnedAchievements?: NewlyEarnedAchievement[]
 }
 
-// Search API
 export interface GameSearchResult {
   id: number
   name: string
@@ -636,37 +433,22 @@ export interface GameSearchResult {
   coverImageUrl?: string
 }
 
-// Leaderboard API
 export interface LeaderboardResponse {
   date: string
   challengeId?: number
   entries: LeaderboardEntry[]
-  /**
-   * Guests (no account) who finished this challenge. They are never ranked,
-   * but the board says they played so it doesn't look empty.
-   */
   guestPlayers?: number
 }
 
 export interface PercentileResponse {
-  percentile: number      // e.g., 85 means "top 15%"
-  totalPlayers: number    // total completed sessions
-  rank: number            // actual rank position
+  percentile: number
+  totalPlayers: number
+  rank: number
 }
 
-/**
- * Authoritative standing of one game session on its own challenge's board
- * (`GET /api/leaderboard/session/:sessionId/standing`, owner only). Rank and
- * total come from one SQL statement over the stored session score, so
- * `rank <= totalPlayers` always holds. A session that is not itself ranked
- * (unfinished, catch-up or guest) is placed hypothetically and counted once
- * in `totalPlayers`.
- */
 export interface SessionStandingResponse extends PercentileResponse {
   sessionId: string
-  /** The session's stored total score, the one the rank was computed from. */
   totalScore: number
-  /** True when the session itself appears on the leaderboard. */
   ranked: boolean
 }
 
@@ -679,7 +461,6 @@ export interface MonthlyLeaderboardEntry {
   totalScore: number
   gamesPlayed: number
   correctAnswers?: number
-  /** Average time to find a capture (correct guesses only), in ms */
   avgCaptureTimeMs?: number
 }
 
@@ -689,16 +470,6 @@ export interface MonthlyLeaderboardResponse {
   entries: MonthlyLeaderboardEntry[]
 }
 
-// ===== Player country (monthly country ranking) =====
-
-/**
- * ISO 3166-1 alpha-2 codes a player can declare on their profile. The country
- * is optional and self-declared: it is never derived from the IP address or
- * the browser locale (RGPD). Display names come from `Intl.DisplayNames`, so
- * the list holds codes only. The frontend keeps a mirror in
- * `src/lib/countries.ts` (this package compiles to CommonJS); `countries.test.ts`
- * checks that the two lists stay identical.
- */
 export const COUNTRY_CODES = [
   'AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AW', 'AX', 'AZ',
   'BA', 'BB', 'BD', 'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BL', 'BM', 'BN', 'BO', 'BQ', 'BR', 'BS',
@@ -729,30 +500,24 @@ export function isCountryCode(value: unknown): value is CountryCode {
 export interface CountryLeaderboardEntry {
   rank: number
   countryCode: CountryCode
-  /** Mean of each player's average daily score this month, rounded. */
   averageScore: number
-  /** Distinct ranked players from this country this month. */
   playerCount: number
 }
 
 export interface CountryLeaderboardResponse {
   year: number
   month: number
-  /** Players a country needs this month before it is ranked. */
   minPlayers: number
   entries: CountryLeaderboardEntry[]
-  /** Present only for a signed-in viewer. */
   viewer?: {
     countryCode: CountryCode | null
-    /** Ranked players from the viewer's country this month (0 without a country). */
     playerCount: number
   }
 }
 
-// User History API
 export interface GameHistoryEntry {
   sessionId: string
-  challengeDate: string  // YYYY-MM-DD
+  challengeDate: string
   totalScore: number
   isCompleted: boolean
   completedAt: string | null
@@ -762,7 +527,7 @@ export interface GameHistoryEntry {
 
 export interface MissedChallenge {
   challengeId: number
-  date: string  // YYYY-MM-DD
+  date: string
 }
 
 export interface GameHistoryResponse {
@@ -777,11 +542,6 @@ export interface GameSessionDetailsResponse {
   isCompleted: boolean
   completedAt: string | null
   totalScreenshots: number
-  /**
-   * True when this session's totalScore equals the user's all-time
-   * highest completed-session score (and totalScore > 0). Drives the
-   * "personal best" gold hero treatment on the details page.
-   */
   isPersonalBest: boolean
   guesses: Array<{
     position: number
@@ -804,14 +564,9 @@ export interface GameSessionDetailsResponse {
   }>
 }
 
-// ============================================
-// Job Management (Admin)
-// ============================================
-
 export type JobType = 'import-games' | 'import-screenshots' | 'sync-new-games' | 'batch-import-games' | 'create-daily-challenge' | 'sync-all-games' | 'cleanup-anonymous-users' | 'recalculate-scores' | 'clear-daily-data' | 'refresh-game-aliases'
 export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
 
-// Import State for batch processing
 export type ImportStatus = 'pending' | 'in_progress' | 'paused' | 'completed' | 'failed'
 
 export interface ImportState {
@@ -819,12 +574,10 @@ export interface ImportState {
   importType: string
   status: ImportStatus
 
-  // Configuration
   batchSize: number
   minMetacritic: number
   screenshotsPerGame: number
 
-  // Progress tracking
   totalGamesAvailable: number | null
   currentPage: number
   lastProcessedOffset: number
@@ -834,11 +587,9 @@ export interface ImportState {
   screenshotsDownloaded: number
   failedCount: number
 
-  // Batch tracking
   currentBatch: number
   totalBatchesEstimated: number | null
 
-  // Timestamps
   startedAt: string | null
   pausedAt: string | null
   resumedAt: string | null
@@ -860,29 +611,23 @@ export interface Job {
   startedAt?: string
   completedAt?: string
   failedAt?: string
-  nextRunAt?: string // For recurring jobs, when the next run is scheduled
+  nextRunAt?: string
 }
 
 export interface JobData {
-  // For import-games
   targetGames?: number
   screenshotsPerGame?: number
   minMetacritic?: number
-  // For sync-new-games
   maxGames?: number
-  // For batch-import-games
   batchSize?: number
   importStateId?: number
   isResume?: boolean
-  // For sync-all-games
   syncStateId?: number
   updateExistingMetadata?: boolean
-  // For recalculate-scores
   recalculateStateId?: number
   dryRun?: boolean
   startDate?: string
   endDate?: string
-  // For refresh-game-aliases (index of the first game of the batch)
   offset?: number
 }
 
@@ -891,10 +636,8 @@ export interface JobResult {
   screenshotsProcessed?: number
   failedCount?: number
   message?: string
-  // For sync-new-games
   newGames?: number
   skipped?: number
-  // For batch-import-games and sync-all-games
   batchNumber?: number
   totalBatches?: number
   importStateId?: number
@@ -903,26 +646,21 @@ export interface JobResult {
   nextBatchScheduled?: boolean
   gamesImported?: number
   gamesSkipped?: number
-  // For sync-all-games
   gamesUpdated?: number
   syncStateId?: number
-  // For cleanup-anonymous-users
   usersDeleted?: number
-  // For recalculate-scores
   sessionsProcessed?: number
   sessionsUpdated?: number
   sessionsSkipped?: number
   totalScoreChanges?: number
   recalculateStateId?: number
   dryRun?: boolean
-  // For clear-daily-data
   sessionsDeleted?: number
   challengeId?: number
-  challengeDate?: string  // For refresh-game-aliases
+  challengeDate?: string
   aliasesAdded?: number
 }
 
-// Job API Types
 export interface CreateJobRequest {
   type: JobType
   data?: JobData
@@ -941,10 +679,6 @@ export interface RecurringJob {
   nextRun: string | null
   isActive: boolean
 }
-
-// ============================================
-// Email Log (admin)
-// ============================================
 
 export type EmailLogType =
   | 'password-reset'
@@ -987,28 +721,12 @@ export interface EmailLogQuery {
   dateTo?: string
 }
 
-// ============================================
-// Daily Login Rewards Domain
-// ============================================
-
-/**
- * Rarity tier for a daily-login reward. Drives the colour, label and
- * unlock animation shown in the calendar + claim modal. Ordered from
- * least to most prestigious; see `RARITY_STYLES` on the frontend for the
- * visual mapping. Independent from `rewardType` (which only describes the
- * payload shape) — a `points` reward can still be `epic`.
- */
 export type RewardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
 
 export interface DailyReward {
   id: number
   dayNumber: number
   rewardType: 'powerup' | 'points' | 'legendary'
-  /**
-   * Visual rarity tier. Optional for backward compatibility with historical
-   * claims; the backend always populates it and the frontend falls back to
-   * a derived value when absent.
-   */
   rarity?: RewardRarity
   rewardValue: {
     items: Array<{ key: string; quantity: number }>
@@ -1051,12 +769,6 @@ export interface DailyLoginStatus {
   currentDayInCycle: number
   todayReward: DailyReward | null
   allRewards: DailyReward[]
-  /**
-   * Set on the SINGLE response that follows a streak-freeze auto-consume
-   * (the user missed exactly one day and a freeze was available). Frontend
-   * shows a non-blocking toast; never null on subsequent calls within the
-   * same login day. Absent (`null`) when no freeze was consumed.
-   */
   streakFreezeConsumed?: {
     previousStreak: number
     newStreak: number
@@ -1083,14 +795,6 @@ export interface LoginRewardClaim {
   claimedAt: string
 }
 
-// ============================================
-// Generic Rewards (idempotent grants surfaced in RewardsInbox)
-// ============================================
-
-/**
- * Discriminator for the source of a reward grant. Each source pairs with a
- * `source_ref` natural key documented in `migrations/*_reward_grants.ts`.
- */
 export type RewardSource =
   | 'reactivation'
   | 'milestone'
@@ -1100,30 +804,16 @@ export type RewardSource =
   | 'powerup_drop'
   | 'daily_login'
 
-/**
- * One inventory item granted as part of a reward. The shape mirrors
- * `user_inventory` rows.
- */
 export interface RewardGrantItem {
   itemType: string
   itemKey: string
   quantity: number
 }
 
-/**
- * Persistent payload stored in `reward_grants.payload`. Kept narrow on
- * purpose: items are the only thing inboxes need to render. Source-specific
- * metadata (e.g. milestone display name) is resolved client-side via i18n
- * keys derived from `source` + `sourceRef`, not embedded here.
- */
 export interface RewardGrantPayload {
   items: RewardGrantItem[]
 }
 
-/**
- * Domain representation of a reward grant. Repositories return rows mapped
- * to this shape; routes serialize to JSON directly.
- */
 export interface RewardGrant {
   id: string
   userId: string
@@ -1135,11 +825,6 @@ export interface RewardGrant {
   claimedAt: string | null
 }
 
-/**
- * Socket.io event emitted to room `user:${userId}` AFTER the inventory
- * upsert commits. Frontend stores subscribe once and update the inbox
- * + Zustand inventory cache on receipt.
- */
 export interface RewardGrantedEvent {
   rewardId: string
   source: RewardSource
@@ -1148,10 +833,6 @@ export interface RewardGrantedEvent {
   grantedAt: string
   unlockedAt: string | null
 }
-
-// ============================================
-// Cosmetic equipment (V2b)
-// ============================================
 
 export type CosmeticSlot = 'avatar_frame' | 'name_title'
 
@@ -1167,11 +848,6 @@ export interface CosmeticsState {
   equipped: Partial<Record<CosmeticSlot, string | null>>
 }
 
-// ============================================
-// Geolocation Mode (additive — separate from the main game)
-// ============================================
-
-// Normalized [0..1] map coordinates. Both axes independent of pixel size.
 export interface GeoPoint {
   x: number
   y: number
@@ -1188,21 +864,8 @@ export type GeoMapSource =
   | 'steam'
   | 'manual'
 
-// 'image' = single flat PNG/JPG (most games today). 'tiles' = Leaflet-style
-// tile pyramid (e.g. World of Warcraft via World-of-MapCraft, Hollow Knight
-// at higher resolutions). Both kinds share widthPx/heightPx as the world
-// rectangle in pixels at the deepest zoom — pin coordinates stay normalized
-// [0..1] regardless of kind.
 export type GeoMapKind = 'image' | 'tiles'
 
-// Naming schemes for tile URL templates. Kept as a strict union (rather than
-// free-form strings) so the formatter, the worker probe, and the renderer
-// all agree on what a registry entry means.
-//
-//  - 'xyz': vanilla `{z}/{x}/{y}` substitution; Leaflet's default. Z grows
-//    with zoom (z=0 most zoomed-out).
-//  - 'xyz-padded2-inverted': zero-pad x and y to 2 digits, and invert z so
-//    the URL's z=0 is the deepest layer (used by World-of-MapCraft).
 export type GeoTileScheme = 'xyz' | 'xyz-padded2-inverted'
 
 export interface GeoMapTilesConfig {
@@ -1222,42 +885,22 @@ export interface GeoMap {
   widthPx: number
   heightPx: number
   kind: GeoMapKind
-  // Set when kind === 'tiles'. Undefined for kind === 'image'.
   tiles?: GeoMapTilesConfig
   consensusRadius: number
   license: string
   attribution?: string
-  // Optional region label for games whose world is natively split
-  // (Witcher 3 Velen / Skellige, BG3 Acts I-III, Diablo II Acts I-V).
-  // Undefined = canonical / world map (default).
   region?: string
-  // Fandom Interactive Maps source identity (only set for source='fandom').
-  // wikiMapName is the `Map:` page name without prefix; wikiRevisionId is
-  // the JSON revisionId at import time, used for change detection.
   wikiMapName?: string
   wikiRevisionId?: number
-  // Zone the map covers. NULL zone_slug = single-zone / world map.
   zoneName?: string
   zoneSlug?: string
-  // Provider that produced this candidate (mirrors `source` for now;
-  // diverges if we ever ingest a wand-sourced map under a custom ingest tag).
   provider?: string
-  // Admin chose this map for its (game, zone). Exactly one selected map per
-  // (game, zone). For multi-source pipelines, only the selected one is shown
-  // to players.
   isSelected?: boolean
-  /** @deprecated Kept for one release; mirrors `isSelected`. */
   isCaptureDefault?: boolean
 }
 
-// =====
-// Multi-source map fetch pipeline (BullMQ-driven, replaces topup screenshots).
-// =====
-
 export type GeoSourceKind = 'map' | 'candidates'
 
-// Providers tracked by the new pipeline. Keep in sync with the
-// `geo_source_config` table seed.
 export type GeoSourceName =
   | 'fandom'
   | 'strategywiki'
@@ -1327,9 +970,6 @@ export interface GeoIngestAttempt {
   attemptedAt: string
 }
 
-// Lightweight subset of GeoMap surfaced to the daily challenge chooser. The
-// player needs an image + size to render the thumbnail and (for the selected
-// map) the canvas; everything else stays server-side until reveal.
 export interface GeoMapOption {
   id: number
   region?: string
@@ -1343,11 +983,6 @@ export interface GeoMapOption {
 export interface GeoScreenshotCandidate {
   id: number
   gameId: number
-  /**
-   * Set when the candidate is fetched via the admin review listing — the
-   * repository joins `games` so the Pins UI can label rows without a
-   * second round-trip per row. Per-id detail lookups don't populate it.
-   */
   gameName?: string
   geoMapId: number
   screenshotId?: number
@@ -1369,10 +1004,6 @@ export interface GeoScreenshotMeta {
   promotedVia: 'consensus' | 'admin' | 'agent_override'
 }
 
-// Per-game summary surfaced by the admin moderation list. Counts come from a
-// single GROUP BY on geo_screenshot_candidate so the moderator sees the true
-// number of captures per game (the per-candidate listing is paginated and
-// would lie if we summed a capped page client-side).
 export interface GeoCandidateGameSummary {
   gameId: number
   gameName: string | null
@@ -1384,13 +1015,6 @@ export interface GeoCandidateGameSummary {
   oldestPendingAt: string | null
 }
 
-// Diagnostic surfaced by the admin "content readiness" card: games that have
-// an active map and captures collecting pins but no canonical (promoted) pin
-// yet — the "one pin away" list that gates GeoGamers eligibility. Promoting one
-// candidate for such a game (that has never been a challenge) grows the eligible
-// pool by one. `topPinCount` is the raw submission count on the best candidate;
-// `pinsToNextThreshold` is how many more pins until the next consensus recompute
-// could promote it (0 once past the top threshold).
 export interface GeoGameNeedingContent {
   gameId: number
   gameName: string | null
@@ -1400,12 +1024,6 @@ export interface GeoGameNeedingContent {
   bestCandidateId: number | null
 }
 
-// Catalog row for the agent content-creation surface (issue #331, phase 5) —
-// the whole geo-curated pool, not just the "one pin away" work queue.
-// `eligible` mirrors the GeoGamers eligibility gate (an active map + at least
-// one canonical/promoted pin); `starved` flags a game whose active capture
-// count hasn't reached the ingest pipeline's per-game target yet, so an agent
-// knows where `geo_import_captures` would actually help.
 export interface GeoCatalogGame {
   gameId: number
   gameName: string | null
@@ -1416,11 +1034,6 @@ export interface GeoCatalogGame {
   starved: boolean
 }
 
-// Content-readiness snapshot for the GeoGamers daily scheduler. Returned by
-// GET /api/admin/geogamers/health and, for content-sourcing agents, by
-// GET /api/agent/v1/geo/health. `starved` is the gate the daily worker itself
-// checks: fewer than `minRequired` distinct eligible games means a day can
-// silently skip.
 export interface GeoGamersHealthSnapshot {
   enabled: boolean
   minRequired: number
@@ -1441,20 +1054,12 @@ export interface GeoChallenge {
   tier: number
 }
 
-// Sibling shape returned by the userId-aware history endpoint so the
-// frontend can find the next unplayed challenge without an extra
-// per-challenge round-trip. `hasGuessed` is true if the player has
-// already submitted *or* skipped this challenge — both block today's
-// slot symmetrically.
 export interface GeoChallengeWithStatus extends GeoChallenge {
   hasGuessed: boolean
 }
 
 export interface GeoGuessInput {
   geoChallengeId: number
-  // Map the player picked from the chooser. Required when the challenge's
-  // game has > 1 enabled map; the API still accepts a missing value for
-  // single-map games and treats it as "the only one".
   geoMapId?: number
   guess: GeoPoint
   durationMs?: number
@@ -1466,67 +1071,33 @@ export interface GeoGuessResult {
   distance: number
   score: number
   scoreVersion: number
-  // Community comparison: average score across all players who have
-  // already submitted on this challenge (the just-recorded guess
-  // included), and how many players that average is computed from.
-  // Optional so older clients / older persisted store snapshots stay valid.
   averageScore?: number
   playerCount?: number
-  // Multi-map reveal: the map the screenshot actually belongs to and a
-  // flag for "the player picked the wrong map" (score floored to ~1).
-  // Optional so older persisted store snapshots stay valid.
   correctMapId?: number
   wrongMap?: boolean
 }
 
-// ---- Free-play (unranked, all-games-all-maps browser) ----
-
-// Catalog row: a game that the free-play picker can offer. mapCount and
-// screenshotCount let the UI render badges without an N+1 lookup; the cover
-// art is reused from the games table when available.
 export interface GeoPlayableGame {
   id: number
   name: string
   coverImageUrl: string | null
   mapCount: number
   screenshotCount: number
-  // True when the game is set in real geography (GTA → LA, Yakuza →
-  // Tokyo). The cold-start shuffle uses this to bias first-time
-  // visitors toward titles where the pin task has an obvious mental
-  // model. Defaults to false for fictional-world games (Zelda's
-  // Hyrule, Elden Ring's Lands Between, etc.).
   realWorldSetting: boolean
 }
 
-// Public dataset social-proof counter — total pins submitted since UTC
-// midnight. Surfaced on the empty/first-run state so a cold visitor
-// immediately sees they're joining an active community.
 export interface GeoTodayStats {
   totalPinsToday: number
 }
 
-// View returned by `POST /api/geo/free-play/random`. Mirrors the daily
-// challenge view minus the challenge wrapper — there is no challenge id
-// because nothing is persisted server-side.
 export interface GeoFreePlayView {
-  // Echoed back so the client doesn't have to hold onto its own request
-  // copy; `name` may be empty when the service couldn't cheaply look it
-  // up (the free-play picker fills it from its games-list cache anyway).
   game: { id: number; name: string }
-  // Only the id: the canonical point and map are the answer, so the pick
-  // response must never carry them (scored server-side on guess).
   meta: Pick<GeoScreenshotMeta, 'id'>
   candidate: GeoScreenshotCandidate
   maps: GeoMap[]
-  // The map the screenshot canonically belongs to. Only populated AFTER
-  // a guess is scored (the pick endpoint never includes it).
   map?: GeoMap
 }
 
-// Result of `POST /api/geo/free-play/guess`. Same shape as the daily
-// `GeoGuessResult` minus the leaderboard-only `averageScore` /
-// `playerCount` fields — free-play is unranked, so those would always
-// be empty.
 export interface GeoFreePlayResult {
   guess: GeoPoint
   canonical: GeoPoint
@@ -1535,10 +1106,6 @@ export interface GeoFreePlayResult {
   scoreVersion: number
   correctMapId: number
   wrongMap: boolean
-  // Total contribution pins recorded against this capture so far. Surfaced
-  // on submit so the player can see how many people have pinned the same
-  // screenshot. Free-play guesses don't bump this — only crowdsourced
-  // contributions do.
   pinCount: number
 }
 
@@ -1554,40 +1121,23 @@ export interface GeoLeaderboardEntry {
 export interface GeoPinSubmissionInput {
   geoScreenshotCandidateId: number
   pin: GeoPoint
-  // Optional self-reported confidence — 1 = sure, 2 = approximate,
-  // 3 = pure guess. The consensus algorithm uses it as a weight; an
-  // unspecified value is treated as "sure".
   confidence?: GeoPinConfidence
 }
 
-// Self-reported confidence on a pin submission. Stored as a smallint
-// in `geo_pin_submission.confidence` (CHECK 1–3); the type narrows to
-// the same domain on the wire so a future weighting tweak doesn't
-// have to chase string-vs-int representations.
 export type GeoPinConfidence = 1 | 2 | 3
 
 export type GeoPinStatus = 'pending' | 'accepted' | 'rejected'
 
-// Provenance of a pin. `human` is a crowd/contributor pin; the `agent_*` values
-// are machine-proposed pins (issue #331) that are downweighted in consensus and
-// — critically — never counted toward the human-gated promote threshold.
 export type GeoPinSource = 'human' | 'agent_structured' | 'agent_vision'
 
 export interface GeoPinSubmission {
   id: number
-  // Null for agent-proposed pins (they belong to an API key, not a user).
   userId: string | null
   geoScreenshotCandidateId: number
   pin: GeoPoint
   status: GeoPinStatus
   confidence?: GeoPinConfidence
-  // True when the submitter was a Better Auth anonymous (guest)
-  // session at submit time. Persisted so the consensus pipeline and
-  // admin moderation can downweight or filter without re-deriving
-  // provenance after the fact.
   isAnonymous: boolean
-  // Pin provenance. Defaults to 'human'; agent pins carry an agent source plus
-  // the fields below for review.
   source: GeoPinSource
   agentRationale?: string
   agentModel?: string
@@ -1617,7 +1167,6 @@ export interface GeoContributorTierThreshold {
   displayOrder: number
 }
 
-// Realtime event payloads on the `/geo` namespace (or `geo:*` prefix).
 export interface GeoRewardedEvent {
   userId: string
   geoScreenshotCandidateId: number
@@ -1630,35 +1179,18 @@ export interface GeoTierUpEvent {
   newTier: GeoContributorTier
 }
 
-// Realtime payload for the `/notifications` namespace, fired when an admin
-// grants a user lifetime Premium. The frontend listens for this event and
-// surfaces it as a toast — the user is also notified by email.
 export interface UserPremiumGrantedEvent {
   userId: string
   tier: 'supporter_lifetime'
   grantedAt: string
 }
 
-// Realtime payload for the `/notifications` namespace, fired the moment a
-// user unlocks one or more achievements — game completion, forfeit, or a
-// background account-age milestone sweep. The frontend surfaces each as a
-// celebratory toast so the unlock is seen immediately, on any page. The
-// `user_achievements` rows are already persisted, so a missed emit (offline
-// client) is reconciled when the achievements page next loads — this emit
-// is best-effort, not authoritative.
 export interface AchievementUnlockedEvent {
   userId: string
   achievements: NewlyEarnedAchievement[]
   unlockedAt: string
 }
 
-// Capture eligibility reporting. A user can flag a screenshot they believe
-// shouldn't be playable (wrong game, unreadable, inappropriate, etc.). After
-// enough distinct users report the same target it is auto-deactivated for
-// all game modes. The reason union is kept here as a pure type so both
-// frontend and backend agree on the wire shape; each side declares its own
-// runtime list of values (this package emits CJS and is consumed as
-// types-only).
 export type ScreenshotReportReason =
   | 'wrong_game'
   | 'low_quality'
@@ -1667,18 +1199,8 @@ export type ScreenshotReportReason =
   | 'too_easy'
   | 'other'
 
-// ============================================
-// Billing — Stripe-backed Premium subscription
-// ============================================
-// Wire shape only. The runtime price catalog (display amounts paired with
-// env-driven Stripe price IDs) lives server-side in the backend config so
-// this package stays types-only.
-
 export type BillingTier = 'premium_monthly' | 'premium_annual' | 'supporter_lifetime'
 
-// Mirrors a Stripe Subscription status. Internal billing status is derived
-// from this; treat 'active' and 'trialing' as the only entitlement-granting
-// states for recurring tiers.
 export type SubscriptionStatus =
   | 'active'
   | 'trialing'
@@ -1689,10 +1211,6 @@ export type SubscriptionStatus =
   | 'unpaid'
   | 'paused'
 
-// Public-facing price metadata returned by GET /api/billing/prices. Amount
-// is in the smallest currency unit (cents) so the frontend formats once.
-// Stripe price IDs are intentionally not exposed: the backend resolves
-// them by lookup_key and the frontend identifies tiers by `tier` only.
 export interface BillingPrice {
   tier: BillingTier
   unitAmount: number
@@ -1701,9 +1219,6 @@ export interface BillingPrice {
   active: boolean
 }
 
-// Server-derived view of the caller's entitlement, returned by
-// GET /api/billing/me. `validUntil` is the period end for recurring tiers
-// (so the UI can show "Premium until ...") and null for lifetime grants.
 export interface BillingEntitlement {
   isPremium: boolean
   tier: BillingTier | null
@@ -1712,23 +1227,12 @@ export interface BillingEntitlement {
   source: 'subscription' | 'supporter' | null
 }
 
-// ============================================
-// Premium-only profile stats (advanced view)
-// ============================================
-//
-// Returned by GET /api/user/advanced-stats (premium-gated). Aggregates
-// over the user's completed daily sessions only — catch-up sessions are
-// excluded so the numbers don't drift from the leaderboard view. All
-// time values are milliseconds.
-
 export interface AdvancedStats {
-  // Headline aggregates over completed daily sessions.
   bestScore: number
   averageScore: number
   totalCompletedSessions: number
-  perfectSessions: number // sessions at 2000pts (the perfect ceiling)
+  perfectSessions: number
 
-  // Solve-time distribution across correct guesses (ms).
   solveTimeMs: {
     p25: number
     median: number
@@ -1736,42 +1240,23 @@ export interface AdvancedStats {
     mean: number
   }
 
-  // How often the user reaches for hints. Counts only.
   hintUsage: {
-    /** Total letters revealed via the masked-title hint (one reveal = one letter). */
     hintLetter: number
-    /**
-     * Historical uses of the four retired metadata hints
-     * (year/publisher/developer/genre, retired 2026-06), folded into one
-     * rollup. Frozen — can only ever come from pre-retirement guess rows.
-     */
     legacyMetadataHints: number
   }
 
-  // Last-six-months progression (oldest → newest). `month` is YYYY-MM.
   monthlyScores: Array<{
     month: string
     totalScore: number
     sessionCount: number
   }>
 
-  // Streaks pulled from the user record so the panel can render them
-  // without a second round-trip.
   streaks: {
     current: number
     longest: number
   }
 }
 
-// ============================================
-// Web Push Notifications
-// ============================================
-
-// Wire payload the backend ships to the service worker via web-push. The SW
-// renders a notification using `title`/`body` and stores `url` + `data` for
-// the click handler. `type` is a free-form discriminator the SW also uses to
-// pick a notification tag (so e.g. successive 'streak_at_risk' nudges
-// coalesce instead of stacking).
 export interface PushPayload {
   type: string
   title: string
@@ -1780,29 +1265,21 @@ export interface PushPayload {
   data?: Record<string, unknown>
 }
 
-// POST /api/push/subscribe body. The browser hands us all four fields; the
-// backend rejects `endpoint` if its host is not on the push-provider
-// allowlist (FCM, Mozilla autopush, Apple, Windows).
 export interface PushSubscribeRequest {
   endpoint: string
   keys: { p256dh: string; auth: string }
   userAgent?: string
 }
 
-// DELETE /api/push/subscribe body.
 export interface PushUnsubscribeRequest {
   endpoint: string
 }
 
-// GET /api/push/subscribe / POST /api/push/subscribe success body.
 export interface PushSubscribeResponse {
   id: number
   isActive: boolean
 }
 
-// Per-device summary returned by the (planned) GET /api/push/subscriptions
-// endpoint. Intentionally omits the endpoint URL itself — the client doesn't
-// need the per-device token, only enough to identify the row in a list.
 export interface PushSubscriptionSummary {
   id: number
   userAgent: string | null
@@ -1811,34 +1288,19 @@ export interface PushSubscriptionSummary {
   isActive: boolean
 }
 
-// ============================================
-// Public API / Streamer Kit (M1)
-// ============================================
-
-// Scopes a key can carry. The streamer-kit scopes (`read:public` … `webhooks:self`)
-// gate the public streamer API; the `geo-agent:*` scopes gate the separate
-// agent content-sourcing surface (`/api/agent/v1/geo`, issue #331). The two
-// families are mutually exclusive on a single key — a geo-agent key is minted by
-// an admin and can only reach the agent surface, never a streamer's data, and a
-// streamer key is rejected on the agent surface. Enforced at mint time and by
-// `requireScope` per route.
 export type ApiKeyScope =
   | 'read:public'
   | 'read:self'
   | 'stream:self'
   | 'webhooks:self'
-  | 'geo-agent:read' // health, games-needing-content, candidate listing
-  | 'geo-agent:ingest' // trigger the existing geo ingestion pipeline (phase 3)
-  | 'geo-agent:propose' // submit downweighted, flagged consensus pins (phase 4)
-  | 'geo-agent:curate' // enroll games, top up captures, manage candidate maps (phase 5)
-  | 'geo-agent:promote' // confirm & promote a capture's qualifying consensus pin (phase 7)
-  | 'geo-agent:promote-override' // override-promote a capture at agent-supplied coords, bypassing consensus (phase 8)
-  | 'admin:settings' // read/write app settings (/api/agent/v1/settings, settings MCP tools); secrets stay write-only
+  | 'geo-agent:read'
+  | 'geo-agent:ingest'
+  | 'geo-agent:propose'
+  | 'geo-agent:curate'
+  | 'geo-agent:promote'
+  | 'geo-agent:promote-override'
+  | 'admin:settings'
 
-// The geo-agent scopes, in privilege order. A read-only key carries only the
-// first; ingest/propose/curate/promote/promote-override are granted per key as
-// later phases ship. `promote-override` is the most privileged — it bypasses
-// the anti-poisoning consensus gate — and is never folded into another scope.
 export const GEO_AGENT_SCOPES = [
   'geo-agent:read',
   'geo-agent:ingest',
@@ -1852,42 +1314,27 @@ export function isGeoAgentScope(scope: ApiKeyScope): boolean {
   return scope.startsWith('geo-agent:')
 }
 
-// Admin-minted agent scopes outside the geo family. Same minting surface
-// (Admin → agent keys), same mutual exclusion with the streamer scopes.
 export const ADMIN_AGENT_SCOPES = ['admin:settings'] as const satisfies readonly ApiKeyScope[]
 
-/** Every scope an admin may put on an agent key (geo-agent:* and admin:*). */
 export const AGENT_KEY_SCOPES = [
   ...GEO_AGENT_SCOPES,
   ...ADMIN_AGENT_SCOPES,
 ] as const satisfies readonly ApiKeyScope[]
 
-/** True for admin-minted agent scopes; false for the streamer self-service ones. */
 export function isAgentScope(scope: ApiKeyScope): boolean {
   return scope.startsWith('geo-agent:') || scope.startsWith('admin:')
 }
 
-// ============================================
-// App settings (admin → Paramètres, settings MCP tools)
-// ============================================
-
 export type AppSettingType = 'boolean' | 'string' | 'number' | 'secret'
 
-/**
- * One setting as the API and the MCP tools show it. A secret NEVER carries its
- * value: `value` is null and `secret` reports whether one is set plus a mask.
- */
 export interface AppSettingView {
   key: string
   type: AppSettingType
   group: string
-  /** Current value; null for secrets (write-only) and unset values without default. */
   value: boolean | string | number | null
   defaultValue: boolean | string | number | null
-  /** True when the stored value differs from the default (always false for an unset secret). */
   isSet: boolean
   secret?: { set: boolean; mask: string | null }
-  /** Constraints the UI and MCP clients can show. */
   constraints?: { min?: number; max?: number; pattern?: string; maxLength?: number }
   updatedAt: string | null
   updatedBy: string | null
@@ -1895,7 +1342,6 @@ export interface AppSettingView {
 
 export type ApiKeyMode = 'live' | 'test'
 
-// Returned by /api/streamer-keys.list — never includes the plaintext.
 export interface ApiKeySummary {
   id: number
   label: string
@@ -1908,13 +1354,10 @@ export interface ApiKeySummary {
   lastUsedIp: string | null
 }
 
-// One-shot response from /api/streamer-keys.create. Plaintext is only ever
-// returned here and never persisted; if the user loses it they rotate.
 export interface ApiKeyCreated extends ApiKeySummary {
   plaintext: string
 }
 
-// /api/public/v1/challenge/today — no spoilers, just shape.
 export interface PublicChallengeToday {
   date: string
   totalScreenshots: number
@@ -1924,7 +1367,6 @@ export interface PublicChallengeToday {
   }
 }
 
-// /api/public/v1/streamers/:slug — public profile by slug.
 export interface PublicStreamerProfile {
   slug: string
   displayName: string
@@ -1933,8 +1375,6 @@ export interface PublicStreamerProfile {
   longestStreak: number
   totalScore: number
   gamesPlayed: number
-  // Today's snapshot, denormalized for chat one-liners. Null when the
-  // streamer hasn't started today's challenge.
   today: {
     score: number
     rank: number | null
@@ -1942,12 +1382,9 @@ export interface PublicStreamerProfile {
   } | null
 }
 
-// Today's session state, no spoilers. Sufficient to drive an overlay's
-// "screenshots N/M, score X" readout without revealing the answer.
 export interface PublicStreamerToday {
   slug: string
   status: 'not_started' | 'in_progress' | 'completed'
-  // Present when status !== 'not_started'.
   session: {
     score: number
     screenshotsDone: number
@@ -1960,41 +1397,27 @@ export interface PublicStreamerToday {
   } | null
 }
 
-// /api/public/v1/leaderboard/daily and /monthly.
 export interface PublicLeaderboardEntry {
   rank: number
   slug: string | null
   displayName: string
   avatarUrl: string | null
   totalScore: number
-  // Only set on the daily endpoint.
   completedAt?: string
-  // Only set on the monthly endpoint.
   gamesPlayed?: number
 }
 
-// ============================================
-// Public API M2 — Webhooks + SSE events
-// ============================================
-
-// Top-level event taxonomy. Lives here so backend dispatch and frontend
-// (test harness, settings UI) share one source of truth. Adding a new
-// event = add it here, plus the handler in the dispatch site, plus an
-// optional default subscription row.
 export type PublicEventType =
   | 'session.started'
   | 'session.completed'
   | 'screenshot.scored'
   | 'rank.changed'
 
-// Webhook registration row as returned to the owner. Plaintext secret is
-// only present in the `WebhookCreated` shape below.
 export interface WebhookSummary {
   id: number
   url: string
   label: string
   secretPrefix: string
-  // Empty array means "all events". Otherwise a strict subset of PublicEventType.
   events: PublicEventType[]
   isActive: boolean
   createdAt: string
@@ -2002,28 +1425,17 @@ export interface WebhookSummary {
 }
 
 export interface WebhookCreated extends WebhookSummary {
-  // The signing secret. Shown exactly once at registration. If lost, the
-  // owner must revoke and re-register.
   secret: string
 }
 
-// Envelope every webhook POST body uses. Keeps the verifier snippets in
-// docs short — peel off `data` and switch on `event`.
 export interface WebhookPayload<T = unknown> {
-  // Stable id of the originating event. Idempotency key for receivers:
-  // de-dup on this before acting.
   eventId: string
   event: PublicEventType
-  // ISO timestamp the event was minted at (DB commit time, not delivery).
   occurredAt: string
-  // Public slug of the streamer the event is about. Always set for streamer
-  // events; future system-wide events may use a sentinel.
   slug: string
   data: T
 }
 
-// session.completed payload — used both by the webhook envelope and by
-// the SSE channel. Score + rank are post-completion finalized values.
 export interface SessionCompletedEvent {
   score: number
   screenshotsFound: number
@@ -2033,115 +1445,75 @@ export interface SessionCompletedEvent {
   countsForLeaderboard: boolean
 }
 
-// session.started payload — fired when a streamer begins their daily.
-// Useful for chat-bots that switch scenes or post "now playing" lines.
 export interface SessionStartedEvent {
   sessionId: string
   challengeDate: string
   countsForLeaderboard: boolean
 }
 
-// rank.changed payload — fired alongside session.completed for the player
-// who just finished a ranked (non-catch-up) session. A rank-only signal for
-// bots that don't need the full session result. Not dispatched for catch-up
-// sessions (those carry no leaderboard rank).
 export interface RankChangedEvent {
   rank: number
   challengeDate: string
 }
 
-// SSE live-channel event names. The same envelope discipline as webhooks,
-// but `id:` / `event:` / `data:` are emitted directly (not wrapped) so
-// `EventSource.addEventListener('session.completed', …)` works out of the box.
 export type SseEventName = PublicEventType | 'heartbeat' | 'connected'
 
-// ============================================
-// GeoGamers Mode (guess-the-game + geolocate)
-// ============================================
-//
-// Additive daily mode that fuses classic (identify the game from a
-// screenshot) with geo (pin the spot on its map). Reuses `GeoPoint` /
-// `GeoMapOption` / `GeoMapKind` from the Geo section above. The game
-// identity is withheld from every payload until phase 1 resolves — see the
-// anti-leak notes on `GeoGamersRunView`.
-
-// A run walks through two phases then terminates:
-//   identify -> the player names the hidden game (up to 3 attempts)
-//   locate   -> the game+map are revealed; the player drops a pin
-//   done     -> both phases scored; result revealed
 export type GeoGamersRunPhase = 'identify' | 'locate' | 'done'
 
 export interface GeoGamersChallenge {
   id: number
-  challengeDate: string // YYYY-MM-DD (UTC)
-  // geo_screenshot_meta id is NEVER exposed pre-solve; clients hold an
-  // opaque runToken and fetch the image through a proxy route.
+  challengeDate: string
 }
 
-// One phase-1 attempt. `normalized` is the fuzzy-matched form, retained for
-// audit / payout-time anomaly screening (first-attempt-correct rates).
 export interface GeoGamersGameAttempt {
   guess: string
   normalized: string
   correct: boolean
-  at: string // ISO timestamp
+  at: string
 }
 
-// What the client sees. Fields below the divider are populated ONLY once
-// phase === 'locate' (game solved or all 3 attempts spent). Constructed from
-// an explicit whitelist server-side — never by spreading the run row — so a
-// pre-solve view can carry no game/map identity.
 export interface GeoGamersRunView {
   runToken: string
   challengeDate: string
   phase: GeoGamersRunPhase
-  screenshotUrl: string // opaque proxy URL, carries no game slug
-  attemptsUsed: number // 0..3
-  attemptsMax: number // 3
-  timeLimitSeconds: number // per-phase active-time budget
+  screenshotUrl: string
+  attemptsUsed: number
+  attemptsMax: number
+  timeLimitSeconds: number
   timeSpentMs: number
-  jokerAvailable: boolean // account-only, once/season, phase 'identify' + 0 attempts
-  // --- revealed at phase 'locate' onward ---
+  jokerAvailable: boolean
   game?: { id: number; name: string }
   maps?: GeoMapOption[]
-  gamePoints?: number // 100 / 66 / 33 / 0, locked at reveal
+  gamePoints?: number
 }
 
 export interface GeoGamersGuessGameResult {
   correct: boolean
   attemptsUsed: number
   attemptsRemaining: number
-  gamePoints?: number // present once phase 1 resolves
-  // Near-miss feedback on the player's OWN guess (never metadata), same UX
-  // discipline as classic mode's proximity hinting.
+  gamePoints?: number
   proximity?: 'far' | 'close' | 'very_close'
-  run: GeoGamersRunView // refreshed view (includes game+maps on resolve)
+  run: GeoGamersRunView
 }
 
 export interface GeoGamersGuessLocationResult {
   guess: GeoPoint
   canonical: GeoPoint
-  distance: number // normalized [0..1]
-  locationPoints: number // 0..100
+  distance: number
+  locationPoints: number
   gamePoints: number
-  totalPoints: number // 0..200
+  totalPoints: number
   scoreVersion: number
-  ghostRank?: number // anonymous only: "you'd be #N today"
-  rank?: number // authenticated: live daily rank
+  ghostRank?: number
+  rank?: number
 }
 
-// Guests play unranked; signing up in the same browser session claims that
-// one day's score into the season. See the anonymous-play decision on the
-// tracking issue.
 export interface GeoGamersClaimResult {
   claimed: boolean
   challengeDate: string
   totalPoints: number
 }
 
-// Season = calendar month. `seasonScore` drops each player's 3 worst days,
-// but ONLY once `daysPlayed >= 10` (until then `provisional` is true and the
-// raw total stands).
 export interface GeoGamersSeasonStanding {
   userId: string
   username: string
@@ -2149,8 +1521,8 @@ export interface GeoGamersSeasonStanding {
   jokerUsed: boolean
   rawTotal: number
   seasonScore: number
-  droppedDays: number // 0 or 3
-  provisional: boolean // daysPlayed < 10
+  droppedDays: number
+  provisional: boolean
   rank: number
 }
 
@@ -2165,8 +1537,6 @@ export interface GeoGamersSeasonMe extends GeoGamersSeasonStanding {
   }>
 }
 
-// Realtime payloads (see docs/realtime.md). Season updates are throttled
-// server-side like the classic leaderboard broadcasts.
 export interface GeoGamersRunCompletedEvent {
   userId: string
   challengeDate: string
@@ -2174,46 +1544,35 @@ export interface GeoGamersRunCompletedEvent {
 }
 
 export interface GeoGamersSeasonUpdatedEvent {
-  month: string // YYYY-MM
+  month: string
   topN: GeoGamersSeasonStanding[]
 }
-
-// ---------------- GeoGamers Party (1–4 player lobby) ----------------
-//
-// A casual, unranked variant: 1–4 players in a private lobby play the SAME
-// server-seeded round sequence, each on their own screen, with a synchronized
-// reveal between rounds. Drawn from the retired/free-play pool (never today's
-// ranked screenshot), so it never touches the season and can't be used to
-// scout the daily. State is ephemeral (Redis, ~2h TTL).
 
 export type GeoGamersPartyStatus = 'lobby' | 'in_round' | 'reveal' | 'finished'
 
 export interface GeoGamersPartyPlayer {
-  id: string // user id or guest session id
+  id: string
   name: string
   isHost: boolean
   connected: boolean
 }
 
 export interface GeoGamersPartyConfig {
-  rounds: number // 3 | 5 | 10
-  timerSeconds: number // per-phase budget
+  rounds: number
+  timerSeconds: number
 }
 
-// Per-player result within one round. `done` is set on completion OR timeout.
 export interface GeoGamersPartyRoundResult {
   playerId: string
   attemptsUsed: number
   gamePoints: number | null
   solvedGame: boolean
-  guess: GeoPoint | null // pin coordinates, for the reveal
+  guess: GeoPoint | null
   locationPoints: number | null
   totalPoints: number | null
   done: boolean
 }
 
-// One round. Answer fields (canonical, gameId, mapId) are server-only until the
-// round is revealed — the spectator-safe view omits them while in progress.
 export interface GeoGamersPartyRound {
   index: number
   geoScreenshotMetaId: number
@@ -2231,14 +1590,11 @@ export interface GeoGamersParty {
   config: GeoGamersPartyConfig
   hostId: string
   players: GeoGamersPartyPlayer[]
-  currentRound: number // index into rounds; -1 in lobby
+  currentRound: number
   rounds: GeoGamersPartyRound[]
   createdAtMs: number
 }
 
-// Spectator-safe projection sent to clients. While a round is in progress the
-// answer (game identity, canonical pin) is withheld; per-player progress shows
-// only phase/points, never the guess text.
 export interface GeoGamersPartyView {
   code: string
   status: GeoGamersPartyStatus
@@ -2247,30 +1603,20 @@ export interface GeoGamersPartyView {
   players: GeoGamersPartyPlayer[]
   currentRound: number
   totalRounds: number
-  // Lobby capacity, mirrored from the server so the client never hardcodes it.
   maxPlayers: number
-  // The active round's playable payload (screenshot only) — present when
-  // status === 'in_round'. Answer withheld.
   round?: {
     index: number
     screenshotUrl: string
-    // Revealed maps for the locate phase, once THIS player has solved/exhausted.
     maps?: GeoMapOption[]
-    gameName?: string // only after this player resolves phase 1
+    gameName?: string
   }
-  // The requesting player's OWN round state (safe — it's their own data). Lets
-  // the client distinguish identify / locate / waiting-for-others.
-  // `attemptsLeft` is server-computed: the client used to derive it as
-  // `3 - attemptsUsed`, which silently lies if the attempt cap ever moves.
   you?: {
     attemptsUsed: number
     attemptsLeft: number
     resolvedPhase1: boolean
     done: boolean
   }
-  // Scoreboard (cumulative totals) — always safe to show.
   scoreboard: Array<{ playerId: string; name: string; total: number }>
-  // Full reveal payload — present only when status === 'reveal' or 'finished'.
   reveal?: {
     index: number
     gameName: string
@@ -2283,13 +1629,6 @@ export interface GeoGamersPartyCreatedEvent {
   code: string
 }
 
-/**
- * Emitted once per connection so the client knows which player it is.
- *
- * The party namespace accepts guests (`guest_<socketId>`), but the client used
- * to derive its identity from the auth session — so a guest host had no id,
- * `isHost` was always false, and the party could never be started.
- */
 export interface GeoGamersPartyIdentityEvent {
   playerId: string
 }

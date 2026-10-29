@@ -6,7 +6,6 @@ type WithMessage = { message?: string | null }
 
 function getApiErrorTranslationKey(code?: string | null): string {
   if (!code) return 'apiErrors.default'
-  // Only map to the namespaced key if it's a known code; otherwise fall back to default
   const exists = i18n.exists(`apiErrors.${code}`)
   return exists ? `apiErrors.${code}` : 'apiErrors.default'
 }

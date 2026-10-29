@@ -1,14 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- SUMMARY:
-  Multi-persona adversarial bug hunt on the daily game. Four personas (Speedrunner,
-  Timezone Traveler, Score Cheater, Reconnector) probed submitGuess. Found two coupled
-  defects in the completion tally: (1) anyone could replay a winning answer on an
-  already-solved position to re-bank score, and (2) an off-by-one ended the challenge
-  after 9 of 10 screenshots. Both root-caused to saveGuess running before the tally.
-  Fixed: anti-replay guard + distinct-position count, dropped the double-count. Proven
-  by a new node:test unit test (3 cases red→green); full suite 204/204.
--->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

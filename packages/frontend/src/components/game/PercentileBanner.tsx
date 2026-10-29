@@ -10,9 +10,6 @@ interface PercentileBannerProps {
   isLoading?: boolean
 }
 
-/**
- * Banner component displaying the user's percentile ranking
- */
 export function PercentileBanner({
   percentile,
   rank,
@@ -40,8 +37,6 @@ export function PercentileBanner({
     return null
   }
 
-  // Backend already returns "top X%" semantics (1 = best player, 100 = worst).
-  // Just clamp to a sensible minimum for display.
   const topPercent = Math.max(1, percentile)
 
   return (

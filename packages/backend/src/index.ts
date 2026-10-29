@@ -58,10 +58,8 @@ import { describeGuessWorker } from './infrastructure/queue/workers/describe-gue
 import { db } from './infrastructure/database/connection.js'
 import { initializeSocketIO } from './infrastructure/socket/socket.js'
 
-// Validate environment
 validateEnv()
 
-// Log configuration on startup
 logger.info(
   {
     nodeEnv: env.NODE_ENV,
@@ -69,7 +67,7 @@ logger.info(
     logLevel: env.LOG_LEVEL,
     corsOrigin: env.CORS_ORIGIN,
     apiUrl: env.API_URL,
-    databaseUrl: env.DATABASE_URL.replace(/\/\/([^:]+):([^@]+)@/, '//$1:***@'), // Hide password
+    databaseUrl: env.DATABASE_URL.replace(/\/\/([^:]+):([^@]+)@/, '//$1:***@'),
     redisUrl: env.REDIS_URL,
     emailFrom: env.EMAIL_FROM,
     hasResendApiKey: !!env.RESEND_API_KEY,
@@ -81,34 +79,22 @@ logger.info(
 
 const app = express()
 
-// Trust the first proxy hop (Traefik in production, Vite proxy in dev)
-// so `req.ip` reflects the real client address for rate limiting.
 app.set('trust proxy', 1)
 
-// JSON parsing middleware
 app.use(cors({
   origin: env.CORS_ORIGIN,
   credentials: true,
 }))
 
-// Stripe webhooks must mount BEFORE the global JSON parser — signature
-// verification needs the exact raw bytes Stripe sent. The route applies
-// its own express.raw() so only this path skips JSON parsing.
 app.use('/api/billing/webhook', billingWebhookRoutes)
 
-// JSON parsing middleware. Explicit 256kb limit pins the default rather
-// than relying on Express's implicit 100kb — leaves headroom for the
-// largest realistic request (admin game import payloads) without
-// exposing a memory-exhaustion vector.
 app.use(express.json({ limit: '256kb' }))
 app.use(express.urlencoded({ extended: true, limit: '256kb' }))
 
-// Database pool for user deletion
 const dbPool = new Pool({
   connectionString: env.DATABASE_URL,
 })
 
-// Custom route for delete-user (must be before better-auth handler)
 app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
   try {
     const { userId } = req.body
@@ -120,7 +106,6 @@ app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
       })
     }
 
-    // Prevent self-deletion
     if (userId === req.userId) {
       return res.status(400).json({
         success: false,
@@ -128,7 +113,6 @@ app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
       })
     }
 
-    // Check if user exists
     const userCheck = await dbPool.query('SELECT id, role FROM "user" WHERE id = $1', [userId])
     if (userCheck.rows.length === 0) {
       return res.status(404).json({
@@ -137,7 +121,6 @@ app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
       })
     }
 
-    // Delete user - CASCADE will handle related records (sessions, accounts, game_sessions, etc.)
     await dbPool.query('DELETE FROM "user" WHERE id = $1', [userId])
 
     logger.info({ deletedUserId: userId, deletedBy: req.userId }, 'user deleted by admin')
@@ -158,14 +141,6 @@ app.delete('/api/auth/admin/delete-user', adminMiddleware, async (req, res) => {
   }
 })
 
-// Mount better-auth handler with error handling
-// This handles all /api/auth/* routes automatically
-//
-// Targeted rate limits go first so they short-circuit before better-auth
-// sees the request. These catch the email-triggering routes that an
-// unauthenticated attacker can hit to burn Resend quota or mail-bomb
-// arbitrary addresses. High-frequency routes like /get-session are left
-// alone — they don't send email and users hit them on every page load.
 app.use('/api/auth/forgot-password', createRateLimiter({ windowMs: 15 * 60_000, max: 5 }))
 app.use('/api/auth/send-verification-email', createRateLimiter({ windowMs: 15 * 60_000, max: 5 }))
 app.use('/api/auth/sign-up', createRateLimiter({ windowMs: 15 * 60_000, max: 10 }))
@@ -188,27 +163,20 @@ app.use('/api/auth', (req, res, next) => {
   }
 })
 
-// Request logging (after body parsing for potential body logging)
 app.use(requestLogger)
 
-// Static file serving for uploads (screenshots and avatars)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadsPath = path.resolve(__dirname, '..', '..', '..', 'uploads')
 app.use('/uploads', express.static(uploadsPath))
 
-// Ensure avatars directory exists
 const avatarsPath = path.resolve(uploadsPath, 'avatars')
 import fs from 'fs'
 if (!fs.existsSync(avatarsPath)) {
   fs.mkdirSync(avatarsPath, { recursive: true })
 }
 
-// Liveness + readiness probes. Mounted at the root: an orchestrator
-// probes these before any application concern exists.
 app.use(healthRoutes)
 
-// API Routes
-// Auth routes handled by better-auth at /api/auth/*
 app.use('/api/game', gameRoutes)
 app.use('/api/leaderboard', leaderboardRoutes)
 app.use('/api/admin/geo-fetch', geoFetchRoutes)
@@ -222,15 +190,9 @@ app.use('/api/rewards', rewardsRoutes)
 app.use('/api/referral', referralRoutes)
 app.use('/api/og', ogRoutes)
 app.use('/api/features', featuresRoutes)
-// Community geo surface (free play + contribution) — mounted only while the
-// community dataset-building loop is active. Unmounting sunsets the player
-// routes without touching the geo data layer: ingestion, the agent sourcing
-// API and GeoGamers don't go through /api/geo.
 if (env.GEO_COMMUNITY_ENABLED === 'true') {
   app.use('/api/geo', geoRoutes)
 }
-// GeoGamers mode — mounted only when enabled so the API surface stays dark
-// until there's enough consensus-confirmed content to schedule challenges.
 if (env.GEOGAMERS_ENABLED === 'true') {
   app.use('/api/geogamers', geoGamersRoutes)
 }
@@ -238,36 +200,16 @@ app.use('/api/screenshot-reports', screenshotReportRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/billing', billingRoutes)
 app.use('/api/koe', koeRoutes)
-// Public, opt-in, key-authenticated read API for streamer integrations.
-// Mounted with its own CORS + rate-limit stack inside the router — see
-// public.routes.ts. Lives at /api/public/v1 so future versions can land
-// alongside without breaking pinned clients.
 app.use('/api/public/v1', publicV1Routes)
-// Session-authenticated key-management surface for the Streamer Kit
-// settings page. Owners flip the public-profile toggle, claim a slug,
-// and manage their keys here.
 app.use('/api/streamer-keys', streamerKeysRoutes)
-// Agent content-sourcing surface (issue #331). Key-authenticated with
-// admin-minted geo-agent keys. Always mounted; the whole surface is gated
-// per-request by GEO_AGENT_API_ENABLED (returns 503 AGENT_API_DISABLED when
-// off) so it can be killed by env flip + redeploy without a code change.
 app.use('/api/agent/v1/geo', agentGeoRoutes)
-// Settings MCP tools (admin:settings agent keys). Not behind the geo kill switch.
 app.use('/api/agent/v1/settings', agentSettingsRoutes)
 
-// Serve frontend static files (after API routes)
 const frontendPath = path.resolve(__dirname, '..', '..', '..', 'packages', 'frontend', 'dist')
 app.use(express.static(frontendPath))
 
-// Share shells: index.html with per-share OG meta patched into the raw
-// HTML. Must come AFTER express.static so the static index.html does not
-// shadow them, and BEFORE the SPA fallback.
 app.use(shareRoutes)
 
-// Unmatched API routes must return JSON, not the SPA shell. Otherwise a request
-// to a route that isn't mounted (e.g. `/api/geogamers/*` when the feature flag
-// is off) would fall through to the HTML fallback below, and clients calling
-// `res.json()` on it crash with "Unexpected token '<', "<!doctype "...".
 app.use('/api', (_req, res) => {
   res.status(404).json({
     success: false,
@@ -275,12 +217,10 @@ app.use('/api', (_req, res) => {
   })
 })
 
-// SPA fallback - serve index.html for all other routes (must be after API routes and static files)
 app.use((_req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'))
 })
 
-// Error handling
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error(
     {
@@ -300,32 +240,26 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
   })
 })
 
-// Start server
 async function start(): Promise<void> {
   logger.info({ env: env.NODE_ENV }, 'starting server')
 
-  // Test database connection
   const dbConnected = await testConnection()
   if (!dbConnected) {
     logger.warn('database connection failed - some features may not work')
   } else {
-    // Run migrations automatically on startup
     const migrated = await runMigrations()
     if (!migrated) {
       logger.warn('database migration failed - schema may be outdated')
     }
   }
 
-  // Test Redis connection
   const redisConnected = await testRedisConnection()
   if (!redisConnected) {
     logger.warn('redis connection failed - job queue may not work')
   } else {
-    // Recurring BullMQ schedules live in bootstrap/scheduled-jobs.ts.
     await registerScheduledJobs()
   }
 
-  // Create HTTP server and initialize Socket.IO
   const httpServer = createServer(app)
   const io = initializeSocketIO(httpServer)
 
@@ -341,9 +275,6 @@ async function start(): Promise<void> {
     )
   })
 
-  // Graceful shutdown. Docker sends SIGTERM on rolling deploy and waits ~10s
-  // before SIGKILL — close in dependency order so in-flight requests and
-  // queued jobs aren't cut mid-write.
   let shuttingDown = false
   const shutdown = async (signal: NodeJS.Signals) => {
     if (shuttingDown) return
@@ -361,9 +292,6 @@ async function start(): Promise<void> {
         ),
       ])
 
-    // Stop accepting new connections and wait for in-flight HTTP requests
-    // to finish. Without awaiting, the DB and Redis teardown below could
-    // race with a request still writing.
     await closeWithTimeout(
       'httpServer',
       () => new Promise<void>((resolve) => httpServer.close(() => resolve()))
@@ -372,10 +300,6 @@ async function start(): Promise<void> {
       await closeWithTimeout('socket.io', () => new Promise<void>((resolve) => io.close(() => resolve())))
     }
 
-    // Stop workers from picking up new jobs BEFORE closing the queue
-    // connections — without this, the worker poll-loop could grab a job,
-    // start a transaction, and then have its Redis connection ripped
-    // out from under it mid-write.
     await Promise.all([
       closeWithTimeout('importWorker.pause', () => importWorker.pause()),
       closeWithTimeout('geoWorker.pause', () => geoWorker.pause()),
@@ -384,10 +308,6 @@ async function start(): Promise<void> {
       closeWithTimeout('describeGuessWorker.pause', () => describeGuessWorker.pause()),
     ])
 
-    // Now drain — worker.close() waits for active jobs to finish (up to
-    // the closeWithTimeout window). Give workers a longer fuse than the
-    // socket/HTTP teardown because in-flight jobs may need to finish a
-    // DB write before they can return cleanly.
     await Promise.all([
       closeWithTimeout('importWorker', () => importWorker.close(), 15_000),
       closeWithTimeout('geoWorker', () => geoWorker.close(), 15_000),
@@ -415,7 +335,6 @@ async function start(): Promise<void> {
   process.on('SIGTERM', () => void shutdown('SIGTERM'))
   process.on('SIGINT', () => void shutdown('SIGINT'))
 
-  // Fail fast on unhandled errors so the orchestrator can restart us.
   process.on('unhandledRejection', (reason) => {
     logger.fatal({ reason: String(reason) }, 'unhandled promise rejection')
     void shutdown('SIGTERM')

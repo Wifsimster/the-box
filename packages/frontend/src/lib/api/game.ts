@@ -43,9 +43,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const gameApi = {
-  /**
-   * Get today's challenge information (or challenge by date if provided)
-   */
   async getTodayChallenge(date?: string): Promise<TodayChallengeResponse> {
     const url = date 
       ? `/api/game/today?date=${encodeURIComponent(date)}`
@@ -56,9 +53,6 @@ export const gameApi = {
     return handleResponse<TodayChallengeResponse>(response)
   },
 
-  /**
-   * Start a challenge session
-   */
   async startChallenge(challengeId: number): Promise<StartChallengeResponse> {
     const response = await fetch(`/api/game/start/${challengeId}`, {
       method: 'POST',
@@ -67,14 +61,6 @@ export const gameApi = {
     return handleResponse<StartChallengeResponse>(response)
   },
 
-  /**
-   * Get screenshot for a position.
-   *
-   * Pass `prefetch: true` for carousel warming / background preloading.
-   * The server otherwise stamps the round timer onto this position, and
-   * a subsequent submitGuess on a different position will 409 with
-   * `ROUND_NOT_STARTED`.
-   */
   async getScreenshot(
     sessionId: string,
     position: number,
@@ -93,9 +79,6 @@ export const gameApi = {
     return handleResponse<ScreenshotResponse>(response)
   },
 
-  /**
-   * Submit a guess
-   */
   async submitGuess(params: {
     tierSessionId: string
     screenshotId: number
@@ -115,9 +98,6 @@ export const gameApi = {
     return handleResponse<GuessResponse>(response)
   },
 
-  /**
-   * Search games for autocomplete
-   */
   async searchGames(query: string): Promise<GameSearchResult[]> {
     if (query.length < 2) return []
 
@@ -129,13 +109,6 @@ export const gameApi = {
     return data.games
   },
 
-  /**
-   * Activate the `second_chance` powerup for a specific position. The
-   * server decrements inventory and records the activation atomically.
-   * The next correct guess on this (tierSession, position) will have
-   * its score floor clamped to 70 — see backend game.service for the
-   * canonical contract.
-   */
   async activateSecondChance(params: {
     tierSessionId: string
     position: number
@@ -151,14 +124,6 @@ export const gameApi = {
     return handleResponse<{ activated: true }>(response)
   },
 
-  /**
-   * Reveal one more letter of the masked title for a position. The server
-   * owns the mask: it applies the gate (one wrong guess first), the
-   * per-title cap, the inventory consumption on the ranked daily, and
-   * locks in the score penalty — the response carries only the new masked
-   * string. Throws GameApiError with code 'LETTER_LOCKED',
-   * 'LETTER_CAP_REACHED' (409) or 'NO_INVENTORY' (402).
-   */
   async revealLetter(params: {
     tierSessionId: string
     position: number
@@ -174,9 +139,6 @@ export const gameApi = {
     return handleResponse<RevealLetterResponse>(response)
   },
 
-  /**
-   * End game early (forfeit)
-   */
   async endGame(sessionId: string): Promise<EndGameResponse> {
     const response = await fetch('/api/game/end', {
       method: 'POST',
@@ -189,9 +151,6 @@ export const gameApi = {
     return handleResponse<EndGameResponse>(response)
   },
 
-  /**
-   * Get user's daily game history
-   */
   async getGameHistory(): Promise<GameHistoryResponse> {
     const response = await fetch('/api/user/history', {
       credentials: 'include',
@@ -199,9 +158,6 @@ export const gameApi = {
     return handleResponse<GameHistoryResponse>(response)
   },
 
-  /**
-   * Get detailed game session information
-   */
   async getGameSessionDetails(sessionId: string): Promise<GameSessionDetailsResponse> {
     const response = await fetch(`/api/user/history/${sessionId}`, {
       credentials: 'include',
@@ -209,10 +165,6 @@ export const gameApi = {
     return handleResponse<GameSessionDetailsResponse>(response)
   },
 
-  /**
-   * Public preview: metadata for today's first screenshot so anonymous
-   * visitors can see the challenge before signing up.
-   */
   async getPreview(): Promise<{ challengeDate: string; imageUrl: string }> {
     const response = await fetch('/api/game/preview')
     return handleResponse<{ challengeDate: string; imageUrl: string }>(response)

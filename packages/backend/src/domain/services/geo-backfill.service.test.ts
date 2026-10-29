@@ -31,7 +31,6 @@ describe('backfillPriority', () => {
   })
 
   it('a game one pin away outranks any game that only has a map, regardless of pin count', () => {
-    // Even the max-pin bump can't lift a mapOnly game into the collecting band.
     const collectingLowPins = backfillPriority({
       gameId: 1,
       hasActiveMap: true,
@@ -66,10 +65,10 @@ describe('backfillPriority', () => {
 
 describe('rankBackfillTargets', () => {
   const candidates: BackfillCandidate[] = [
-    { gameId: 10, hasActiveMap: false, candidateCount: 0, topPinCount: 0 }, // no map
-    { gameId: 11, hasActiveMap: true, candidateCount: 0, topPinCount: 0 }, // map only
-    { gameId: 12, hasActiveMap: true, candidateCount: 4, topPinCount: 4 }, // collecting, 4 pins
-    { gameId: 13, hasActiveMap: true, candidateCount: 4, topPinCount: 9 }, // collecting, 9 pins
+    { gameId: 10, hasActiveMap: false, candidateCount: 0, topPinCount: 0 },
+    { gameId: 11, hasActiveMap: true, candidateCount: 0, topPinCount: 0 },
+    { gameId: 12, hasActiveMap: true, candidateCount: 4, topPinCount: 4 },
+    { gameId: 13, hasActiveMap: true, candidateCount: 4, topPinCount: 9 },
   ]
 
   it('orders by descending priority and caps at batchSize', () => {

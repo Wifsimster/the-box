@@ -16,8 +16,6 @@ import {
 import type { DomainLogger } from '../../domain/ports/logger.js'
 import type { UpsertSubscriptionInput } from '../../infrastructure/repositories/subscription.repository.js'
 
-// ---- Test scaffolding --------------------------------------------------
-
 const silentLogger: DomainLogger = {
   child: () => silentLogger,
   debug: () => {},
@@ -26,8 +24,6 @@ const silentLogger: DomainLogger = {
   error: () => {},
 }
 
-// The Stripe SDK only needs a key to construct; webhook signature
-// verification is pure HMAC and never hits the network.
 const stripe = new Stripe('sk_test_dummy_for_signature_verification_only')
 
 const TEST_SECRET = 'whsec_test_secret_for_unit_tests_0123456789abcdef'
@@ -42,7 +38,6 @@ interface FakeState {
   upsertCalls: UpsertSubscriptionInput[]
   resolveUserCalls: string[]
   resolveUserResult: string | null
-  // Optional throw injection points
   dispatchShouldThrow: boolean
 }
 
@@ -136,7 +131,6 @@ interface RunningServer {
 
 async function serveRouter(deps: BillingWebhookDeps): Promise<RunningServer> {
   const app = express()
-  // Mount the webhook router BEFORE express.json(), exactly like prod.
   app.use('/api/billing/webhook', createBillingWebhookRouter(deps))
   app.use(express.json())
 
@@ -159,8 +153,6 @@ interface StripeEventLite {
   id: string
   type: string
   data: { object: unknown }
-  // Stripe events have many more fields; the SDK only checks signature
-  // against the raw body, so a minimal shape is enough for these tests.
   api_version?: string
   created?: number
   livemode?: boolean
@@ -192,7 +184,7 @@ interface SignedPostOptions {
   secret?: string
   signingSecret?: string
   timestamp?: number
-  signature?: string // override entirely (for negative tests)
+  signature?: string
   omitSignature?: boolean
 }
 
@@ -218,8 +210,6 @@ async function signedPost(
   }
   return fetch(url, { method: 'POST', headers, body: payload })
 }
-
-// ---- Tests -------------------------------------------------------------
 
 describe('parseWebhookSecrets', () => {
   it('splits comma-separated secrets and trims whitespace', () => {
@@ -272,7 +262,6 @@ describe('billing-webhook router — signature verification', () => {
 
   it('rejects request with timestamp outside default 300s tolerance (400)', async () => {
     const event = buildEvent({ type: 'checkout.session.completed', data: {} })
-    // 10 minutes in the past — Stripe SDK default tolerance is 300s.
     const tenMinutesAgo = Math.floor(Date.now() / 1000) - 600
     const res = await signedPost(server.url, event, { timestamp: tenMinutesAgo })
     assert.equal(res.status, 400)
@@ -289,7 +278,7 @@ describe('billing-webhook router — secret rotation', () => {
       const event = buildEvent({
         id: 'evt_rotation_1',
         type: 'checkout.session.completed',
-        data: { mode: 'subscription' }, // ignored by dispatch (not supporter)
+        data: { mode: 'subscription' },
       })
       const res = await signedPost(server.url, event, { signingSecret: TEST_SECRET })
       assert.equal(res.status, 200)
@@ -305,7 +294,6 @@ describe('billing-webhook router — secret rotation', () => {
     const server = await serveRouter(fakes.deps)
     try {
       const event = buildEvent({ type: 'checkout.session.completed', data: {} })
-      // Even a malformed signature suffices — the secret check happens first.
       const res = await signedPost(server.url, event, { signature: 't=1,v1=x' })
       assert.equal(res.status, 503)
       const body = await res.text()
@@ -548,7 +536,6 @@ describe('billing-webhook router — dispatch routing', () => {
       const res = await signedPost(server.url, event)
       assert.equal(res.status, 200)
       assert.equal(fakes.state.upsertCalls.length, 0)
-      // Still marks processed — dropping an unknown-customer event is success, not retry.
       assert.equal(fakes.state.markProcessedCalls.length, 1)
     } finally {
       await server.close()
@@ -580,7 +567,6 @@ describe('billing-webhook router — dispatch routing', () => {
         data: {
           id: 'ch_one_time',
           customer: 'cus_one_time',
-          // No `invoice` field — this is a one-time supporter charge.
         },
       })
       const res = await signedPost(server.url, event)
@@ -602,7 +588,7 @@ describe('billing-webhook router — dispatch routing', () => {
         data: {
           id: 'ch_subscription',
           customer: 'cus_sub',
-          invoice: 'in_123', // presence of invoice routes to subscription path
+          invoice: 'in_123',
         },
       })
       const res = await signedPost(server.url, event)
@@ -622,7 +608,7 @@ describe('billing-webhook router — dispatch routing', () => {
     const server = await serveRouter(fakes.deps)
     try {
       const event = buildEvent({
-        type: 'invoice.created', // not in the switch
+        type: 'invoice.created',
         data: { id: 'in_unknown' },
       })
       const res = await signedPost(server.url, event)

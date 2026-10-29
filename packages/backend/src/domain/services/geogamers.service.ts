@@ -21,11 +21,8 @@ import {
   type GeoGamersScoringService,
 } from './geogamers-scoring.service.js'
 
-// Per-phase active-time budget, mirroring the classic 45s-per-screenshot rule.
 export const GEOGAMERS_PHASE_TIME_LIMIT_SECONDS = 60
 
-// A run cannot legitimately complete faster than this. Used by claim() to
-// reject implausibly fast guest runs before folding them into a season.
 export const GEOGAMERS_MIN_RUN_SECONDS = 10
 
 export class GeoGamersError extends Error {
@@ -50,13 +47,9 @@ export class GeoGamersError extends Error {
   }
 }
 
-// ---------- Domain records + repository ports ----------
-// Ports are co-located (as guess-proximity does with its fuzzy matcher) and
-// implemented by the infrastructure repositories in the next phase.
-
 export interface GeoGamersChallengeRecord {
   id: number
-  challengeDate: string // YYYY-MM-DD
+  challengeDate: string
   geoScreenshotMetaId: number
 }
 
@@ -66,7 +59,6 @@ export interface GeoGamersRunRecord {
   userId: string | null
   anonymousSessionId: string | null
   runToken: string
-  // Overrides the challenge meta when the joker re-rolled this run.
   geoScreenshotMetaId: number | null
   gameAttempts: GeoGamersGameAttempt[]
   gamePoints: number | null
@@ -114,18 +106,12 @@ export interface GeoGamersRunRepository {
   findRankedForUser(challengeId: number, userId: string): Promise<GeoGamersRunRecord | null>
   create(input: CreateRunInput): Promise<GeoGamersRunRecord>
   update(runId: number, patch: UpdateRunInput): Promise<GeoGamersRunRecord>
-  // Compare-and-swap update for the guess endpoints: applies `patch` only if
-  // the run is still open and its attempts / gamePoints are what the caller
-  // read. Returns null when a concurrent request changed the run first.
   updateIfUnchanged(
     runId: number,
     expected: { attemptCount: number; gamePoints: number | null },
     patch: UpdateRunInput,
   ): Promise<GeoGamersRunRecord | null>
-  // Rank support: how many completed ranked runs beat `points` today.
   countCompletedBetter(challengeId: number, points: number): Promise<number>
-  // Claim: copy a completed guest run into a new user-owned row and mark the
-  // guest row claimed. Idempotent at the DB layer via the claim-once index.
   claimGuestRun(input: {
     guestRunId: number
     userId: string
@@ -133,8 +119,6 @@ export interface GeoGamersRunRepository {
   }): Promise<GeoGamersRunRecord | null>
 }
 
-// Records a season joker and re-rolls the run's screenshot. Enforced
-// once-per-season by the (user_id, season_month) primary key.
 export interface GeoGamersJokerRepository {
   hasUsed(userId: string, seasonMonth: string): Promise<boolean>
   record(input: {
@@ -145,8 +129,6 @@ export interface GeoGamersJokerRepository {
   }): Promise<void>
 }
 
-// Picks an alternate eligible screenshot for a joker re-roll, excluding the
-// current meta and the recent-games cooldown pool.
 export interface GeoGamersAlternatePicker {
   pickAlternate(input: { excludeMetaId: number }): Promise<number | null>
 }
@@ -159,16 +141,10 @@ export interface GeoGamersServiceDeps {
   alternatePicker: GeoGamersAlternatePicker
   screenshotRepo: GeoScreenshotRepository
   mapRepo: GeoMapRepository
-  /**
-   * Resolves the hidden game for a run. Read-only, single lookup.
-   */
   gameRepo: GameLookup
   fuzzyMatch: FuzzyMatchService
   scoring: GeoGamersScoringService
-  // Builds the opaque proxy URL the client uses to fetch the screenshot
-  // without ever seeing the underlying asset path (which can carry a slug).
   screenshotUrlFor: (runToken: string) => string
-  // Injectable clock so tests are deterministic; defaults to Date.now.
   now?: () => number
 }
 
@@ -197,7 +173,6 @@ function isValidPoint(p: GeoPoint): boolean {
   )
 }
 
-/** Derive the run phase from its persisted state. */
 export function computeRunPhase(run: GeoGamersRunRecord): GeoGamersRunPhaseComputed {
   if (run.completedAt) return 'done'
   const solved = run.gameAttempts.some((a) => a.correct)
@@ -224,7 +199,6 @@ export interface GeoGamersService {
   }): Promise<GeoGamersGuessLocationResult>
   useJoker(input: { userId: string; runToken: string }): Promise<GeoGamersRunView>
   claimRun(input: { userId: string; runToken: string }): Promise<GeoGamersRunView>
-  // Raw underlying image URL for the opaque proxy route (server-side only).
   resolveScreenshotSource(runToken: string): Promise<{ imageUrl: string } | null>
 }
 
@@ -233,7 +207,7 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
   const now = deps.now ?? (() => Date.now())
 
   function seasonMonth(challengeDate: string): string {
-    return challengeDate.slice(0, 7) // YYYY-MM
+    return challengeDate.slice(0, 7)
   }
 
   async function effectiveMetaId(run: GeoGamersRunRecord, challenge: GeoGamersChallengeRecord) {
@@ -241,19 +215,11 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
   }
 
   async function loadChallengeForRun(run: GeoGamersRunRecord): Promise<GeoGamersChallengeRecord> {
-    // The run references a challenge by id; the current challenge is the common
-    // case, but resume/claim may target a past one — resolve by the run's own
-    // challenge via the "current or by date" repos. We only expose findCurrent
-    // / findByDate, so resolve current first and fall back to identity.
     const current = await deps.challengeRepo.findCurrent()
     if (current && current.id === run.challengeId) return current
-    // A run should always match the current challenge in the MVP (one live
-    // challenge). If not, treat as no-challenge to avoid leaking a stale meta.
     throw new GeoGamersError('challenge for run not found', 'NO_CHALLENGE')
   }
 
-  // Build the client view, enforcing anti-leak: game/map identity is attached
-  // ONLY once phase 1 has resolved (game solved or attempts exhausted).
   async function buildView(
     run: GeoGamersRunRecord,
     challenge: GeoGamersChallengeRecord,
@@ -271,8 +237,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       jokerAvailable: false,
     }
 
-    // Joker offer: account-only, once per season, and only before any attempt
-    // is spent (a re-roll replaces the puzzle, it is not a retry).
     if (run.userId && phase === 'identify' && run.gameAttempts.length === 0 && !run.jokerUsed) {
       const used = await deps.jokerRepo.hasUsed(run.userId, seasonMonth(challenge.challengeDate))
       view.jokerAvailable = !used
@@ -309,7 +273,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       const challenge = await deps.challengeRepo.findCurrent()
       if (!challenge) throw new GeoGamersError('no current challenge', 'NO_CHALLENGE')
 
-      // Ranked resume: an authenticated user has at most one run per challenge.
       if (userId) {
         const existing = await deps.runRepo.findRankedForUser(challenge.id, userId)
         if (existing) return buildView(existing, challenge)
@@ -359,7 +322,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
         },
       ]
 
-      // gamePoints locks when phase 1 resolves (correct guess or 3rd miss).
       const attemptNumber = attempts.length
       const exhausted = attempts.length >= GEOGAMERS_ATTEMPTS_MAX
       let gamePoints: number | null = null
@@ -371,9 +333,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       if (typeof timeSpentMsDelta === 'number' && timeSpentMsDelta > 0) {
         patch.timeSpentMs = run.timeSpentMs + Math.min(timeSpentMsDelta, 5 * 60_000)
       }
-      // Guarded write: without it, N parallel guesses all read
-      // attempts=[] and each is scored as attempt 1, bypassing the
-      // 3-attempt limit (and a late wrong write could reset attempts).
       const updated = await deps.runRepo.updateIfUnchanged(
         run.id,
         { attemptCount: run.gameAttempts.length, gamePoints: run.gamePoints },
@@ -407,7 +366,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       const candidate = await deps.screenshotRepo.findCandidateById(meta.geoScreenshotCandidateId)
       if (!candidate) throw new GeoGamersError('challenge screenshot missing', 'NO_CHALLENGE')
 
-      // The chosen map must be an enabled map for this game.
       const chosenMap = await deps.mapRepo.findEnabledById(candidate.gameId, geoMapId)
       if (!chosenMap) throw new GeoGamersError('invalid map for game', 'INVALID_MAP')
       const wrongMap = chosenMap.id !== meta.geoMapId
@@ -422,7 +380,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       }
 
       const completedAt = new Date(now()).toISOString()
-      // Guarded so two parallel location guesses can't both complete the run.
       const updated = await deps.runRepo.updateIfUnchanged(run.id, {
         attemptCount: run.gameAttempts.length,
         gamePoints: run.gamePoints,
@@ -450,12 +407,9 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       }
 
       if (updated.userId) {
-        // Live daily rank = (# completed ranked runs strictly better) + 1.
         const better = await deps.runRepo.countCompletedBetter(challenge.id, totalPoints)
         result.rank = better + 1
       } else {
-        // Guests get a ghost rank instead — same computation, framed as a
-        // hypothetical since the run isn't persisted into the season.
         const better = await deps.runRepo.countCompletedBetter(challenge.id, totalPoints)
         result.ghostRank = better + 1
       }
@@ -468,8 +422,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
         throw new GeoGamersError('joker requires the run owner', 'NOT_AUTHENTICATED')
       }
       const challenge = await loadChallengeForRun(run)
-      // A re-roll replaces the puzzle before it is engaged: identify phase,
-      // no attempts spent, not already jokered on this run.
       if (
         computeRunPhase(run) !== 'identify' ||
         run.gameAttempts.length > 0 ||
@@ -486,8 +438,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       const alternate = await deps.alternatePicker.pickAlternate({ excludeMetaId: currentMetaId })
       if (!alternate) throw new GeoGamersError('no alternate screenshot available', 'NO_ALTERNATE')
 
-      // Record first (DB PK enforces once-per-season; a race trips a unique
-      // violation which the route maps to JOKER_ALREADY_USED).
       await deps.jokerRepo.record({
         userId,
         seasonMonth: month,
@@ -506,11 +456,9 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
     async claimRun({ userId, runToken }) {
       const run = await requireRun(runToken)
       const challenge = await loadChallengeForRun(run)
-      // Only a completed, unclaimed GUEST run is claimable.
       if (run.userId || !run.completedAt || run.claimedAt) {
         throw new GeoGamersError('run is not claimable', 'CLAIM_INVALID')
       }
-      // Timing plausibility: a run completed impossibly fast is rejected.
       const started = Date.parse(run.startedAt)
       const completed = Date.parse(run.completedAt)
       if (
@@ -520,7 +468,6 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
       ) {
         throw new GeoGamersError('run completed implausibly fast', 'CLAIM_INVALID')
       }
-      // The claiming account must not already have a ranked run today.
       const existing = await deps.runRepo.findRankedForUser(challenge.id, userId)
       if (existing) throw new GeoGamersError('account already played today', 'ALREADY_PLAYED')
 
@@ -550,5 +497,4 @@ export function createGeoGamersService(deps: GeoGamersServiceDeps): GeoGamersSer
   }
 }
 
-// Re-export a helper used by tests / callers to check leak-safety.
 export type { GeoScreenshotMeta }

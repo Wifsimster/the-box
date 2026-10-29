@@ -1,13 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SUMMARY: 2FA + WebAuthn (biométrie) — réunion sous-agents (2026-05-20).
-  Better Auth 1.4.10 expose deux plugins officiels : `twoFactor` (TOTP + backup
-  codes + OTP e-mail) et `passkey` (WebAuthn, donc Touch ID / Face ID / Windows
-  Hello / clés FIDO2). Décision : on active les deux. Opt-in pour les joueurs,
-  **forcé pour les admins**. Récupération via backup codes + OTP e-mail. Pilote :
-  page `/settings/security` + bouton « Se connecter avec une passkey » sur
-  `LoginPage`. Tests E2E via Virtual Authenticator de Playwright.
--->
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -181,7 +172,6 @@
   blockquote.callout.risk { border-left-color: var(--risk); background: rgba(239,68,68,0.06); }
   blockquote.callout.info { border-left-color: var(--neon-blue); background: rgba(56,189,248,0.06); }
 
-  /* Sequence diagram — pure SVG / CSS */
   .flowdiag {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -468,7 +458,6 @@ plugins: [
               <path d="M0,0 L10,5 L0,10 z" fill="#a855f7"/>
             </marker>
           </defs>
-          <!-- Actor headers -->
           <rect class="actor-box" x="20"  y="10" width="110" height="32" rx="6"/>
           <rect class="actor-box" x="200" y="10" width="110" height="32" rx="6"/>
           <rect class="actor-box" x="380" y="10" width="110" height="32" rx="6"/>
@@ -477,12 +466,10 @@ plugins: [
           <text class="actor" x="255" y="30" text-anchor="middle">LoginPage</text>
           <text class="actor" x="435" y="30" text-anchor="middle">Better Auth</text>
           <text class="actor" x="630" y="30" text-anchor="middle">Authenticator</text>
-          <!-- Lifelines -->
           <line class="lifeline" x1="75"  y1="42" x2="75"  y2="310"/>
           <line class="lifeline" x1="255" y1="42" x2="255" y2="310"/>
           <line class="lifeline" x1="435" y1="42" x2="435" y2="310"/>
           <line class="lifeline" x1="630" y1="42" x2="630" y2="310"/>
-          <!-- Messages -->
           <line class="msg" x1="75"  y1="65"  x2="255" y2="65"/>
           <text class="label" x="165" y="60" text-anchor="middle">email + mdp</text>
           <line class="msg" x1="255" y1="95"  x2="435" y2="95"/>
@@ -756,7 +743,6 @@ plugins: [
 </footer>
 
 <script>
-  // Highlight TOC actif au scroll, inline, vanilla, ~25 lignes.
   (function () {
     const links = Array.from(document.querySelectorAll('aside.toc a'));
     const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);

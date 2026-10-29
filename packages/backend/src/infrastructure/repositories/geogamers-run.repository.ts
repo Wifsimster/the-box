@@ -40,8 +40,6 @@ function toIso(v: Date | string | null): string | null {
 }
 
 function mapRun(row: GeoGamersRunRow): GeoGamersRunRecord {
-  // jsonb comes back parsed under pg, but guard for string just in case a
-  // driver hands us raw text.
   const attempts =
     typeof row.game_attempts === 'string'
       ? (JSON.parse(row.game_attempts) as GeoGamersGameAttempt[])
@@ -71,8 +69,6 @@ function mapRun(row: GeoGamersRunRow): GeoGamersRunRecord {
   }
 }
 
-// Translate a domain UpdateRunInput into a snake_case DB patch, only touching
-// the columns actually provided.
 function toDbPatch(patch: UpdateRunInput): Record<string, unknown> {
   const db_: Record<string, unknown> = {}
   if (patch.gameAttempts !== undefined) db_['game_attempts'] = JSON.stringify(patch.gameAttempts)
@@ -148,10 +144,6 @@ export const geoGamersRunRepository: GeoGamersRunRepository = {
     return Number(res?.count ?? 0)
   },
 
-  // Copy a completed guest run into a NEW user-owned row and mark the guest
-  // row claimed. The unique claim index (claimed_by_user_id, challenge) plus
-  // the ranked-run unique index make a double-claim/double-play trip a unique
-  // violation, which surfaces as null (caller maps to CLAIM_INVALID/ALREADY).
   async claimGuestRun({ guestRunId, userId, challengeId }): Promise<GeoGamersRunRecord | null> {
     try {
       return await db.transaction(async (trx: Knex.Transaction) => {
@@ -162,10 +154,6 @@ export const geoGamersRunRepository: GeoGamersRunRepository = {
           .first<GeoGamersRunRow>()
         if (!guest) return null
 
-        // Re-check unclaimed in the UPDATE itself: the SELECT above takes no
-        // lock, so two different users claiming the same token concurrently
-        // would both pass it, and the claim index (per claimer) wouldn't
-        // collide. The row lock makes the second UPDATE re-evaluate and miss.
         const claimed = await trx('geogamers_run')
           .where({ id: guestRunId })
           .whereNull('user_id')
@@ -200,7 +188,6 @@ export const geoGamersRunRepository: GeoGamersRunRepository = {
         return mapRun(copy!)
       })
     } catch (err) {
-      // Unique-violation on claim-once or ranked-run index → not claimable.
       log.warn({ err, guestRunId, userId }, 'claimGuestRun conflict')
       return null
     }

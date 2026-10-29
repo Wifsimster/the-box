@@ -23,16 +23,6 @@ export interface SendEmailResult {
   errorMessage?: string
 }
 
-/**
- * Single chokepoint for every transactional / marketing email the app
- * sends. Wraps Resend, applies the standard `From:` header, and writes
- * a row to `email_log` for every attempt — sent, failed, or skipped
- * (the dev-mode no-Resend-key case).
- *
- * Callers must provide an `EmailType` so the audit log stays
- * filterable; one-off ad-hoc sends should pick `'admin-test'` rather
- * than inventing a free-form string.
- */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const baseLogEntry = {
     userId: input.userId ?? null,

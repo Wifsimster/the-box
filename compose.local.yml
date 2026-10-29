@@ -1,5 +1,4 @@
 services:
-  # Redis (Job Queue)
   redis:
     image: redis:7-alpine
     container_name: thebox-redis
@@ -16,7 +15,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: thebox-db
@@ -42,10 +40,8 @@ volumes:
   redis_data:
 
 networks:
-  # Internal network for database communication
   internal:
     driver: bridge
 
-  # External network for Traefik
   lan:
     external: true

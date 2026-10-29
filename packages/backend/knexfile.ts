@@ -33,13 +33,6 @@ const config: { [key: string]: Knex.Config } = {
   },
 }
 
-// TLS is opt-in via DATABASE_SSL=true. Managed Postgres providers (RDS,
-// Supabase, Neon, DigitalOcean Managed) require it and should set the flag;
-// self-hosted Postgres reached over a private Docker network or VPN does
-// not, and forcing SSL there causes "server does not support SSL
-// connections" at boot. `rejectUnauthorized: false` is intentional: many
-// managed providers hand out certificates signed by their own CA which
-// Node's default trust store doesn't carry.
 function buildProductionConnection(): Knex.PgConnectionConfig {
   return {
     connectionString: process.env['DATABASE_URL'] ?? '',

@@ -1,15 +1,3 @@
-/**
- * Refresh Game Aliases Logic
- *
- * Fills `games.aliases` from RAWG `alternative_names` for every game already
- * in the catalogue — the French release titles players type ("Pokémon Épée",
- * "Les Sims"). Unlike sync-all, it imports nothing: no new games, no
- * screenshots, no other metadata. It walks our own games (not a RAWG listing),
- * so every game with a RAWG id or RAWG slug is covered.
- *
- * Aliases are only ever added (mergeGameAliases keeps curated ones first).
- */
-
 import { env } from '../../../config/env.js'
 import { queueLogger } from '../../logger/logger.js'
 import { gameRepository } from '../../repositories/game.repository.js'
@@ -17,11 +5,7 @@ import { mergeGameAliases } from '../../../domain/services/game-aliases.service.
 
 const log = queueLogger.child({ module: 'refresh-game-aliases' })
 
-// Same budget as the other RAWG workers (20 req/min).
 const RAWG_REQUEST_INTERVAL_MS = 3000
-// Games per job (~5 min at 3s each). The import queue runs one job at a time
-// and also carries the daily-challenge job, so a full pass is split into
-// chained batches that let other jobs run in between.
 export const ALIAS_REFRESH_BATCH_SIZE = 100
 
 export type ProgressCallback = (current: number, total: number) => void
@@ -36,7 +20,6 @@ export interface AliasRefreshGame {
 
 export interface RefreshGameAliasesDeps {
   games: AliasRefreshGame[]
-  /** RAWG `alternative_names` for a game id or slug; null when RAWG doesn't know it. */
   fetchAlternativeNames: (rawgIdOrSlug: number | string) => Promise<string[] | null>
   saveAliases: (gameId: number, aliases: string[]) => Promise<void>
   onProgress?: ProgressCallback
@@ -51,7 +34,6 @@ export interface RefreshGameAliasesResult {
   message: string
 }
 
-/** Core loop, I/O injected so it is unit-testable. */
 export async function refreshAliasesForGames(
   deps: RefreshGameAliasesDeps
 ): Promise<RefreshGameAliasesResult> {
@@ -93,11 +75,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-/**
- * Job entry point: one batch of catalogue games (ordered by id, starting at
- * `offset`), RAWG details one by one. The worker enqueues `nextOffset`.
- * (No queue import here: it would open a Redis connection in unit tests.)
- */
 export async function refreshGameAliases(
   offset: number,
   onProgress?: ProgressCallback

@@ -1,13 +1,5 @@
 import type { Knex } from 'knex'
 
-/**
- * Adds `lastLoginAt` to the user table so the admin panel can display
- * when each user last signed in. Uses camelCase to mirror Better Auth's
- * other standard columns (`createdAt`, `updatedAt`) — better-auth returns
- * column names verbatim, so this lets the frontend read `user.lastLoginAt`
- * directly. Backfilled from the most recent session row so existing users
- * don't appear as "never logged in".
- */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`
     ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP WITH TIME ZONE

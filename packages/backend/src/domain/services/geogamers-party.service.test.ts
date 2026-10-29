@@ -150,7 +150,6 @@ describe('party round transitions', () => {
     let p = startParty(lobbyOf2(), CONTENTS)
     p = submitGameGuess(p, 'h', true)
     p = submitLocation(p, 'h', { x: 0.5, y: 0.5 }, 0, false)
-    // p2 never played
     p = revealRound(p)
     assert.equal(p.status, 'reveal')
     assert.equal(p.rounds[0]!.revealed, true)
@@ -180,11 +179,10 @@ describe('party round transitions', () => {
 describe('party scoreboard', () => {
   it('accumulates revealed-round totals and ranks players', () => {
     let p = startParty(lobbyOf2(), CONTENTS)
-    // Round 0: host 200, p2 100
     p = submitGameGuess(p, 'h', true)
     p = submitLocation(p, 'h', { x: 0.5, y: 0.5 }, 0, false)
     p = submitGameGuess(p, 'p2', true)
-    p = submitLocation(p, 'p2', { x: 0.5, y: 0.5 }, 1, false) // ~0 location → 100 total
+    p = submitLocation(p, 'p2', { x: 0.5, y: 0.5 }, 1, false)
     p = revealRound(p)
     const board = scoreboard(p)
     assert.equal(board[0]!.playerId, 'h')
@@ -197,7 +195,6 @@ describe('party scoreboard', () => {
     let p = startParty(lobbyOf2(), CONTENTS)
     p = submitGameGuess(p, 'h', true)
     p = submitLocation(p, 'h', { x: 0.5, y: 0.5 }, 0, false)
-    // not revealed yet
     assert.equal(scoreboard(p).find((s) => s.playerId === 'h')!.total, 0)
   })
 })
@@ -207,10 +204,9 @@ describe('party disconnect mid-game', () => {
     let p = startParty(lobbyOf2(), CONTENTS)
     p = submitGameGuess(p, 'h', true)
     p = submitLocation(p, 'h', { x: 0.5, y: 0.5 }, 0, false)
-    p = leaveParty(p, 'p2') // disconnect mid-round
+    p = leaveParty(p, 'p2')
     assert.equal(p.players.length, 2)
     assert.equal(p.players.find((x) => x.id === 'p2')!.connected, false)
-    // now all CONNECTED players (just host) are done
     assert.equal(allConnectedDone(p), true)
   })
 })

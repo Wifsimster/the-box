@@ -104,9 +104,6 @@ export function MonthPicker({
         size="icon"
         onClick={handlePrevMonth}
         disabled={disabled || isPrevDisabled}
-        // 44px (Apple HIG / WCAG 2.5.5) on a phone, where these day/month
-        // steppers are the leaderboard's most-tapped control; back to the
-        // compact 36px from `sm` up.
         className="size-11 sm:size-9"
       >
         <ChevronLeft className="size-4" />
@@ -119,9 +116,6 @@ export function MonthPicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              // `min-w-0 flex-1` below `sm` so the trigger gives way to the
-              // enlarged steppers instead of pushing the row past a 320px
-              // screen; the 200px floor returns once there is room for it.
               "min-h-11 min-w-0 flex-1 justify-start gap-2 text-left font-normal sm:min-h-10 sm:min-w-[200px] sm:flex-none",
               !value && "text-muted-foreground"
             )}
@@ -132,7 +126,6 @@ export function MonthPicker({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-3" align="center">
           <div className="flex flex-col gap-4">
-            {/* Year selector */}
             <div className="flex items-center justify-between">
               <Button
                 variant="ghost"
@@ -154,7 +147,6 @@ export function MonthPicker({
               </Button>
             </div>
 
-            {/* Month grid */}
             <div className="grid grid-cols-3 gap-2">
               {MONTHS.map((month) => {
                 const isSelected =
@@ -187,9 +179,6 @@ export function MonthPicker({
         size="icon"
         onClick={handleNextMonth}
         disabled={disabled || isNextDisabled}
-        // 44px (Apple HIG / WCAG 2.5.5) on a phone, where these day/month
-        // steppers are the leaderboard's most-tapped control; back to the
-        // compact 36px from `sm` up.
         className="size-11 sm:size-9"
       >
         <ChevronRight className="size-4" />

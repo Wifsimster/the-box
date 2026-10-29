@@ -1,6 +1,3 @@
-# Keeps SHA-pinned GitHub Actions current. Workflows pin actions to full
-# commit SHAs (tags are mutable, SHAs aren't); Dependabot bumps the SHA and
-# the trailing version comment together.
 version: 2
 updates:
   - package-ecosystem: github-actions

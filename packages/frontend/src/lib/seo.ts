@@ -1,8 +1,5 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './i18n'
 
-// Brand strings live in ./brand (no imports, so a Node test can read them).
-// Re-exported here because this module is the established import site for
-// site-level constants. See docs/brand.md.
 export { SITE_NAME, SITE_TAGLINE, SITE_CATEGORY, type BrandLang } from './brand'
 
 export const SITE_URL = 'https://the-box.battistella.ovh'

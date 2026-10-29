@@ -1,20 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
-/**
- * Cookie / tracking consent (GDPR / RGPD).
- *
- * Three categories:
- *  - Essential — always on, not represented here (auth/session cookies are
- *    strictly necessary and exempt from consent).
- *  - Analytics — reserved for consent-gated trackers. Audience is measured by
- *    Umami (cookieless, loaded from index.html), which needs no consent.
- *  - Support — gates the Koe feedback widget.
- *
- * `null` means "the user hasn't decided yet". Once they pick anything,
- * `decided` flips true and the banner stops showing. State is persisted to
- * localStorage so the choice survives reloads.
- */
 interface ConsentState {
   analytics: boolean | null
   support: boolean | null
@@ -45,9 +31,5 @@ export const useConsentStore = create<ConsentState>()(
   ),
 )
 
-/**
- * Selector: should the consent banner be shown? True until the user has made
- * an explicit choice.
- */
 export const selectShouldShowConsentBanner = (state: ConsentState): boolean =>
   !state.decided

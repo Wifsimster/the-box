@@ -18,24 +18,14 @@ export type SettingsChannel = 'admin-ui' | 'agent-key'
 
 export interface SettingsRouterDeps {
   settings: Pick<AppSettingsService, 'list' | 'get' | 'set'>
-  /** Writes who/when/what changed. Never receives a secret value. */
   audit: (req: Request, entry: SettingsAuditEntry) => Promise<void>
   channel: SettingsChannel
 }
 
 const writeBody = z.object({
-  // null resets to the default (or clears a secret).
   value: z.union([z.boolean(), z.number(), z.string().max(1000), z.null()]),
 })
 
-/**
- * GET / (list), GET /:key, PUT|POST /:key { value }.
- *
- * Shared by the admin panel (/api/admin/settings, session + admin role) and
- * the settings MCP tools (/api/agent/v1/settings, admin:settings agent key).
- * Authorization is the caller's middleware; this router only shapes the data.
- * Secrets are write-only: views carry `{ set, mask }`, never the value.
- */
 export function createSettingsRouter(deps: SettingsRouterDeps): Router {
   const router = Router()
 

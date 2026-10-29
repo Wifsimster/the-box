@@ -7,30 +7,17 @@ import { useReducedMotionSafe } from '@/hooks/useReducedMotionSafe'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
-/**
- * Trigger device haptics when supported. Pure helper with no component state.
- */
 function vibrate(pattern: number | number[]) {
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
     try {
       navigator.vibrate(pattern)
     } catch {
-      // ignore unsupported
     }
   }
 }
 
 const DESCRIPTION_ID = 'letter-reveal-description'
 
-/**
- * Masked-title bar fused to the top edge of the guess input — mask glyphs
- * on the left, running penalty tag and the reveal button on the right.
- * Presentational only: all reveal logic lives in `useLetterReveal`.
- *
- * The button is never `disabled`: locked / no-inventory states use
- * `aria-disabled` and a tap fires an explanatory toast, so touch and
- * screen-reader users always get told WHY instead of a dead control.
- */
 export function LetterRevealBar() {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotionSafe()
@@ -49,8 +36,6 @@ export function LetterRevealBar() {
   const nextPenaltyPct = letterState.nextPenaltyPct ?? 0
   const useInventoryPath = status === 'ready' && isRankedDaily && inventoryCount > 0
 
-  // Full state copy — visible label stays terse, this feeds the sr-only
-  // description the button points at via aria-describedby.
   const description =
     status === 'locked'
       ? t('game.hints.lockedTooltip')
@@ -100,11 +85,6 @@ export function LetterRevealBar() {
       })}
       className="flex items-center gap-2 h-11 pl-3 sm:pl-4 pr-1 sm:pr-1.5 border-b border-primary/20"
     >
-      {/* Visual mask — glyphs are decorative; the accessible name is the
-          group's aria-label, and reveals are announced via the live region
-          below. Before the first paid reveal the server sends an empty
-          mask (even the letter count is part of what a reveal buys), so we
-          show a neutral placeholder instead of the skeleton. */}
       <div
         data-testid="masked-title"
         className="flex-1 min-w-0 overflow-x-auto whitespace-nowrap font-mono tracking-wide select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
@@ -117,8 +97,6 @@ export function LetterRevealBar() {
           <span aria-hidden="true">
             {letterState.maskedTitle.split('').map((char, i) => (
               <m.span
-                // Keyed on the char so a '_' flipping to a letter remounts
-                // and replays the entrance animation for that glyph only.
                 key={`${i}-${char}`}
                 initial={
                   prefersReducedMotion ? { opacity: 0 } : { scale: 1.4, opacity: 0 }
@@ -145,7 +123,6 @@ export function LetterRevealBar() {
         )}
       </div>
 
-      {/* Running penalty tag — stays as residue after the cap unmounts the button. */}
       {letterState.penaltyPct > 0 && (
         <span
           data-testid="letter-penalty-badge"
@@ -158,14 +135,12 @@ export function LetterRevealBar() {
         </span>
       )}
 
-      {/* Reveal button — unmounts entirely once the cap is reached. */}
       {status !== 'cap-reached' && (
         <Button
           data-testid="letter-reveal-button"
           variant={useInventoryPath ? 'hintFree' : 'outline'}
           size="sm"
           onClick={handleClick}
-          // Keep the mobile keyboard open: the tap must never blur the input.
           onPointerDown={(e) => e.preventDefault()}
           aria-disabled={status !== 'ready' || isRevealing}
           aria-describedby={DESCRIPTION_ID}
@@ -184,13 +159,10 @@ export function LetterRevealBar() {
         </Button>
       )}
 
-      {/* Full state copy for assistive tech (the visible label is terse). */}
       <span id={DESCRIPTION_ID} className="sr-only">
         {description}
       </span>
 
-      {/* Polite announcement of each revealed letter — kept separate from
-          GuessInput's correct/incorrect live regions. */}
       <div aria-live="polite" className="sr-only">
         {lastRevealedLetter &&
           t('game.hints.letterRevealAnnounce', {

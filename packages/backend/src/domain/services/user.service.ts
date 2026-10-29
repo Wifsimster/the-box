@@ -15,10 +15,6 @@ import type {
 
 const TOTAL_SCREENSHOTS = 10
 const WRONG_GUESS_PENALTY = 0
-// Free tier has no catch-up — only today's daily. Premium gets the full
-// 365-day archive. Mirrors game.service.ts (kept duplicated rather than
-// cross-imported to avoid pulling game.service into user.service's
-// dependency graph).
 const CATCH_UP_DAYS = 0
 const PREMIUM_CATCH_UP_DAYS = 365
 
@@ -36,36 +32,27 @@ export interface UserService {
 
 export interface UserServiceDeps {
   logger: DomainLogger
-  /**
-   * Read-only past-games surface: history, replays, personal bests. This
-   * service never writes a session.
-   */
   sessionRepository: SessionHistoryQuery
   challengeRepository: ChallengeRepository
 }
 
 export function createUserService(deps: UserServiceDeps): UserService {
   const { sessionRepository, challengeRepository } = deps
-  // Keep a child logger for parity with other services even when unused.
   void deps.logger.child({ service: 'user' })
 
   async function buildSessionDetailsResponse(
     gameSession: GameSessionRecord
   ): Promise<GameSessionDetailsResponse> {
-    // Get challenge date
     const challenge = await challengeRepository.findById(gameSession.daily_challenge_id)
     if (!challenge) {
       throw new Error('Challenge not found')
     }
 
-    // Get all guesses for this session
     const guessesData = await sessionRepository.findGuessesByGameSession(gameSession.id)
 
-    // Get tier screenshots with game info for all positions
     const tiers = await challengeRepository.findTiersByChallenge(gameSession.daily_challenge_id)
     const tier = tiers[0]
 
-    // Create a map of position -> screenshot data
     const screenshotMap = new Map<number, Screenshot>()
     if (tier) {
       const tierScreenshots = await challengeRepository.findTierScreenshots(tier.id)
@@ -74,7 +61,6 @@ export function createUserService(deps: UserServiceDeps): UserService {
       }
     }
 
-    // Group guesses by position and find the correct one for each position
     const positionMap = new Map<number, typeof guessesData>()
     for (const guess of guessesData) {
       const existing = positionMap.get(guess.position) || []
@@ -82,27 +68,18 @@ export function createUserService(deps: UserServiceDeps): UserService {
       positionMap.set(guess.position, existing)
     }
 
-    // Transform guesses to match GuessResult structure
     const guesses = Array.from(positionMap.entries())
       .sort(([a], [b]) => a - b)
       .map(([position, positionGuesses]) => {
-        // Find the correct guess (if any)
         const correctGuess = positionGuesses.find(g => g.isCorrect)
-        // Get the first guess (for userGuess display)
         const firstGuess = positionGuesses[0]!
 
-        // All attempts the user made for this position, in order.
         const attempts: GuessAttempt[] = positionGuesses.map(g => ({
           guess: g.guessedText ?? '',
           isCorrect: g.isCorrect,
         }))
 
         if (correctGuess) {
-          // LEGACY — historical rows only, do not remove. The metadata
-          // hints were retired 2026-06 and new guesses always persist
-          // power_up_used = null, but old sessions still display their
-          // 20% hint penalty here. Only hints NOT paid from inventory
-          // (inventory/premium hints were free) carried the penalty.
           let hintPenalty: number | undefined
           if (
             !correctGuess.hintFromInventory &&
@@ -111,8 +88,6 @@ export function createUserService(deps: UserServiceDeps): UserService {
               correctGuess.powerUpUsed === 'hint_developer' ||
               correctGuess.powerUpUsed === 'hint_genre')
           ) {
-            // The score_earned already has hint penalty deducted, so we need to calculate original
-            // Original score = scoreEarned / 0.8, hint penalty = original * 0.2
             const originalScore = Math.round(correctGuess.scoreEarned / 0.8)
             hintPenalty = Math.round(originalScore * 0.2)
           }
@@ -137,18 +112,14 @@ export function createUserService(deps: UserServiceDeps): UserService {
             timeTakenMs: correctGuess.timeTakenMs,
             scoreEarned: correctGuess.scoreEarned,
             hintPenalty,
-            // Letter-reveal cost deducted from this guess's score, when any.
-            // Persisted per-guess (game.service), so legacy rows stay 0.
             letterPenalty: correctGuess.letterPenalty > 0 ? correctGuess.letterPenalty : undefined,
             tryNumber: correctGuess.tryNumber,
             screenshot: screenshotMap.get(position)!,
             attempts,
           }
         } else {
-          // No correct guess - use the last guess for display
           const lastGuess = positionGuesses[positionGuesses.length - 1]!
 
-          // Get correct game info from the screenshot
           const anyGuess = positionGuesses[0]!
           const correctGame: Game = {
             id: anyGuess.correctGameId,
@@ -177,13 +148,6 @@ export function createUserService(deps: UserServiceDeps): UserService {
         }
       })
 
-    // Get unfound games (positions with no guesses).
-    //
-    // Anti-cheat belt-and-braces: if the player made zero guesses on this
-    // session, do not return the names of the unfound games — they'd be
-    // the full answer set. endGame already rejects forfeits without
-    // progress, but legacy sessions written before that gate landed could
-    // still exist with is_completed=true and zero guesses.
     const guessedPositions = Array.from(positionMap.keys())
     const allPositions = Array.from({ length: TOTAL_SCREENSHOTS }, (_, i) => i + 1)
     const unfoundPositions = allPositions.filter(pos => !guessedPositions.includes(pos))
@@ -203,8 +167,6 @@ export function createUserService(deps: UserServiceDeps): UserService {
       }
     }
 
-    // Personal best is the user's highest completed score; tag this session
-    // when its score equals that maximum (and is non-zero — a 0 isn't a PB).
     const userMaxScore = await sessionRepository.findMaxCompletedScore(gameSession.user_id)
     const isPersonalBest = gameSession.total_score > 0 && gameSession.total_score === userMaxScore
 
@@ -225,22 +187,16 @@ export function createUserService(deps: UserServiceDeps): UserService {
     async getGameHistory(userId: string, isPremium: boolean = false): Promise<GameHistoryResponse> {
       const entries = await sessionRepository.findUserGameHistory(userId)
 
-      // Premium users see the extended archive so they have something to
-      // play beyond the 7-day window. Free users keep the existing list.
       const lookbackDays = isPremium ? PREMIUM_CATCH_UP_DAYS : CATCH_UP_DAYS
       const recentChallenges = await challengeRepository.findRecentChallenges(lookbackDays)
 
-      // Get today's date to exclude it from missed challenges
       const today = new Date().toISOString().split('T')[0]
 
-      // Get the set of dates the user has played
       const playedDates = new Set(entries.map(entry => entry.challenge_date))
 
-      // Calculate missed challenges (challenges with no session, excluding today)
       const missedChallenges: MissedChallenge[] = recentChallenges
         .filter(challenge => {
           const challengeDate = challenge.challenge_date
-          // Exclude today's challenge and challenges already played
           return challengeDate !== today && !playedDates.has(challengeDate)
         })
         .map(challenge => ({
@@ -271,13 +227,6 @@ export function createUserService(deps: UserServiceDeps): UserService {
         throw new Error('Session not found or not completed')
       }
 
-      // Anti-cheat: viewing another player's answers reveals the correct
-      // games. For the current daily challenge, only allow it once the
-      // requester has actually played and completed that same challenge
-      // themselves. Past challenges stay open (catch-up scores don't
-      // count on the leaderboard). The `guessCount > 0` check is the
-      // belt-and-braces guard against a session that ended up marked
-      // completed without any real attempt.
       const challenge = await challengeRepository.findById(gameSession.daily_challenge_id)
       const today = new Date().toISOString().split('T')[0]
       if (challenge && challenge.challenge_date === today) {

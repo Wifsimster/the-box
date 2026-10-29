@@ -5,10 +5,6 @@ import { ArrowRight, Check, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { GradientIcon } from '@/components/ui/gradient-icon'
 
-/**
- * Premium upsell card on the home page. Extracted from HomePage so the
- * page component stays focused on daily-challenge orchestration.
- */
 export function HomePremiumTeaser({
   premiumHref,
   monthlyPriceLabel,

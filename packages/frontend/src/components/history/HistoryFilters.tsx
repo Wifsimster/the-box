@@ -7,10 +7,6 @@ import { CheckCircle2, Clock, RefreshCw, Search, X } from 'lucide-react'
 
 export type HistoryStatusFilter = 'all' | 'completed' | 'inProgress'
 
-/**
- * Search + status filter controls for the history timeline. Extracted from
- * HistoryPage to keep the page component focused on data + state.
- */
 export function HistoryFilters({
   statusFilter,
   searchQuery,

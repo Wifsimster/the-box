@@ -47,8 +47,6 @@ export function ProfileHeaderCard({
 }: ProfileHeaderCardProps) {
   const { t } = useTranslation()
 
-  // Memoised so the streak tooltip body keeps a stable reference between
-  // renders unless its inputs change, instead of allocating JSX every render.
   const currentStreakTooltipBody = useMemo(
     () => (
       <>
@@ -92,9 +90,6 @@ export function ProfileHeaderCard({
                 {email && <div className="break-all">{email}</div>}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-1.5 gap-y-1">
                   <Calendar className="size-3.5" aria-hidden="true" />
-                  {/* The player noun earns a job here rather than sitting in
-                      the random end-of-run message pool: it names who this
-                      profile belongs to, dated (docs/brand.md §1). */}
                   <span>{t('profile.memberSince', { date: joinDate })}</span>
                   {!emailVerified && (
                     <Badge variant="outline" className="text-xs">

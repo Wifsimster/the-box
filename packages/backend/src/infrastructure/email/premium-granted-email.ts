@@ -5,9 +5,7 @@ import { renderEmailHtml, renderEmailText } from './template.js'
 export interface PremiumGrantedEmailInput {
   userId: string
   to: string
-  /** Display name used in the greeting; falls back to "joueur" if blank. */
   displayName: string | null | undefined
-  /** Locale for the email copy. Currently 'fr' or 'en'; defaults to 'fr'. */
   locale?: 'fr' | 'en'
 }
 
@@ -47,11 +45,6 @@ function copyFor(displayName: string, locale: 'fr' | 'en'): Copy {
   }
 }
 
-/**
- * Notifies a user that an admin has granted them lifetime Premium.
- * Delegates to the shared `sendEmail` chokepoint so it lands in the
- * `email_log` audit trail like every other transactional mail.
- */
 export async function sendPremiumGrantedEmail(
   input: PremiumGrantedEmailInput,
 ): Promise<SendEmailResult> {

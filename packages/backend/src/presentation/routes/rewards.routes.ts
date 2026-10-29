@@ -12,11 +12,6 @@ const idParamSchema = z.object({
   id: z.string().uuid('reward id must be a uuid'),
 })
 
-/**
- * GET /api/rewards/unclaimed
- * Returns the user's unclaimed reward grants ordered newest-first. Powers
- * the RewardsInbox drawer; clients reconcile here on socket reconnect.
- */
 router.get('/unclaimed', authMiddleware, async (req, res, next) => {
   try {
     const userId = req.userId!
@@ -27,13 +22,6 @@ router.get('/unclaimed', authMiddleware, async (req, res, next) => {
   }
 })
 
-/**
- * POST /api/rewards/:id/claim
- * Marks a reward grant as claimed. Idempotent: re-claim returns 200 with
- * the current state. A staged-but-not-yet-unlocked grant (reactivation
- * waiting for first guess) is rejected with `NOT_UNLOCKED` so the client
- * can render the pending state.
- */
 router.post(
   '/:id/claim',
   authMiddleware,

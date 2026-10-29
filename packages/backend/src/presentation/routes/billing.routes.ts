@@ -16,16 +16,8 @@ const log = logger.child({ route: 'billing' })
 
 const router = Router()
 
-// Tiers accepted by /checkout — must each have a BILLING_CATALOG entry.
-// supporter_lifetime resolves to a one-time (interval=null) price, which
-// the session below turns into mode:'payment'; the other two are recurring.
 const TIERS = ['premium_monthly', 'premium_annual', 'supporter_lifetime'] as const satisfies readonly BillingTier[]
 
-// Public catalog. Used by the marketing page so the displayed amount is
-// always the same string the rest of the system asserts against. Cached
-// via Cache-Control to keep the page snappy without round-tripping Stripe
-// on every visitor — sync-check guarantees we'd never serve stale numbers
-// against a renamed price (CI fails first).
 router.get('/prices', async (_req, res, next) => {
   try {
     res.set('Cache-Control', 'public, max-age=300')
@@ -79,8 +71,6 @@ router.post('/checkout', authMiddleware, validateBody(checkoutBodySchema), async
 
     const user = req.user!
     if (!user.email) {
-      // Anonymous Better Auth users have no real email; refuse so they
-      // can't end up with a paid subscription nobody can recover.
       res.status(400).json({
         success: false,
         error: { code: 'EMAIL_REQUIRED', message: 'Sign up with a real email before subscribing' },
@@ -101,17 +91,10 @@ router.post('/checkout', authMiddleware, validateBody(checkoutBodySchema), async
       line_items: [{ price: stripePriceId, quantity: 1 }],
       success_url: env.STRIPE_CHECKOUT_SUCCESS_URL,
       cancel_url: env.STRIPE_CHECKOUT_CANCEL_URL,
-      // Lock the line items so a tampered redirect can't trick Stripe into
-      // charging for a different price than the user clicked.
       allow_promotion_codes: true,
       automatic_tax: { enabled: true },
-      // automatic_tax needs an address on the Customer; existing customers
-      // created before address collection won't have one. Collect it at
-      // checkout and write it back so subsequent invoices keep computing VAT.
       billing_address_collection: 'required',
       customer_update: { address: 'auto', name: 'auto' },
-      // Carry the user back through the webhook even if the customer
-      // metadata round-trip is somehow missed.
       client_reference_id: user.id,
       metadata: { userId: user.id, tier },
     })
@@ -151,9 +134,6 @@ router.post('/portal', authMiddleware, async (req, res, next) => {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: env.STRIPE_PORTAL_RETURN_URL,
-      // Restricts the portal to The Box Premium products. The four apps
-      // share one Stripe account, so without a config a customer would
-      // see WAWPTN / Tokō / CoproPilot prices in the "switch plan" picker.
       ...(env.STRIPE_PORTAL_CONFIG_ID
         ? { configuration: env.STRIPE_PORTAL_CONFIG_ID }
         : {}),

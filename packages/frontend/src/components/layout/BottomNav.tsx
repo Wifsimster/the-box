@@ -5,18 +5,6 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight'
 import { cn } from '@/lib/utils'
 
-/**
- * Persistent bottom navigation bar for mobile viewports.
- *
- * Hidden at the `md` breakpoint and up (the desktop Header carries primary
- * navigation) through a pure CSS `md:hidden` gate, and unmounted while the
- * virtual keyboard is open so it never floats on top of a keyboard on form
- * pages such as /login or /contact.
- *
- * `LanguageLayout` mounts this and gates it off the fullscreen Geo and in-game
- * `/play` routes. The bar reserves `env(safe-area-inset-bottom)` so its tap
- * targets clear the iOS home indicator / Android gesture bar.
- */
 export function BottomNav() {
   const { t } = useTranslation()
   const { localizedPath } = useLocalizedPath()
@@ -54,8 +42,6 @@ export function BottomNav() {
               >
                 {({ isActive }) => (
                   <>
-                    {/* Non-text active indicator — a primary-coloured top bar,
-                        readable independently of the icon/label colour. */}
                     <span
                       aria-hidden="true"
                       className={cn(

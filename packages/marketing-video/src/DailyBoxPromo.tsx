@@ -17,7 +17,6 @@ const { fontFamily } = loadFont("normal", {
   subsets: ["latin"],
 });
 
-// Alias courts sur theme.ts, plus les couleurs d'état de docs/ui-tokens.md
 const C = {
   bg: theme.bg,
   purple: theme.neonPurple,
@@ -49,8 +48,6 @@ const THUMBS = [
   "celeste_1", "elden-ring_1", "grand-theft-auto-v_1", "hades-2018_1", "hollow-knight_4",
   "mario-kart-8_1", "celeste_4", "hades-2018_4", "elden-ring_4", "hollow-knight_1",
 ];
-
-/* ---------- Briques communes ---------- */
 
 const Background: React.FC = () => {
   const frame = useCurrentFrame();
@@ -84,7 +81,6 @@ const Background: React.FC = () => {
   );
 };
 
-// Fondu d'entrée/sortie de chaque scène
 const SceneFade: React.FC<{ duration: number; children: React.ReactNode }> = ({
   duration,
   children,
@@ -115,7 +111,6 @@ const GradientText: React.FC<{ children: React.ReactNode; style?: React.CSSPrope
 );
 
 const BoxLogo: React.FC<{ size: number; open: number }> = ({ size, open }) => {
-  // open : 0 = fermée, 1 = couvercle levé (logo-open.svg)
   const lift = open * 28;
   const rim = open;
   return (
@@ -168,8 +163,6 @@ const TimerRing: React.FC<{ seconds: number; size?: number }> = ({ seconds, size
   );
 };
 
-/* ---------- Scène 1-2 : les manches ---------- */
-
 const Round: React.FC<{
   img: string;
   answer: string;
@@ -200,7 +193,6 @@ const Round: React.FC<{
   const ok = spring({ frame: frame - validatedAt, fps, config: { damping: 11 } });
   const validated = frame >= validatedAt;
 
-  // Le chrono tourne vite pour la dramaturgie
   const seconds = Math.max(3, 45 - frame * (blurIntro ? 0.22 : 0.35) - index * 4);
 
   return (
@@ -310,8 +302,6 @@ const RoundsScene: React.FC = () => {
   );
 };
 
-/* ---------- Scène 3 : la boîte du jour ---------- */
-
 const BoxScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -396,8 +386,6 @@ const BoxScene: React.FC = () => {
   );
 };
 
-/* ---------- Scène 4 : l'appli ---------- */
-
 const FEATURES = [
   { label: "Classement en direct", color: C.warning, side: "left", top: 560 },
   { label: "Panorama : retrouve la scène sur la carte", color: C.cyan, side: "right", top: 900 },
@@ -481,8 +469,6 @@ const AppScene: React.FC<{ screens: string[] }> = ({ screens }) => {
   );
 };
 
-/* ---------- Scène 5 : appel à l'action ---------- */
-
 const CtaScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -550,8 +536,6 @@ const CtaScene: React.FC = () => {
     </SceneFade>
   );
 };
-
-/* ---------- Montage ---------- */
 
 export const DailyBoxPromo: React.FC = () => {
   const screens = ["daily-promo/app-home.png", "daily-promo/app-leaderboard.png", "daily-promo/app-panorama.png"];

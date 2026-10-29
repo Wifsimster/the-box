@@ -1,10 +1,3 @@
-/**
- * Import Logic for Job Workers
- *
- * Refactored from screenshot-fetcher.ts to support progress callbacks
- * and integration with BullMQ workers.
- */
-
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -20,10 +13,8 @@ const ROOT_DIR = path.resolve(__dirname, '..', '..', '..', '..')
 const DATA_DIR = path.join(ROOT_DIR, 'data')
 const UPLOADS_DIR = path.resolve(ROOT_DIR, '..', '..', 'uploads', 'screenshots')
 
-// Progress callback type
 export type ProgressCallback = (current: number, total: number, message: string) => void
 
-// RAWG API Types
 interface RAWGGenre {
   id: number
   name: string
@@ -79,7 +70,6 @@ interface RAWGPaginatedResponse<T> {
   results: T[]
 }
 
-// Output data types
 export interface GameData {
   rawg_id: number
   name: string
@@ -103,10 +93,9 @@ export interface ScreenshotData {
   difficulty: 1 | 2 | 3
 }
 
-// Rate Limiter
 class RateLimiter {
   private requests: number[] = []
-  private readonly windowMs = 60000 // 1 minute
+  private readonly windowMs = 60000
   private readonly maxRequests: number
   private readonly delayMs: number
 
@@ -126,7 +115,6 @@ class RateLimiter {
       await sleep(waitTime)
     }
 
-    // Add minimum delay between requests
     if (this.requests.length > 0) {
       const lastRequest = this.requests[this.requests.length - 1]!
       const timeSinceLast = now - lastRequest
@@ -139,7 +127,6 @@ class RateLimiter {
   }
 }
 
-// RAWG API Client
 class RAWGClient {
   private baseUrl = 'https://api.rawg.io/api'
   private apiKey: string
@@ -192,7 +179,6 @@ class RAWGClient {
   }
 }
 
-// Utility functions
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -214,13 +200,11 @@ async function downloadImage(url: string, outputPath: string, retries: number = 
         log.error({ url, error: String(error) }, 'failed to download image')
         return false
       }
-      await sleep(1000 * Math.pow(2, attempt)) // Exponential backoff
+      await sleep(1000 * Math.pow(2, attempt))
     }
   }
   return false
 }
-
-// Main export functions
 
 export async function fetchGamesFromRAWG(
   targetCount: number,
@@ -250,7 +234,6 @@ export async function fetchGamesFromRAWG(
     for (const rawGame of response.results) {
       if (games.length >= targetCount) break
 
-      // Check if game already exists in database
       const existingGame = await gameRepository.findBySlug(rawGame.slug)
       if (existingGame) {
         log.debug({ slug: rawGame.slug }, 'game already exists, skipping')
@@ -259,14 +242,12 @@ export async function fetchGamesFromRAWG(
         continue
       }
 
-      // Fetch screenshots for this game
       const screenshotResponse = await client.fetchGameScreenshots(rawGame.id)
 
       if (screenshotResponse.results.length === 0) {
-        continue // Skip games without screenshots
+        continue
       }
 
-      // Fetch detailed game info (for developers/publishers)
       const details = await client.fetchGameDetails(rawGame.id)
 
       const gameData: GameData = {
@@ -284,14 +265,12 @@ export async function fetchGamesFromRAWG(
         screenshots: [],
       }
 
-      // Add screenshots
       const screenshotsToAdd = screenshotResponse.results.slice(0, screenshotsPerGame)
       for (let i = 0; i < screenshotsToAdd.length; i++) {
         const rawScreenshot = screenshotsToAdd[i]!
         const filename = `screenshot_${i + 1}.jpg`
         const localPath = `/uploads/screenshots/${rawGame.slug}/${filename}`
 
-        // Distribute difficulty evenly
         const difficulty = ((screenshotIndex % 3) + 1) as 1 | 2 | 3
         screenshotIndex++
 
@@ -326,7 +305,6 @@ export async function fetchGamesFromRAWG(
 export async function saveData(games: GameData[], screenshots: ScreenshotData[]): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true })
 
-  // Save games.json (without screenshots array for cleaner seed data)
   const gamesForSeed = games.map((g) => ({
     name: g.name,
     slug: g.slug,
@@ -342,7 +320,6 @@ export async function saveData(games: GameData[], screenshots: ScreenshotData[])
 
   await fs.writeFile(path.join(DATA_DIR, 'games.json'), JSON.stringify(gamesForSeed, null, 2))
 
-  // Save screenshots.json
   await fs.writeFile(path.join(DATA_DIR, 'screenshots.json'), JSON.stringify(screenshots, null, 2))
 
   log.info({ dataDir: DATA_DIR }, 'data saved')
@@ -374,7 +351,6 @@ export async function downloadAllScreenshots(
     const screenshot = screenshots[i]!
     onProgress?.(i + 1, screenshots.length, `Downloading screenshot ${i + 1}/${screenshots.length}`)
 
-    // Convert /uploads/screenshots/game-slug/file.jpg to absolute path
     const relativePath = screenshot.image_url.replace('/uploads/screenshots/', '')
     const outputPath = path.join(UPLOADS_DIR, relativePath)
 
@@ -386,7 +362,6 @@ export async function downloadAllScreenshots(
       failed++
     }
 
-    // Small delay between downloads
     await sleep(100)
   }
 

@@ -32,10 +32,6 @@ function ResponsiveDialogOverlay({
 type ResponsiveDialogContentProps = React.ComponentProps<
   typeof DialogPrimitive.Content
 > & {
-  /**
-   * Hide the drag-handle affordance on the mobile bottom sheet.
-   * Default: handle is shown so users see the sheet can be dismissed.
-   */
   hideDragHandle?: boolean
 }
 

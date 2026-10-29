@@ -41,10 +41,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         },
     })
 
-    // Guard the parse: when the GeoGamers API is disabled the request 404s to
-    // the SPA fallback and the body is HTML (`<!doctype …>`), not JSON. Blindly
-    // calling res.json() there throws "Unexpected token '<'" and surfaces that
-    // raw parser error to the player. Treat any unparseable body as a failure.
     let json: ApiEnvelope<T> | undefined
     try {
         json = (await res.json()) as ApiEnvelope<T>
@@ -53,9 +49,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
 
     if (!res.ok || !json || !json.success) {
-        // A 404 (feature disabled / route not mounted) or a non-JSON body both
-        // mean GeoGamers isn't available on this deployment — map them to a
-        // single friendly, localized code rather than leaking internals.
         const unavailable = res.status === 404 || !json
         throw new GeoGamersApiError(
             unavailable

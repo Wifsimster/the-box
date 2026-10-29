@@ -2,10 +2,6 @@ import { useTranslation } from 'react-i18next'
 import { ImageOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// Shared "map unavailable" tile used by both MapCanvas (CSS background-image)
-// and MapCanvasLeaflet (ImageOverlay). Both surfaces hit the same
-// placeholder-URL guard + onError probe; this component keeps the visual
-// language and a11y attributes consistent.
 export function MapErrorFallback({
     aspectRatio,
     className,

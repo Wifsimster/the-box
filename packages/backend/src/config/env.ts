@@ -7,167 +7,64 @@ export const env = {
   PORT: parseInt(process.env['PORT'] || '3000', 10),
   LOG_LEVEL: process.env['LOG_LEVEL'] || 'info',
   DATABASE_URL: process.env['DATABASE_URL'] || 'postgresql://thebox:thebox_secret@localhost:5432/thebox',
-  // Opt-in TLS for Postgres. Set to 'true' for managed providers (RDS,
-  // Supabase, Neon) that require TLS. Leave unset/false for self-hosted
-  // Postgres on a private network — forcing SSL on a server without it
-  // fails the boot with "server does not support SSL connections".
   DATABASE_SSL: process.env['DATABASE_SSL'] || 'false',
   CORS_ORIGIN: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
 
-  // Better Auth. The default below is ONLY used when NODE_ENV === 'development';
-  // validateEnv() rejects this literal in any other environment so a missing
-  // env var fails the boot rather than silently signing sessions with a
-  // publicly-known secret.
   BETTER_AUTH_SECRET: process.env['BETTER_AUTH_SECRET'] || 'dev-secret-change-in-production-min-32-chars',
   API_URL: process.env['API_URL'] || 'http://localhost:3000',
 
-  // Resend (Email)
   RESEND_API_KEY: process.env['RESEND_API_KEY'] || '',
   EMAIL_FROM: process.env['EMAIL_FROM'] || 'no-reply@the-box.battistella.ovh',
 
-  // Relance (re-engagement) email — kill switch + cron override.
-  // Defaults to 17:00 UTC daily, two hours before the streak-risk job.
   RELANCE_EMAIL_ENABLED: process.env['RELANCE_EMAIL_ENABLED'] || 'true',
   RELANCE_EMAIL_CRON: process.env['RELANCE_EMAIL_CRON'] || '0 17 * * *',
 
-  // Long-horizon win-back email for users inactive (no play, no session
-  // refresh) for N days. Runs weekly to avoid piling reminders onto
-  // already-gone users; per-user cooldown inside the worker is 30 days.
   INACTIVE_USER_REMINDER_ENABLED: process.env['INACTIVE_USER_REMINDER_ENABLED'] || 'true',
   INACTIVE_USER_REMINDER_CRON: process.env['INACTIVE_USER_REMINDER_CRON'] || '0 16 * * 1',
   INACTIVE_USER_REMINDER_DAYS: process.env['INACTIVE_USER_REMINDER_DAYS'] || '14',
 
-  // Public-facing frontend URL (used in marketing email CTAs)
   FRONTEND_URL: process.env['FRONTEND_URL'] || 'https://the-box.battistella.ovh',
 
-  // Community geo surface (free play + crowdsourced contribution) at /api/geo.
-  // On by default. Flipping it off unmounts the player-facing routes (they 404
-  // like a dark-shipped feature) so the community dataset-building loop can be
-  // sunset without touching the geo data layer — ingestion pipeline, agent
-  // sourcing API, admin geo-fetch and GeoGamers all keep running: they don't go
-  // through /api/geo. The consensus worker also stays registered because agent
-  // pin proposals (/api/agent/v1/geo) still feed it.
   GEO_COMMUNITY_ENABLED: process.env['GEO_COMMUNITY_ENABLED'] || 'false',
 
-  // GeoGamers mode (guess-the-game + geolocate). Off by default: the routes
-  // 404 and the daily-challenge scheduler doesn't register until enabled, so
-  // the feature can ship dark and be turned on once enough consensus-confirmed
-  // content exists. MIN_ELIGIBLE_GAMES gates challenge creation (the "guess
-  // the game" step is meaningless with too few distinct games); a featured
-  // game is then on cooldown for COOLDOWN_DAYS before it can be reused.
   GEOGAMERS_ENABLED: process.env['GEOGAMERS_ENABLED'] || 'false',
   GEOGAMERS_MIN_ELIGIBLE_GAMES: process.env['GEOGAMERS_MIN_ELIGIBLE_GAMES'] || '10',
   GEOGAMERS_GAME_COOLDOWN_DAYS: process.env['GEOGAMERS_GAME_COOLDOWN_DAYS'] || '14',
 
-  // Agent content-sourcing surface (issue #331, /api/agent/v1/geo). Off by
-  // default: the read-only routes return 503 AGENT_API_DISABLED until turned
-  // on, so the whole surface can be killed instantly by flipping this and
-  // redeploying (the second kill switch, alongside per-key revocation). Keys
-  // for it are admin-minted; scopes are enforced per route.
   GEO_AGENT_API_ENABLED: process.env['GEO_AGENT_API_ENABLED'] || 'false',
-  // Per-key daily budget for agent-triggered ingestion (phase 3). A hard
-  // ceiling on how many times one key can kick the ingestion pipeline per UTC
-  // day, tracked in Redis so it survives deploys. Independent of the 60/min
-  // rate limit — this bounds cost/abuse over a day, not burst rate.
   GEO_AGENT_MAX_INGESTS_PER_DAY: process.env['GEO_AGENT_MAX_INGESTS_PER_DAY'] || '20',
-  // Per-key hourly budget for agent pin proposals (phase 4), tracked in Redis.
-  // Agent pins are downweighted and can never promote on their own, but the
-  // budget still bounds how fast one key can flood the review queue.
   GEO_AGENT_MAX_PINS_PER_HOUR: process.env['GEO_AGENT_MAX_PINS_PER_HOUR'] || '60',
-  // Backfill discovery worker (issue #331, phase 6). Off by default. When on, a
-  // recurring job ranks curated+resolved games that are NOT yet eligible by
-  // distance-to-eligibility and drives ingestion at the ones closest to a
-  // canonical pin — the in-app, steady-state complement to the external agent.
   GEO_BACKFILL_ENABLED: process.env['GEO_BACKFILL_ENABLED'] || 'false',
-  // How many top-ranked sub-threshold games each backfill tick drives.
   GEO_BACKFILL_BATCH: process.env['GEO_BACKFILL_BATCH'] || '10',
-  // Gate for LLM-vision pin proposals (phase 5). Off until the offline accuracy
-  // study (`npm run eval:geo-vision`) clears the enable bar — until then
-  // `source=agent_vision` proposals are rejected with VISION_DISABLED, so
-  // unmeasured vision pins never enter consensus even as downweighted voters.
   GEO_AGENT_VISION_ENABLED: process.env['GEO_AGENT_VISION_ENABLED'] || 'false',
-  // Content-creation & curation surface (issue #331, phase 5) — the write-heavy
-  // endpoints that enroll new games, top up captures, and manage candidate
-  // maps (geo-agent:curate scope). Gated separately from GEO_AGENT_API_ENABLED
-  // so read/ingest/propose can stay on while curation stays dark until an
-  // operator explicitly opts in.
   GEO_AGENT_CURATE_ENABLED: process.env['GEO_AGENT_CURATE_ENABLED'] || 'false',
-  // Per-key daily budget for game enrollment — the most expensive/impactful
-  // curate action (creates a game row and kicks off the full ingest pipeline).
   GEO_AGENT_MAX_ENROLLS_PER_DAY: process.env['GEO_AGENT_MAX_ENROLLS_PER_DAY'] || '5',
-  // Per-key daily budget for capture top-ups (RAWG import or manual URLs).
   GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY: process.env['GEO_AGENT_MAX_CAPTURE_IMPORTS_PER_DAY'] || '10',
-  // Per-key daily budget for map curation actions (select canonical / reject).
   GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY: process.env['GEO_AGENT_MAX_MAP_ACTIONS_PER_DAY'] || '30',
-  // Per-key daily budget for manual map uploads (register a map by URL +
-  // declared dimensions). Bounded tighter than select/reject since each upload
-  // creates a new asset row.
   GEO_AGENT_MAX_MAP_UPLOADS_PER_DAY: process.env['GEO_AGENT_MAX_MAP_UPLOADS_PER_DAY'] || '10',
-  // Confirm/promote surface (issue #331, phase 7) — the one write that creates
-  // ground truth, but only where the crowd already earned it: promotion is
-  // gated on qualifying consensus (≥5 accepted HUMAN pins + confidence ≥ 0.5)
-  // and the agent supplies no coordinates. Third, independent kill switch so an
-  // operator can run read/ingest/propose/curate while promote stays dark. While
-  // false the endpoint returns 503 AGENT_PROMOTE_DISABLED even for a key that
-  // holds geo-agent:promote.
   GEO_AGENT_PROMOTE_ENABLED: process.env['GEO_AGENT_PROMOTE_ENABLED'] || 'false',
-  // Per-key daily budget for agent-confirmed promotions, tracked in Redis.
   GEO_AGENT_MAX_PROMOTES_PER_DAY: process.env['GEO_AGENT_MAX_PROMOTES_PER_DAY'] || '20',
-  // Override-promote surface (issue #345, phase 8) — the agent equivalent of the
-  // admin `/geo/candidates/:id/override`: promote a well-localized capture at
-  // agent-supplied coordinates, BYPASSING the anti-poisoning consensus gate. It
-  // is the most privileged agent write (no crowd earned the pin), so it sits
-  // behind its OWN kill switch, off by default, independent of the other three.
-  // While false the endpoint returns 503 AGENT_PROMOTE_OVERRIDE_DISABLED even
-  // for a key that holds geo-agent:promote-override.
   GEO_AGENT_PROMOTE_OVERRIDE_ENABLED:
     process.env['GEO_AGENT_PROMOTE_OVERRIDE_ENABLED'] || 'false',
-  // Per-key daily budget for override-promotions, tracked in Redis. Bounded
-  // tighter than consensus promotes since each one manufactures ground truth
-  // without a crowd behind it.
   GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY:
     process.env['GEO_AGENT_MAX_PROMOTE_OVERRIDES_PER_DAY'] || '5',
 
-  // "Describe the game" is configured in the app-settings store (Admin →
-  // Paramètres or the settings MCP tools), not here. This is only a test/dev
-  // hook: 'stub' swaps the Anthropic judge for a deterministic stub (no
-  // network). Ignored when NODE_ENV is 'production'.
   DESCRIBE_GUESS_JUDGE: process.env['DESCRIBE_GUESS_JUDGE'] || '',
-  // Test hook: make the stub judge slow (ms) to prove the guess response never waits on it.
   DESCRIBE_GUESS_STUB_DELAY_MS: parseInt(process.env['DESCRIBE_GUESS_STUB_DELAY_MS'] || '0', 10) || 0,
 
-  // RAWG API (for fetching game screenshots)
   RAWG_API_KEY: process.env['RAWG_API_KEY'] || '',
 
-  // Redis (for BullMQ job queue)
   REDIS_URL: process.env['REDIS_URL'] || 'redis://localhost:6379',
 
-  // Stripe — Premium subscription billing. Prices are resolved at runtime
-  // by lookup_key (see config/billing.ts and the catalog resolver), so no
-  // STRIPE_PRICE_* env vars are needed; the same code path works in test
-  // and live mode against whichever sandbox the secret key points at.
   STRIPE_SECRET_KEY: process.env['STRIPE_SECRET_KEY'] || '',
   STRIPE_WEBHOOK_SECRET: process.env['STRIPE_WEBHOOK_SECRET'] || '',
   STRIPE_CHECKOUT_SUCCESS_URL: process.env['STRIPE_CHECKOUT_SUCCESS_URL'] || 'http://localhost:5173/fr/premium?checkout=success',
   STRIPE_CHECKOUT_CANCEL_URL: process.env['STRIPE_CHECKOUT_CANCEL_URL'] || 'http://localhost:5173/fr/premium?checkout=cancel',
   STRIPE_PORTAL_RETURN_URL: process.env['STRIPE_PORTAL_RETURN_URL'] || 'http://localhost:5173/fr/profile',
-  // Stripe Billing Portal configuration ID (bpc_…). When set, portal
-  // sessions are created with this configuration so the customer can
-  // only switch between The Box Premium prices, not toward products of
-  // other apps sharing the same Stripe account. Empty falls back to
-  // the account's default configuration.
   STRIPE_PORTAL_CONFIG_ID: process.env['STRIPE_PORTAL_CONFIG_ID'] || '',
 
-  // Koe support widget — identity verification secret shared with the
-  // self-hosted Koe service. When set, /api/koe/identity returns an
-  // HMAC-SHA256(userId) hex digest so the widget can prove the signed-in
-  // user is who they claim to be. Leave empty to disable verified mode
-  // (the widget still works, but submissions are treated as unverified).
   KOE_IDENTITY_SECRET: process.env['KOE_IDENTITY_SECRET'] || '',
 
-  // Web Push (VAPID). Required to send notifications. Generate a keypair
-  // with `npm run vapid:generate -w @the-box/backend`. Without all three
-  // values present, the push.service refuses to send and routes return 503.
   VAPID_PUBLIC_KEY: process.env['VAPID_PUBLIC_KEY'] || '',
   VAPID_PRIVATE_KEY: process.env['VAPID_PRIVATE_KEY'] || '',
   VAPID_SUBJECT: process.env['VAPID_SUBJECT'] || '',
@@ -176,9 +73,6 @@ export const env = {
 const DEV_AUTH_SECRET = 'dev-secret-change-in-production-min-32-chars'
 
 export function validateEnv(): void {
-  // Anything that isn't an explicit 'development' environment must supply its
-  // own auth secret. This catches misconfigured staging/test deploys where
-  // NODE_ENV isn't 'production' but the dev default would otherwise pass.
   if (env.NODE_ENV !== 'development') {
     if (!process.env['BETTER_AUTH_SECRET']) {
       throw new Error('Missing required environment variable: BETTER_AUTH_SECRET')

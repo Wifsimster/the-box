@@ -25,9 +25,6 @@ import {
 
 const router = Router()
 
-// === Full Import (Batch Processing) ===
-
-// Start a new full import
 const startFullImportSchema = z.object({
   batchSize: z.number().min(10).max(500).default(100),
   screenshotsPerGame: z.number().min(1).max(10).default(5),
@@ -36,7 +33,6 @@ const startFullImportSchema = z.object({
 
 router.post('/jobs/full-import/start', async (req, res, next) => {
   try {
-    // Check if there's already an active import
     const activeImport = await getActiveImport()
     if (activeImport) {
       res.status(409).json({
@@ -66,21 +62,19 @@ router.post('/jobs/full-import/start', async (req, res, next) => {
   }
 })
 
-// Get current active import state
 router.get('/jobs/full-import/current', async (_req, res, next) => {
   try {
     const importState = await getActiveImport()
 
     res.json({
       success: true,
-      data: { importState }, // null if no active import
+      data: { importState },
     })
   } catch (error) {
     next(error)
   }
 })
 
-// Get import state by ID
 router.get('/jobs/full-import/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -103,7 +97,6 @@ router.get('/jobs/full-import/:id', async (req, res, next) => {
   }
 })
 
-// Pause an ongoing import
 router.post('/jobs/full-import/:id/pause', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -134,7 +127,6 @@ router.post('/jobs/full-import/:id/pause', async (req, res, next) => {
   }
 })
 
-// Resume a paused import
 router.post('/jobs/full-import/:id/resume', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -165,9 +157,6 @@ router.post('/jobs/full-import/:id/resume', async (req, res, next) => {
   }
 })
 
-// === Sync All Games (Find missing + Update existing) ===
-
-// Start a new sync-all job
 const startSyncAllSchema = z.object({
   batchSize: z.number().min(10).max(500).default(100),
   screenshotsPerGame: z.number().min(1).max(10).default(5),
@@ -177,7 +166,6 @@ const startSyncAllSchema = z.object({
 
 router.post('/jobs/sync-all/start', async (req, res, next) => {
   try {
-    // Check if there's already an active sync
     const activeSyncAll = await getActiveSyncAll()
     if (activeSyncAll) {
       res.status(409).json({
@@ -207,21 +195,19 @@ router.post('/jobs/sync-all/start', async (req, res, next) => {
   }
 })
 
-// Get current active sync-all state
 router.get('/jobs/sync-all/current', async (_req, res, next) => {
   try {
     const syncState = await getActiveSyncAll()
 
     res.json({
       success: true,
-      data: { syncState }, // null if no active sync
+      data: { syncState },
     })
   } catch (error) {
     next(error)
   }
 })
 
-// Get sync-all state by ID
 router.get('/jobs/sync-all/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -244,7 +230,6 @@ router.get('/jobs/sync-all/:id', async (req, res, next) => {
   }
 })
 
-// Pause an ongoing sync-all
 router.post('/jobs/sync-all/:id/pause', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -275,7 +260,6 @@ router.post('/jobs/sync-all/:id/pause', async (req, res, next) => {
   }
 })
 
-// Resume a paused sync-all
 router.post('/jobs/sync-all/:id/resume', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -306,7 +290,6 @@ router.post('/jobs/sync-all/:id/resume', async (req, res, next) => {
   }
 })
 
-// Cancel a sync-all (marks as failed so a new one can be started)
 router.post('/jobs/sync-all/:id/cancel', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -337,9 +320,6 @@ router.post('/jobs/sync-all/:id/cancel', async (req, res, next) => {
   }
 })
 
-// === Recalculate Scores ===
-
-// Start a new score recalculation job
 const startRecalculateScoresSchema = z.object({
   batchSize: z.number().min(10).max(1000).default(100),
   dryRun: z.boolean().default(false),
@@ -349,7 +329,6 @@ const startRecalculateScoresSchema = z.object({
 
 router.post('/jobs/recalculate-scores/start', async (req, res, next) => {
   try {
-    // Check if there's already an active recalculation
     const activeRecalculate = await getActiveRecalculateScores()
     if (activeRecalculate) {
       res.status(409).json({
@@ -379,21 +358,19 @@ router.post('/jobs/recalculate-scores/start', async (req, res, next) => {
   }
 })
 
-// Get current active recalculation state
 router.get('/jobs/recalculate-scores/current', async (_req, res, next) => {
   try {
     const recalculateState = await getActiveRecalculateScores()
 
     res.json({
       success: true,
-      data: { recalculateState }, // null if no active recalculation
+      data: { recalculateState },
     })
   } catch (error) {
     next(error)
   }
 })
 
-// Get recalculation state by ID
 router.get('/jobs/recalculate-scores/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -416,7 +393,6 @@ router.get('/jobs/recalculate-scores/:id', async (req, res, next) => {
   }
 })
 
-// Pause an ongoing recalculation
 router.post('/jobs/recalculate-scores/:id/pause', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)
@@ -447,7 +423,6 @@ router.post('/jobs/recalculate-scores/:id/pause', async (req, res, next) => {
   }
 })
 
-// Resume a paused recalculation
 router.post('/jobs/recalculate-scores/:id/resume', async (req, res, next) => {
   try {
     const id = parseInt(req.params['id']!, 10)

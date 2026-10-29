@@ -1,10 +1,3 @@
-// Native share with the daily card attached.
-//
-// The share sheet only takes a file on platforms that say so through
-// `navigator.canShare({ files })` (iOS/Android browsers, desktop Safari/Edge).
-// Everywhere else the text share stays as it was. The card is the same
-// 1200×630 PNG the link preview uses (`/api/og/daily.png`, docs/brand.md §5).
-
 export interface ShareNavigator {
   share?: (data: ShareData) => Promise<void>
   canShare?: (data: ShareData) => boolean
@@ -19,7 +12,6 @@ export function dailyCardFileName(date: string): string {
   return `the-box-${date}.png`
 }
 
-/** True when this browser's share sheet accepts `file`. */
 export function canShareFile(nav: ShareNavigator | undefined, file: File): boolean {
   if (!nav || typeof nav.share !== 'function' || typeof nav.canShare !== 'function') {
     return false
@@ -31,10 +23,6 @@ export function canShareFile(nav: ShareNavigator | undefined, file: File): boole
   }
 }
 
-/**
- * Payload for `navigator.share`: the card goes in `files` when the browser
- * accepts it, the text (sentence, grid, UTM link) is sent either way.
- */
 export function buildSharePayload(
   text: string,
   file: File | null,
@@ -47,11 +35,6 @@ export function buildSharePayload(
 
 export type ShareOutcome = 'shared' | 'cancelled' | 'failed'
 
-/**
- * Shares with the card attached, then retries with text only when the
- * file share is refused (some share targets reject files the browser said
- * it could share). A user cancel is never retried.
- */
 export async function shareWithOptionalImage(
   nav: ShareNavigator,
   text: string,

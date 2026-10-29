@@ -7,10 +7,6 @@ type Props = {
   glow?: boolean;
 };
 
-/**
- * Wireframe 3D cube — mirrors public/logo.svg from the frontend, but spins
- * and pulses on the perspective Y axis using a CSS 3D transform.
- */
 export const Cube: React.FC<Props> = ({ size = 280, spin = true, glow = true }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();

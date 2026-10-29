@@ -6,11 +6,6 @@ import { getDescribeGuessService } from '../../../composition/describe-guess.js'
 
 const log = queueLogger.child({ worker: 'describe-guess' })
 
-// "Describe the game" shadow capture. Runs off the guess request path. The
-// settings are re-read per job: if the feature was turned off (or the key
-// removed) after the guess was enqueued, the job is dropped. Concurrency 2
-// bounds parallel model calls; each call is capped at 5 s by the service.
-// Never logs the guess text.
 export const describeGuessWorker = new Worker<DescribeGuessJobData>(
   'describe-guess',
   async (job: BullJob<DescribeGuessJobData>) => {

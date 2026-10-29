@@ -67,46 +67,17 @@ import {
 } from './geo-catalog-types'
 import { useGeoCatalog } from './useGeoCatalog'
 
-// Single Catalogue surface. Absorbs the former Maps + Games sub-tabs into one
-// datatable: default view shows curated games with at least one enabled map,
-// and filter pills (Activés / Sans carte / Candidats / Tous) reach the rest of
-// the catalog without changing screens. Curated rows still open the per-tier
-// cascade side panel; non-curated rows participate in bulk curate via the
-// row checkbox + bulk action bar.
-
-// Used by the side panel and the row-action helpers — all of those only
-// operate on curated games, where map count / candidate count are known.
 
 
 interface GeoMapsTabProps {
-    // The run-progress hook is owned by the parent (GeoReviewPanel) so that
-    // polling and the live banner survive when an admin switches between
-    // Pins / Maps / Catalogue tabs mid-run.
     runState: GeoRunStatePayload | null
     runError: string | null
     armRunPolling: (windowMs?: number) => void
-    /**
-     * Deep-link from the Maps side panel into the Pins tab pre-filtered
-     * to the selected game's screenshot candidates. Owned by the parent
-     * because tab state and the candidate list filter live there.
-     */
     onViewCaptures?: (gameId: number, gameName: string) => void
-    /**
-     * Deep-link out of the Catalog into the Acquisition sub-tab. Replaces
-     * the bulk "Tout lancer" + per-row ▶ controls that used to live here
-     * and duplicated the Acquisition entry-point — the Catalog stays a
-     * read-and-curate surface; ingestion is run from one place.
-     */
     onGoToAcquisition?: () => void
-    /**
-     * Pre-selected filter when the parent state-machine routes here from a
-     * cold-start CTA (e.g. "Activer un jeu" → opens with the Candidats pill
-     * pre-applied so the moderator lands directly on the curation funnel).
-     */
     initialFilter?: FilterMode
 }
 
-// Mutually-exclusive "operation in flight" flags for the catalog.
 export function GeoMapsTab({
     runState,
     runError,
@@ -165,7 +136,6 @@ export function GeoMapsTab({
 
     const isLoadingInitial = loading && curated === null && candidates === null
 
-    // Identical prop bundle for the desktop side panel and the mobile sheet.
     const sidePanelProps = {
         selectedGame,
         sources,
@@ -193,7 +163,6 @@ export function GeoMapsTab({
     return (
         <div className="space-y-4">
         <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-5">
-            {/* Left: per-game table */}
             <CatalogTableCard
                 filter={filter}
                 search={search}
@@ -220,7 +189,6 @@ export function GeoMapsTab({
                 t={t}
             />
 
-            {/* Desktop: tier-cascade side panel docked next to the list. */}
             <Card className="hidden lg:block lg:col-span-2">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-sm">
@@ -239,7 +207,6 @@ export function GeoMapsTab({
                 </CardContent>
             </Card>
 
-            {/* Mobile: same panel surfaced as a bottom drawer when a row is tapped. */}
             <Sheet
                 open={isMobile && selectedId !== null}
                 onOpenChange={(open) => {
@@ -289,9 +256,6 @@ export function GeoMapsTab({
             />
         </div>
 
-        {/* Danger zone: wipes scraping progress + scraped maps so the
-            ingestion pipeline starts from zero. Curation flags
-            (games.geo_curated) and player scores are preserved. */}
         <Card className="border-destructive/40 bg-destructive/5">
             <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -345,9 +309,6 @@ export function GeoMapsTab({
     )
 }
 
-// Description line under the side panel title. The active source/license
-// is now rendered inside the ActiveMapHero block below, so this only
-// surfaces the empty-state warning when no map is active yet.
 function SidePanelDescription({
     selected,
     sources,
@@ -396,8 +357,6 @@ interface SidePanelBodyProps {
     t: ReturnType<typeof useTranslation>['t']
 }
 
-// Inner content of the tier-cascade side panel — extracted so the desktop
-// docked card and the mobile bottom sheet render the exact same body.
 function SidePanelBody({
     selectedGame,
     sources,
@@ -474,8 +433,6 @@ function SidePanelBody({
                 <ol className="overflow-hidden rounded-md border border-border/40 divide-y divide-border/40">
                     {sources.sources.map((s) => {
                         const tiers = tiersInFlightForGame(runState, sources.gameId)
-                        // 'manual' is operator-uploaded, never a background job —
-                        // never flag it running.
                         const running =
                             s.tier !== 'manual' &&
                             tiers.has(
@@ -571,12 +528,6 @@ function SidePanelBody({
     )
 }
 
-// Hero block at the top of the side panel. Replaces the framed "Cartes
-// activées" sub-panel + the redundant "Actif via Niveau X" header line:
-// shows a thumbnail-led row for each enabled map with inline region edit,
-// capture-target indicator, "Voir captures" link, and an overflow menu
-// (set as capture default, disable). Empty when no map is enabled — the
-// tier cascade below still surfaces "Use this map" on per-source candidates.
 function ActiveMapHero({
     gameId,
     gameName,
@@ -659,9 +610,6 @@ function ActiveMapHeroRow({
 }) {
     const [editing, setEditing] = useState(false)
     const [draft, setDraft] = useState(map.region ?? '')
-    // Focus the region field when the operator opens it. Driven by the edit
-    // click via a callback ref (focusing the node as it mounts) rather than
-    // autoFocus (which fires on document load) or a focus effect.
     const focusOnMount = useCallback((node: HTMLInputElement | null) => {
         node?.focus()
     }, [])
@@ -840,9 +788,6 @@ function CatalogRowItem({
                         : '',
             )}
             onClick={(e) => {
-                // Skip when the click landed on the checkbox cell — it has
-                // its own handler and we don't want it to also toggle the
-                // side panel.
                 const target = e.target as HTMLElement
                 if (target.closest('[data-row-checkbox]')) return
                 if (rowClickable) onOpen()
@@ -968,8 +913,6 @@ function CatalogStatusBadge({
     )
 }
 
-// Visual style for the row's status indicator. One source of truth keeps
-// the dot, label color, row tint, and icon aligned across all 5 branches.
 type TierVisual = {
     icon: typeof Sparkles
     rowBg: string
@@ -1001,8 +944,6 @@ function TierRow({
 }) {
     const tierLabel = t(`admin.geo.maps.tiers.${state.tier}`)
 
-    // Resolve visual style first so the row chrome stays uniform; per-branch
-    // affordances (retry, run-now, candidate list) are layered below.
     let visual: TierVisual
     if (running) {
         visual = {
@@ -1108,9 +1049,6 @@ function TierRow({
                     </span>
                 )}
             </div>
-            {/* Per-branch detail line: kept on a second line only when it's
-                load-bearing (running hint, matched candidates, tombstone reason +
-                retry timer). Untried/eligible remain single-line by default. */}
             {running && (
                 <p className="px-2.5 pb-1.5 text-[11px] text-muted-foreground leading-snug">
                     {t('admin.geo.run.tierRunningHint')}
@@ -1149,9 +1087,6 @@ function TierRow({
     )
 }
 
-// Inline expansion of the matched tier — preserves the candidate list with
-// per-row "Use this map" affordance. Lives in its own component so the
-// status-row chrome of TierRow stays compact and uniform.
 function MatchedTierDetails({
     state,
     onActivate,
@@ -1348,9 +1283,6 @@ function CatalogTableCard({
                     )}
                 </CardHeader>
                 <CardContent className="p-0">
-                    {/* Filter pills + search live above the table so the
-                        operator can pivot between Activés / Sans carte /
-                        Candidats / Tous without leaving the page. */}
                     <div className="px-4 pb-3 space-y-2">
                         <fieldset
                             className="m-0 flex flex-wrap items-center gap-1.5 border-0 p-0"

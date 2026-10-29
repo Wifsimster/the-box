@@ -1,10 +1,3 @@
-/**
- * Player statistics repository.
- *
- * The premium advanced-stats aggregates. Scoped to completed, non-catch-up
- * daily sessions throughout — catch-up play deliberately doesn't count
- * toward a player's record, the same rule the leaderboard applies.
- */
 import { db } from '../database/connection.js'
 import type {
   AdvancedStatsAggregates,
@@ -18,11 +11,6 @@ import type {
   SolveTimeAggregates,
 } from '../../domain/ports/player-stats.js'
 
-/**
- * The four metadata hints retired in 2026-06 (migration
- * 20260613_retire_legacy_metadata_hints). Their historical guess rows are
- * sacred, so they are still counted — rolled up into one figure.
- */
 const RETIRED_METADATA_HINTS = [
   'hint_year',
   'hint_publisher',
@@ -30,7 +18,6 @@ const RETIRED_METADATA_HINTS = [
   'hint_genre',
 ] as const
 
-/** Midnight on the first of the month, `monthsBack` months ago. */
 function startOfMonthsAgo(monthsBack: number): Date {
   const start = new Date()
   start.setMonth(start.getMonth() - monthsBack)
@@ -67,7 +54,6 @@ export const playerStatsRepository: PlayerStatsRepository = {
         .select<InventoryBadgeRow[]>('item_key', 'quantity'),
     ])
 
-    // Resolve the challenge dates in one round-trip rather than per session.
     const challengeIds = recentRows.map((r) => r.daily_challenge_id)
     const challengeRows = challengeIds.length
       ? await db('daily_challenges')
@@ -96,24 +82,19 @@ export const playerStatsRepository: PlayerStatsRepository = {
     userId: string,
     monthsOfHistory: number
   ): Promise<AdvancedStatsAggregates> {
-    // `monthsOfHistory` counts the current month, so step back one less.
     const historyStart = startOfMonthsAgo(Math.max(0, monthsOfHistory - 1))
 
     const [scoreRow, timeRow, legacyHintRow, letterRow, monthlyRows] = await Promise.all([
-      // Score aggregates across completed, non-catch-up daily sessions.
       db('game_sessions')
         .where({ user_id: userId, is_completed: true, is_catch_up: false })
         .select<ScoreAggregates>(
           db.raw('MAX(total_score) as best'),
           db.raw('AVG(total_score) as avg'),
           db.raw('COUNT(*) as total'),
-          // Perfect = speed score 2000; the streak bonus is excluded.
           db.raw('COUNT(*) FILTER (WHERE total_score - streak_bonus_total = 2000) as perfect'),
         )
         .first(),
 
-      // Solve-time percentiles + mean over correct guesses, joined through
-      // the user's own sessions so other players' guesses can't leak in.
       db('guesses')
         .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
         .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
@@ -129,7 +110,6 @@ export const playerStatsRepository: PlayerStatsRepository = {
         )
         .first(),
 
-      // Retired metadata hints. "Free" entries (no power_up_used) are ignored.
       db('guesses')
         .join('tier_sessions', 'guesses.tier_session_id', 'tier_sessions.id')
         .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
@@ -138,9 +118,6 @@ export const playerStatsRepository: PlayerStatsRepository = {
         .count<{ count: string }>({ count: '*' })
         .first(),
 
-      // Letter reveals live in their own table (one row per slot, a counter
-      // per letter) rather than on the guess row — sum the letters so the
-      // matrix shows reveal volume, comparable to per-use hint counts.
       db('position_letter_reveals')
         .join('tier_sessions', 'position_letter_reveals.tier_session_id', 'tier_sessions.id')
         .join('game_sessions', 'tier_sessions.game_session_id', 'game_sessions.id')
@@ -148,9 +125,6 @@ export const playerStatsRepository: PlayerStatsRepository = {
         .sum<{ sum: string | null }>('position_letter_reveals.letters_revealed as sum')
         .first(),
 
-      // Progression by calendar month. Bucketing on completed_at gives the
-      // months the user actually finished sessions in; an empty month is
-      // omitted (the panel decides whether to fill gaps).
       db('game_sessions')
         .where({ user_id: userId, is_completed: true, is_catch_up: false })
         .andWhere('completed_at', '>=', historyStart)

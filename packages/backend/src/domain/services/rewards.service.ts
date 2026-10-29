@@ -18,13 +18,6 @@ const ALLOWED_SOURCES: ReadonlySet<RewardSource> = new Set<RewardSource>([
   'daily_login',
 ])
 
-/**
- * Sources whose rewards are immediately usable. Reactivation is the
- * exception: the chest is staged when the user is flagged inactive but
- * the inbox card is unlockable only after the user submits a guess on
- * return — that earned-through-play guarantee is what the reactivation
- * PRD requires (autonomy-supportive, no streak-shaming).
- */
 const AUTO_UNLOCK_SOURCES: ReadonlySet<RewardSource> = new Set<RewardSource>([
   'milestone',
   'streak_freeze',
@@ -46,52 +39,22 @@ export interface GrantInput {
   source: RewardSource
   sourceRef: string
   items: RewardGrantItem[]
-  /**
-   * Override the default unlock policy. Useful for tests; production
-   * callers should rely on the source-driven default.
-   */
   autoUnlock?: boolean
 }
 
 export interface GrantResult {
-  /**
-   * `true` when the row was newly inserted, `false` on idempotent retry.
-   * Callers should only emit the `reward:granted` socket event when
-   * `wasNew === true`.
-   */
   wasNew: boolean
   grant: RewardGrant
 }
 
 export interface RewardsService {
   grant(input: GrantInput): Promise<GrantResult>
-  /**
-   * Mark a previously staged grant as unlockable. Used by the reactivation
-   * flow once the returning user submits a first guess. No-op if already
-   * unlocked. Returns the updated grant or null if the grant does not exist.
-   */
   unlock(rewardId: string, userId: string): Promise<RewardGrant | null>
-  /**
-   * Mark an unlocked grant as claimed by the user. No-op if already
-   * claimed. Returns the updated grant; returns the unchanged grant when
-   * the row is not yet unlocked (caller renders "pending" state).
-   */
   claim(rewardId: string, userId: string): Promise<RewardGrant | null>
-  /**
-   * Unlock every pending (`unlockedAt === null`) grant for a given
-   * source. Returns the rows that flipped — typically 0 or 1 — so
-   * callers can emit a `reward:granted` socket event per unlock and
-   * the inbox card flips from "À débloquer" to "Réclamer" live. Used
-   * by `reactivation` (chest unlocks on the user's next guess).
-   */
   unlockPendingByUserAndSource(
     userId: string,
     source: RewardSource
   ): Promise<RewardGrant[]>
-  /**
-   * List unclaimed grants for a user, newest first. Used by the
-   * `RewardsInbox` drawer.
-   */
   listUnclaimed(userId: string, limit?: number): Promise<RewardGrant[]>
 }
 

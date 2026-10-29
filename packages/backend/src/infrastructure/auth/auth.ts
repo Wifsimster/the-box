@@ -10,16 +10,12 @@ import { emailLogRepository } from "../repositories/email-log.repository.js";
 import { renderEmailHtml, renderEmailText } from "../email/template.js";
 import { transferAnonymousUserData } from "./link-anonymous-account.js";
 
-// Legacy metadata hints were retired 2026-06 (see migration
-// 20260613_retire_legacy_metadata_hints) — new accounts start with
-// letter-reveal currency instead.
 const STARTER_INVENTORY: Array<{ itemType: string; itemKey: string; quantity: number }> = [
   { itemType: "powerup", itemKey: "hint_letter", quantity: 2 },
 ];
 
 export const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
-// Shared pool for database hooks
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
 });
@@ -32,8 +28,8 @@ function createAuth() {
     database: pool,
     emailAndPassword: {
       enabled: true,
-      autoSignIn: true, // Explicitly enable automatic sign-in after registration
-      minPasswordLength: 8, // OWASP recommended minimum
+      autoSignIn: true,
+      minPasswordLength: 8,
       sendResetPassword: async ({ user, url }) => {
         const subject = "Réinitialiser votre mot de passe";
         const html = renderEmailHtml({
@@ -177,8 +173,6 @@ function createAuth() {
       }),
       anonymous({
         emailDomainName: "guest.thebox.local",
-        // The plugin deletes the guest right after this callback; move its
-        // progress first so registering mid-day keeps today's game.
         onLinkAccount: async ({ anonymousUser, newUser }) => {
           try {
             await transferAnonymousUserData(pool, anonymousUser.user.id, newUser.user.id);
@@ -205,9 +199,6 @@ function createAuth() {
           },
         },
       }),
-      // TOTP-based second factor + 10 backup codes.
-      // Anonymous accounts are blocked from enrollment at the route level
-      // (see presentation/routes/auth.guard.ts).
       twoFactor({
         issuer: "The Box",
         backupCodeOptions: {
@@ -215,9 +206,6 @@ function createAuth() {
           length: 10,
         },
       }),
-      // WebAuthn (Touch ID / Face ID / Windows Hello / FIDO2 keys).
-      // rpID and origin must match the deployed environment exactly —
-      // changing them invalidates every previously registered credential.
       passkey({
         rpID: new URL(env.API_URL).hostname,
         rpName: "The Box",
@@ -249,9 +237,6 @@ function createAuth() {
           input: false,
           fieldName: "current_streak",
         },
-        // Uploaded avatar (set by POST /api/user/avatar, not by Better Auth).
-        // Exposed on the session so the header can show it without an
-        // extra request.
         avatarUrl: {
           type: "string",
           required: false,
@@ -261,8 +246,8 @@ function createAuth() {
       },
     },
     session: {
-      expiresIn: 60 * 60 * 24 * 7, // 7 days
-      updateAge: 60 * 60 * 24, // 1 day
+      expiresIn: 60 * 60 * 24 * 7,
+      updateAge: 60 * 60 * 24,
     },
     trustedOrigins: [env.CORS_ORIGIN],
     databaseHooks: {
@@ -283,27 +268,6 @@ function createAuth() {
       user: {
         create: {
           before: async (user) => {
-            // Closes the first-user-admin race. Two parallel sign-ups
-            // on a fresh DB used to both read count=0 and both insert
-            // with role=admin.
-            //
-            // The actual defense is migration 20260521's partial unique
-            // index `one_admin_role_idx`, which makes two admin rows
-            // impossible at the database level — the second writer in
-            // the race trips a unique-violation and its sign-up fails.
-            //
-            // The advisory transaction lock here narrows but does NOT
-            // close the SELECT→INSERT window: pg_advisory_xact_lock is
-            // released at COMMIT, before Better Auth performs its
-            // INSERT in a separate session, so a tight race can still
-            // surface as a 5xx for the loser. It serialises the role
-            // check across hook invocations so most racing signups see
-            // the committed admin row and degrade to role=user
-            // cleanly — a one-shot cold-start UX wart, not a security
-            // gap (the unique index has that covered).
-            //
-            // The fixed hash key serialises every replica on the same
-            // Postgres row regardless of how many app instances exist.
             const client = await pool.connect();
             try {
               await client.query('BEGIN');
@@ -317,10 +281,7 @@ function createAuth() {
               }
               return { data: user };
             } catch (error) {
-              try { await client.query('ROLLBACK'); } catch { /* ignore */ }
-              // Log and fall through with default role; the partial
-              // unique index still prevents two admins even if this
-              // path is reached due to a DB blip.
+              try { await client.query('ROLLBACK'); } catch { }
               authLogger.error({ err: error }, "error in user creation hook");
               return { data: user };
             } finally {
@@ -328,8 +289,6 @@ function createAuth() {
             }
           },
           after: async (user) => {
-            // Grant starter inventory to real registrations (skip anonymous guests)
-            // so first-timers have hints available on their first session.
             if ((user as { isAnonymous?: boolean }).isAnonymous) {
               return;
             }

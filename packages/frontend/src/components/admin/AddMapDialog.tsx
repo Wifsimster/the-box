@@ -14,20 +14,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ExternalLink, Loader2, Search, Sparkles, Upload } from 'lucide-react'
 
-// Single dialog for the three "Add map for game" strategies. Each entry
-// point in the side panel opens this dialog at its preferred tab; the
-// operator can switch strategies without closing.
-
 export type AddMapStrategy = 'research' | 'wand' | 'manual'
 
 interface AddMapDialogProps {
     isOpen: boolean
     onClose: () => void
     game: { id: number; name: string; slug: string; hasMap: boolean } | null
-    // Strategy is fully controlled by the parent so opening the dialog from
-    // the three side-panel buttons lands on the matching tab without any
-    // reset-on-open effect inside the dialog. The "Paste URL" CTA inside
-    // the Research pane also bubbles up via this setter.
     strategy: AddMapStrategy
     onStrategyChange: (s: AddMapStrategy) => void
     onSuccess: () => void
@@ -242,9 +234,6 @@ function WandPane({
     onClose: () => void
 }) {
     const { t } = useTranslation()
-    // The parent keys this pane on game.id, so React remounts (with fresh
-    // state) whenever the operator switches to a different game — no
-    // reset-on-prop-change effect needed.
     const [form, setForm] = useState<WandFormState>(() => defaultWandForm(game.slug))
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -387,8 +376,6 @@ function ManualPane({
     onClose: () => void
 }) {
     const { t } = useTranslation()
-    // Keyed on game.id by the parent, so switching games remounts this pane
-    // with fresh state (see WandPane).
     const [form, setForm] = useState<ManualFormState>(EMPTY_MANUAL)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)

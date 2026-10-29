@@ -13,7 +13,6 @@ describe('GET /monthly/:year/:month/countries', () => {
 
   before(async () => {
     const app = express()
-    // Stand-in for optionalAuthMiddleware: the test picks the session by header.
     app.use((req, _res, next) => {
       const as = req.header('x-test-user')
       if (as === 'guest') {

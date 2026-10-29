@@ -1,6 +1,3 @@
-/**
- * Check database state
- */
 import { db } from '../src/infrastructure/database/connection.js'
 
 async function checkDatabase() {

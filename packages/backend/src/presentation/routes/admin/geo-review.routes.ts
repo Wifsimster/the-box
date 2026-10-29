@@ -19,13 +19,6 @@ import { geoQueue } from '../../../infrastructure/queue/queues.js'
 
 const router = Router()
 
-// === Geolocation mode (admin review) ===
-
-// Per-game moderation summary. Replaces the flat "show every capture" list
-// the panel used to render: the moderator now sees one row per game with
-// the full per-status counts and the oldest pending date. Counts come from
-// a single GROUP BY in the repo so they're honest beyond the per-candidate
-// page size.
 router.get('/geo/candidates/by-game', async (req, res, next) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status : undefined
@@ -45,12 +38,6 @@ router.get('/geo/candidates/by-game', async (req, res, next) => {
   }
 })
 
-// GET /api/admin/geo/games-needing-content — the "one pin away" diagnostic.
-// Games with an active map and captures collecting pins but no canonical pin
-// yet: promoting one of their candidates makes the game eligible for GeoGamers.
-// Sorted so the games closest to the next consensus recompute come first, which
-// is where pinning effort moves the eligible-count needle. Complements the
-// GeoGamers health card (which shows the aggregate count but not *which* games).
 router.get('/geo/games-needing-content', async (req, res, next) => {
   try {
     const rawLimit = Number(req.query.limit)
@@ -70,10 +57,6 @@ router.get('/geo/candidates', async (req, res, next) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status : undefined
     const limit = req.query.limit ? Math.min(200, Number(req.query.limit)) : 50
-    // Optional per-game filter so the Pins tab can deep-link from the Maps
-    // tab side panel (admin clicks "Voir les captures" on a row → only that
-    // game's candidates show up). Invalid ids are ignored, keeping the
-    // unfiltered behaviour as a safe fallback.
     const gameIdRaw =
       typeof req.query.gameId === 'string' ? Number(req.query.gameId) : undefined
     const gameId =
@@ -114,10 +97,6 @@ router.get('/geo/candidates/:id', async (req, res, next) => {
   }
 })
 
-// Admin can either pin the canonical location themselves, or omit both
-// coordinates to let the centroid of player submissions stand in. The
-// "approach the right answer through participation" path: more pins
-// pull the centroid toward the true location.
 const overrideBodySchema = z
   .object({
     canonicalX: z.number().min(0).max(1).optional(),
@@ -149,9 +128,6 @@ router.post('/geo/candidates/:id/override', async (req, res, next) => {
       return
     }
 
-    // If a meta already exists (consensus-promoted or previous override), the
-    // safest behaviour is to reject — admins should delete the meta explicitly
-    // rather than silently shift canonical coordinates under players.
     const existing = await geoScreenshotRepository.findMetaByCandidateId(id)
     if (existing) {
       res.status(409).json({
@@ -247,12 +223,6 @@ router.post('/geo/candidates/:id/reject', async (req, res, next) => {
   }
 })
 
-// Auto-ingestion is driven by recurring `resolve-metadata` and `ingest-tick`
-// jobs (see index.ts). The endpoints below give the admin a read-only view of
-// the dataset's health plus a small set of manual-override actions: flagging
-// games as curated (in/out of the auto pipeline) and forcing a re-import for
-// a single game when the heuristics get something wrong.
-
 router.get('/geo/health', async (_req, res, next) => {
   try {
     const [counts, lastFandom, lastSteam, nextChallenge, queueCounts] =
@@ -296,14 +266,6 @@ router.get('/geo/health', async (_req, res, next) => {
   }
 })
 
-// Lists games for the admin "curate / suggest" UI. With `curated=true` it
-// returns the existing curated set with ingestion status (resolved metadata,
-// active map present, candidate count). With `curated=false` it proposes
-// non-curated games ranked by Metacritic (descending) — that signal correlates
-// well with "famous game with a Fandom wiki and Steam listing", which is the
-// shape the auto-ingester can actually handle. Cap matches the bulk-curate
-// endpoint (500) so the Jeux/Cartes tabs can load the whole moderation list
-// in one shot.
 const gamesQuerySchema = z.object({
   curated: z.enum(['true', 'false']).default('true'),
   limit: z.coerce.number().int().positive().max(500).default(20),

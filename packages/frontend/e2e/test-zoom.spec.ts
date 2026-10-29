@@ -15,23 +15,18 @@ test.describe('Zoom Feature', () => {
     await waitForGameLoad(page)
     await startDailyGame(page)
 
-    // Wait for game to fully load with screenshot
     await page.waitForTimeout(3000)
 
-    // The zoom cluster collapses to a single toggle (title="Zoom") by default
-    // and expands on tap; expand it before asserting the in/out controls.
     const zoomToggle = page.locator('button[title="Zoom"]')
     await expect(zoomToggle).toBeVisible({ timeout: 5000 })
     await zoomToggle.click()
 
-    // Check for zoom controls - they should be in the bottom-left
     const zoomIn = page.locator('button[title="Zoom in"]')
     const zoomOut = page.locator('button[title="Zoom out"]')
 
     const zoomInVisible = await zoomIn.isVisible({ timeout: 5000 }).catch(() => false)
     const zoomOutVisible = await zoomOut.isVisible({ timeout: 5000 }).catch(() => false)
 
-    // Verify zoom controls exist
     expect(zoomInVisible && zoomOutVisible).toBe(true)
   })
 
@@ -42,7 +37,6 @@ test.describe('Zoom Feature', () => {
 
     await page.waitForTimeout(3000)
 
-    // Expand the collapsed zoom cluster first.
     const zoomToggle = page.locator('button[title="Zoom"]')
     if (await zoomToggle.isVisible({ timeout: 5000 }).catch(() => false)) {
       await zoomToggle.click()
@@ -51,18 +45,14 @@ test.describe('Zoom Feature', () => {
     const zoomOut = page.locator('button[title="Zoom out"]')
 
     if (await zoomOut.isVisible({ timeout: 5000 }).catch(() => false)) {
-      // Click zoom out
       await zoomOut.click()
       await page.waitForTimeout(500)
 
-      // Take screenshot after zooming
       await page.screenshot({ path: '/tmp/zoom-test-after-zoom.png' })
 
-      // Check for zoom percentage display (should show 85%)
       const zoomPercentage = page.locator('text=/\\d+%/')
       const hasPercentage = await zoomPercentage.isVisible().catch(() => false)
 
-      // Check for reset button (appears after zooming)
       const resetButton = page.locator('button[title="Reset zoom"]')
       const hasReset = await resetButton.isVisible().catch(() => false)
 

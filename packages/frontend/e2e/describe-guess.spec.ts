@@ -2,23 +2,6 @@ import { test, expect, type Browser, type Page, type Response } from '@playwrigh
 import { loginAsUser, loginAsAdmin, waitForGameLoad, startDailyGame } from './helpers/game-helpers'
 import { runtimeFeatures } from './helpers/features'
 
-/**
- * "Describe the game" — shadow capture with NO player UI.
- *
- * A wrong guess typed in the normal input that looks like a description is
- * judged in the background (BullMQ worker) when the feature is on in Admin →
- * Paramètres. The player sees exactly today's wrong-guess feedback.
- *
- * Run the backend with DESCRIBE_GUESS_JUDGE=stub (deterministic judge, no
- * network): the admin pastes a dummy key here. With
- * DESCRIBE_GUESS_STUB_DELAY_MS=3000 the timing check also shows that a slow
- * judge never slows the guess response.
- *
- * App settings are global and Playwright may run this file for two projects
- * at once, so only the chromium project changes them; the read-only authz
- * test runs everywhere. Serial: the steps share settings and e2e_user's
- * daily session (one position per step).
- */
 test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
 const SETTINGS_OWNER_PROJECT = 'chromium'
@@ -60,7 +43,6 @@ async function goToPosition(page: Page, position: number) {
   await expect(page.getByRole('button', { name: new RegExp(`^Screenshot ${position} \\(current\\)`) })).toBeVisible()
 }
 
-/** Type in the ONE existing guess input and submit; returns the API response and its duration. */
 async function guess(page: Page, text: string): Promise<{ res: Response; ms: number; body: { data: Record<string, unknown> } }> {
   const input = page.getByRole('textbox', { name: /game name/i })
   await expect(input).toBeVisible()
@@ -99,9 +81,8 @@ test.describe('Describe the game (shadow capture, no player UI)', () => {
     expect(body.data.isCorrect).toBe(false)
     await expect(page.getByText('Incorrect guess. Try again.').first()).toBeVisible()
 
-    await page.waitForTimeout(3000) // give a (wrongly) enqueued job time to land
+    await page.waitForTimeout(3000)
     expect((await capturedRows(admin)).length).toBe(before)
-    // The old describe route is gone.
     expect((await page.request.post('/api/game/describe', { data: {}, failOnStatusCode: false })).status()).toBe(404)
     await admin.context().close()
   })
@@ -117,25 +98,20 @@ test.describe('Describe the game (shadow capture, no player UI)', () => {
     const before = (await capturedRows(admin)).length
 
     await startPlaying(page)
-    // No new UI anywhere on the game screen.
     await expect(page.getByText(/describe the game/i)).toHaveCount(0)
 
     await goToPosition(page, 3)
-    const titleGuess = await guess(page, 'zelda') // short wrong title: never sent to the judge
+    const titleGuess = await guess(page, 'zelda')
     await goToPosition(page, 4)
     const descGuess = await guess(page, DESCRIPTION)
 
-    // Same wrong-guess answer shape and feedback as a short wrong title.
     expect(descGuess.body.data.isCorrect).toBe(false)
     expect(Object.keys(descGuess.body.data).sort()).toEqual(Object.keys(titleGuess.body.data).sort())
     await expect(page.getByText('Incorrect guess. Try again.').first()).toBeVisible()
     await expect(page.getByText(/describe the game/i)).toHaveCount(0)
     testInfo.annotations.push({ type: 'timing', description: `wrong title ${Math.round(titleGuess.ms)} ms, description ${Math.round(descGuess.ms)} ms` })
-    // Comparable to a wrong title, and far below a slow judge's latency.
     expect(descGuess.ms).toBeLessThan(Math.max(1500, titleGuess.ms * 3))
 
-    // Captured off the request path: the row is claimed ('pending') then
-    // completed by the worker. Poll the admin list until the verdict lands.
     await expect.poll(async () => (await capturedRows(admin)).length, { timeout: 15_000 }).toBe(before + 1)
     await expect.poll(async () => (await capturedRows(admin))[0]!.error, { timeout: 15_000 }).toBeNull()
     const row = (await capturedRows(admin))[0]!
@@ -154,9 +130,6 @@ test.describe('Describe the game (shadow capture, no player UI)', () => {
 
     await startPlaying(page)
     await goToPosition(page, 5)
-    // The seed titles are ≥15 chars and 4 words (description-shaped), but they
-    // are catalogue titles: the wrong ones are skipped by the worker, the
-    // right one never leaves the guess route.
     let solved = false
     for (const title of SEED_TITLES) {
       const { body } = await guess(page, title)

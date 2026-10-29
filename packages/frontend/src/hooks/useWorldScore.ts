@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { LeaderboardService } from '@/services/types'
 
-/**
- * Custom hook for fetching world total score
- *
- * Separates data fetching logic from UI components
- */
 export function useWorldScore(
   leaderboardService: LeaderboardService,
   enabled: boolean

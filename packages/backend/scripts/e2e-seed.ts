@@ -1,49 +1,27 @@
-/**
- * E2E Test Database Seeding Script
- *
- * Creates test users and daily challenge for E2E testing.
- * Idempotent - safe to run multiple times.
- *
- * Usage: npm run e2e:seed (from packages/backend)
- */
-
 import { randomBytes } from 'crypto'
 // @ts-ignore - from better-auth's dependency
 import { scryptAsync } from '@noble/hashes/scrypt.js'
 import { db, closeConnection } from '../src/infrastructure/database/connection.js'
 import { challengeRepository } from '../src/infrastructure/repositories/challenge.repository.js'
 
-// E2E Test Constants
 export const E2E_USER_EMAIL = 'e2e_user@test.local'
 export const E2E_USER_PASSWORD = 'test123'
 export const E2E_ADMIN_EMAIL = 'e2e_admin@test.local'
 export const E2E_ADMIN_PASSWORD = 'test123'
 
-/**
- * Hash password using the same algorithm as better-auth.
- * Matches: N=16384, r=16, p=1, dkLen=64
- * Format: salt:key (both hex encoded)
- *
- * better-auth passes the hex-encoded salt STRING to scrypt (not raw bytes).
- * See: node_modules/better-auth/dist/crypto/password.mjs
- */
 async function hashPassword(password: string): Promise<string> {
   const saltBytes = randomBytes(16)
   const salt = saltBytes.toString('hex')
-  // Pass hex-encoded salt string to match better-auth's behavior
   const key = await scryptAsync(password.normalize('NFKC'), salt, {
     N: 16384,
     r: 16,
     p: 1,
     dkLen: 64,
-    maxmem: 128 * 16384 * 16 * 2, // 64 MB
+    maxmem: 128 * 16384 * 16 * 2,
   })
   return `${salt}:${Buffer.from(key).toString('hex')}`
 }
 
-/**
- * Create or update a test user with credentials
- */
 async function createTestUser(data: {
   email: string
   username: string
@@ -53,7 +31,6 @@ async function createTestUser(data: {
 }): Promise<string> {
   const now = new Date()
 
-  // Check if user already exists by email or username
   const existingUser = await db('user')
     .where('email', data.email)
     .orWhere('username', data.username)
@@ -64,12 +41,6 @@ async function createTestUser(data: {
     return existingUser.id
   }
 
-  // The merged-schema migration bootstraps a default admin (admin@thebox.local)
-  // and a later migration adds the `one_admin_role_idx` partial unique index
-  // permitting exactly one row with role='admin'. Inserting the e2e admin would
-  // therefore collide. Demote any other existing admin to 'user' first so the
-  // e2e admin can own the single admin slot. Idempotent: on re-run the e2e
-  // admin already exists and we return above before reaching here.
   if (data.role === 'admin') {
     const demoted = await db('user')
       .where('role', 'admin')
@@ -83,7 +54,6 @@ async function createTestUser(data: {
   const hashedPassword = await hashPassword(data.password)
   const userId = randomBytes(16).toString('hex')
 
-  // Insert user into better-auth's user table
   await db('user').insert({
     id: userId,
     email: data.email,
@@ -92,7 +62,6 @@ async function createTestUser(data: {
     role: data.role,
     createdAt: now,
     updatedAt: now,
-    // Custom fields (snake_case as defined in schema)
     username: data.username,
     display_username: data.username,
     display_name: data.displayName,
@@ -102,7 +71,6 @@ async function createTestUser(data: {
     last_played_at: null,
   })
 
-  // Insert account for credential-based auth
   await db('account').insert({
     id: randomBytes(16).toString('hex'),
     userId: userId,
@@ -117,12 +85,7 @@ async function createTestUser(data: {
   return userId
 }
 
-/**
- * Create mock games and screenshots for testing
- * This ensures there's data for daily challenges in CI
- */
 async function createMockGamesAndScreenshots(): Promise<void> {
-  // Check if mock games already exist
   const existingGames = await db('games').where('name', 'like', 'E2E Test Game%').first()
   if (existingGames) {
     console.log('  ✓ Mock games already exist')
@@ -131,7 +94,6 @@ async function createMockGamesAndScreenshots(): Promise<void> {
 
   console.log('  Creating mock games and screenshots...')
 
-  // Create 3 mock games with 5 screenshots each (15 total, enough for testing)
   const mockGames = [
     { name: 'E2E Test Game 1', slug: 'e2e-test-game-1', release_year: 2020, metacritic: 85 },
     { name: 'E2E Test Game 2', slug: 'e2e-test-game-2', release_year: 2021, metacritic: 90 },
@@ -139,22 +101,19 @@ async function createMockGamesAndScreenshots(): Promise<void> {
   ]
 
   for (const gameData of mockGames) {
-    // Insert game using correct schema columns
-    // Note: genres/platforms are text[] arrays in PostgreSQL
     const result = await db('games').insert({
-      rawg_id: Math.floor(Math.random() * 1000000) + 900000, // Random high ID to avoid conflicts
+      rawg_id: Math.floor(Math.random() * 1000000) + 900000,
       name: gameData.name,
       slug: gameData.slug,
       release_year: gameData.release_year,
       metacritic: gameData.metacritic,
       cover_image_url: 'https://via.placeholder.com/1920x1080.png?text=E2E+Test',
-      platforms: ['PC', 'PlayStation', 'Xbox'], // text[] array
-      genres: ['Action', 'Adventure'], // text[] array
+      platforms: ['PC', 'PlayStation', 'Xbox'],
+      genres: ['Action', 'Adventure'],
       publisher: 'E2E Test Publisher',
     }).returning('id')
     const gameId = result[0].id
 
-    // Create 5 screenshots for this game
     for (let i = 1; i <= 5; i++) {
       await db('screenshots').insert({
         game_id: gameId,
@@ -173,9 +132,6 @@ async function createMockGamesAndScreenshots(): Promise<void> {
   }
 }
 
-/**
- * Select random screenshots from the database
- */
 async function selectRandomScreenshots(count: number): Promise<number[]> {
   const result = await db('screenshots')
     .where('is_active', true)
@@ -200,7 +156,6 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
     return rows
   }
 
-  // Not enough unique screenshots - allow reuse
   console.warn('  ⚠ Not enough unique screenshots, allowing reuse')
   const allIds = await db('screenshots')
     .where('is_active', true)
@@ -215,31 +170,24 @@ async function selectRandomScreenshots(count: number): Promise<number[]> {
   return selected.slice(0, count)
 }
 
-/**
- * Create today's daily challenge if it doesn't exist
- */
 async function createTodayChallenge(): Promise<void> {
   const challengeDate = new Date().toISOString().split('T')[0]!
 
-  // Check if challenge already exists
   const existing = await challengeRepository.findByDate(challengeDate)
   if (existing) {
     console.log(`  ✓ Challenge for ${challengeDate} already exists (ID: ${existing.id})`)
     return
   }
 
-  // Select 10 random screenshots
   const screenshotIds = await selectRandomScreenshots(10)
   if (screenshotIds.length === 0) {
     console.warn(`  ⚠ No screenshots available for challenge, skipping`)
     return
   }
 
-  // Create challenge
   const challenge = await challengeRepository.create(challengeDate)
   console.log(`  ✓ Created challenge for ${challengeDate} (ID: ${challenge.id})`)
 
-  // Create tier
   const tier = await challengeRepository.createTier({
     dailyChallengeId: challenge.id,
     tierNumber: 1,
@@ -248,18 +196,10 @@ async function createTodayChallenge(): Promise<void> {
   })
   console.log(`  ✓ Created tier (ID: ${tier.id})`)
 
-  // Assign screenshots
   await challengeRepository.createTierScreenshots(tier.id, screenshotIds)
   console.log(`  ✓ Assigned ${screenshotIds.length} screenshots to tier`)
 }
 
-/**
- * Geo entities for the admin geo authz/UX specs.
- *
- * Idempotent: only creates the row if it doesn't already exist. The
- * deterministic shape (one game, one map, one promoted candidate, one
- * meta) lets the geo specs stop accepting "empty state" as success.
- */
 async function createMockGeoData(): Promise<void> {
   const game = await db('games').where('slug', 'e2e-test-game-1').first<{ id: number }>()
   if (!game) {
@@ -293,8 +233,6 @@ async function createMockGeoData(): Promise<void> {
     console.log(`  ✓ Created geo map for game ${game.id} (ID: ${mapId})`)
   }
 
-  // One promoted candidate so the moderation queue has something concrete
-  // to render and the free-play picker has a screenshot to return.
   const existingCandidate = await db('geo_screenshot_candidate')
     .where({ game_id: game.id })
     .first<{ id: number }>()
@@ -340,9 +278,6 @@ async function createMockGeoData(): Promise<void> {
   }
 }
 
-/**
- * Clear daily login claims for e2e test users so fresh login tests work
- */
 async function clearDailyLoginClaims(userIds: string[]): Promise<void> {
   const deleted = await db('login_reward_claims')
     .whereIn('user_id', userIds)
@@ -353,10 +288,6 @@ async function clearDailyLoginClaims(userIds: string[]): Promise<void> {
   }
 }
 
-// Stable source_ref used by the IDOR spec to find the grant for the
-// non-admin user. Idempotent via the (user_id, source, source_ref) unique
-// key; reseeding does not duplicate. We insert only the reward_grants row
-// — no inventory side-effect — so re-runs leave inventory untouched.
 const IDOR_GRANT_SOURCE = 'milestone'
 const IDOR_GRANT_SOURCE_REF = 'milestone:e2e_idor_test_grant'
 
@@ -378,14 +309,10 @@ async function seedIdorRewardGrant(userId: string): Promise<void> {
   console.log(`  ✓ IDOR test grant ready for user ${userId} (id: ${row?.id})`)
 }
 
-/**
- * Main seeding function
- */
 async function seed(): Promise<void> {
   console.log('🌱 E2E Database Seeding\n')
 
   try {
-    // Step 1: Create test users
     console.log('Creating test users...')
     const e2eUserId = await createTestUser({
       email: E2E_USER_EMAIL,
@@ -403,49 +330,28 @@ async function seed(): Promise<void> {
       password: E2E_ADMIN_PASSWORD,
     })
 
-    // Reset the streamer/public-profile state for the test users. The
-    // streamer-kit specs toggle public_profile_enabled and claim slugs, which
-    // persist across runs; without this reset the "create-key disabled until
-    // the toggle is on" assertion sees a profile that's already enabled from a
-    // previous run. Re-seeding restores a known-clean starting point.
     await db('user')
       .whereIn('email', [E2E_USER_EMAIL, E2E_ADMIN_EMAIL])
       .update({ public_profile_enabled: false, public_slug: null, updatedAt: new Date() })
     console.log('  ✓ Reset public-profile state for test users')
 
-    // Wipe the test users' game sessions. The daily challenge is once-per-day:
-    // once a session is completed (which the End Game / Results specs do), the
-    // game can no longer be started, so on a re-used database every gameplay
-    // spec (countdown, progress dots, zoom, …) would fail to reach a playing
-    // state. Deleting the sessions cascades to tier_sessions / position state,
-    // restoring a fresh, playable challenge each seed. (A fresh CI database
-    // has none, so this is a no-op there.)
     const wiped = await db('game_sessions')
       .whereIn('user_id', [e2eUserId, e2eAdminId])
       .del()
     if (wiped > 0) console.log(`  ✓ Cleared ${wiped} game session(s) for test users`)
 
-    // Step 2: Create mock games and screenshots for CI
     console.log('\nCreating mock games and screenshots...')
     await createMockGamesAndScreenshots()
 
-    // Step 3: Create today's daily challenge
     console.log('\nCreating daily challenge...')
     await createTodayChallenge()
 
-    // Step 4: Geo entities so admin geo + free-play specs have data
     console.log('\nCreating geo seed (map + candidate + meta)...')
     await createMockGeoData()
 
-    // Step 5: Clear daily login claims for fresh login tests
     console.log('\nClearing daily login claims...')
     await clearDailyLoginClaims([e2eUserId, e2eAdminId])
 
-    // Step 6: Reward grant for the IDOR Playwright spec. The grant belongs
-    // to e2e_user; the spec logs in as e2e_admin and asserts they cannot
-    // claim it. Skipping silently if the reward_grants table is missing
-    // keeps the seed forward-compatible with backends that haven't run the
-    // rewards migration yet.
     console.log('\nSeeding reward grant for IDOR spec...')
     try {
       await seedIdorRewardGrant(e2eUserId)
@@ -463,7 +369,6 @@ async function seed(): Promise<void> {
   }
 }
 
-// Run the seed
 seed()
   .then(() => closeConnection())
   .then(() => process.exit(0))

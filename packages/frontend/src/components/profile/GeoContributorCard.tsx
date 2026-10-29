@@ -8,8 +8,6 @@ import { Lock, MapPin, ShieldCheck, Target } from 'lucide-react'
 import type { GeoContributorTier } from '@the-box/types'
 import { cn } from '@/lib/utils'
 
-// Tier badges use medal tokens where available; diamond falls back to the
-// neon-cyan scale since no medal-diamond token exists in the contract.
 const TIER_BG: Record<GeoContributorTier, string> = {
     bronze: 'bg-medal-bronze',
     silver: 'bg-medal-silver',
@@ -30,18 +28,10 @@ export function GeoContributorCard() {
     const { geoCommunity } = useFeatures()
 
     useEffect(() => {
-        // `/api/geo` is unmounted when the community surface is off, so the
-        // fetch would 404 into the store's silent catch and leave us rendering
-        // the "start contributing" placeholder — an invitation to a surface
-        // that no longer exists, shown even to someone who reached Gold.
         if (!geoCommunity) return
         loadContributor()
     }, [geoCommunity, loadContributor])
 
-    // Earned rewards are unaffected: contributor grants went straight into the
-    // player's inventory, which is independent of this surface. What the card
-    // would show is the tier badge, and there is nothing to do with a tier in
-    // a mode you can no longer play. See tasks/prd-geo-community-sunset.md.
     if (!geoCommunity) {
         return null
     }

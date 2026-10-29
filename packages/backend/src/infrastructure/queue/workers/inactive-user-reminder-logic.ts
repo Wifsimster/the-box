@@ -8,19 +8,10 @@ const log = queueLogger.child({ worker: 'inactive-user-reminder' })
 
 const GUEST_EMAIL_DOMAIN = 'guest.thebox.local'
 
-// Per-user cooldown. Once someone has received a win-back nudge, we wait
-// a full month before trying again — a longer window than the daily
-// workers because re-engaging a silent user is a slow game and we don't
-// want to become the reason they unsubscribe.
 const MIN_DAYS_BETWEEN_EMAILS = 30
 
-// Matches the relance worker: keep us out of the welcome flow for
-// brand-new signups.
 const MIN_ACCOUNT_AGE_HOURS = 48
 
-// Safety cap. If the candidate set blows past this, the query is wrong
-// (wrong env, failed migration, broken clock) and mailing the whole base
-// would be worse than aborting.
 const MAX_CANDIDATES_PER_RUN = 5000
 
 export interface InactiveUserReminderResult {
@@ -40,19 +31,6 @@ interface InactiveCandidate {
   last_played_at: Date | null
 }
 
-/**
- * Returns users who:
- *   - have opted in to marketing emails,
- *   - own a non-guest account at least 48h old,
- *   - have played at least once (welcome funnel owns never-played users),
- *   - have not played in the last N days,
- *   - have not had any Better Auth session refreshed in the last N days
- *     (so someone who still logs in to browse the leaderboard is spared),
- *   - were not already nudged by this worker within the cooldown window.
- *
- * All date math runs against the database clock in UTC, matching the
- * other recurring workers.
- */
 async function findCandidates(inactivityDays: number): Promise<InactiveCandidate[]> {
   const rows = await db('user as u')
     .select<InactiveCandidate[]>(

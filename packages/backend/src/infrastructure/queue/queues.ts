@@ -11,8 +11,8 @@ export const importQueue = new Queue<JobData>('import-jobs', {
       type: 'exponential',
       delay: 1000,
     },
-    removeOnComplete: { count: 100 }, // Keep last 100 completed
-    removeOnFail: { count: 50 }, // Keep last 50 failed
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 50 },
   },
 })
 
@@ -20,18 +20,10 @@ export const importQueueEvents = new QueueEvents('import-jobs', {
   connection: redisConnectionOptions,
 })
 
-// Job payloads carried on the geo-jobs queue. Kept inline (not exported to
-// @the-box/types) because only the backend workers and the enqueueing route
-// need to know the shape.
 export type GeoJobData =
   | {
       kind: 'evaluate-consensus'
       geoScreenshotCandidateId: number
-      // Post-increment pin count captured at submit time. The worker uses
-      // this (not the freshly-read value) for the threshold gate so two
-      // pins arriving in quick succession can't *both* skip the same
-      // threshold (e.g. 5 → 6 with neither evaluating at 5). Optional for
-      // back-compat with already-queued jobs from older deploys.
       pinCountAtEnqueue?: number
     }
   | { kind: 'promote-contributor-tier'; userId: string }
@@ -85,15 +77,8 @@ export type GeoJobData =
     }
   | { kind: 'resolve-metadata'; batchSize?: number; gameId?: number }
   | { kind: 'ingest-tick'; batchSize?: number; gameId?: number }
-  // Backfill discovery (issue #331, phase 6): rank sub-threshold games by
-  // distance-to-eligibility and drive ingestion at the closest ones.
   | { kind: 'backfill-tick'; batchSize?: number }
-  // ===== Multi-source map fetch pipeline (replaces topup-screenshots) =====
-  // Parent orchestrator job. Re-enqueued by each child on completion until
-  // the pipeline reaches awaiting_curation, ready, or blocked.
   | { kind: 'maps:pipeline'; gameId: number; correlationId?: string }
-  // Per-source children. The orchestrator picks one based on priority +
-  // cooldown + circuit-breaker state, then enqueues exactly one of these.
   | {
       kind:
         | 'maps:fetch-from-fandom'
@@ -120,10 +105,6 @@ export const geoQueueEvents = new QueueEvents('geo-jobs', {
   connection: redisConnectionOptions,
 })
 
-// Push fan-out queue. One job per (userId, payload) — the worker handles the
-// per-device fan-out internally with `Promise.allSettled` so a slow provider
-// can't stall delivery to a user's other devices. Kept as its own queue so
-// concurrency can be tuned independently of the heavier import jobs.
 export type PushJobData = {
   kind: 'send-to-user'
   userId: string
@@ -150,11 +131,6 @@ export const pushQueueEvents = new QueueEvents('push-jobs', {
   connection: redisConnectionOptions,
 })
 
-// Webhook-delivery jobs for the public API M2. Each job processes ONE
-// (webhook_id, event_id) row in webhook_deliveries — failures inside the
-// worker update the DB row's state machine; the BullMQ retry policy is
-// the second line of defence (process crashes, Redis hiccups). 3 attempts
-// at the BullMQ level mirrors the 3 retries we promised in the meeting.
 export type WebhookDeliveryJobData = {
   kind: 'deliver'
   deliveryId: number
@@ -174,12 +150,6 @@ export const webhookQueueEvents = new QueueEvents('webhook-delivery', {
   connection: redisConnectionOptions,
 })
 
-// "Describe the game" shadow capture (app settings describeGuess.*). One job
-// per wrong guess that looks like a description; the worker judges it with
-// Claude and stores the verdict, never touching the guess response or score.
-// The payload carries player-typed text, so jobs are dropped as soon as they
-// finish (no retention in Redis) and never retried: a failed judgement is
-// stored as "no verdict" by the worker itself.
 export type DescribeGuessJobData = {
   kind: 'capture'
   userId: string

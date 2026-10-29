@@ -7,15 +7,6 @@ import { tombstoneRetryAfter } from '../../../domain/services/geo-metadata.servi
 
 const log = queueLogger.child({ worker: 'geo-fandom-import' })
 
-// Fandom Interactive Maps are structured JSON exposed via the MediaWiki
-// `getmap` action on each wiki:
-//   https://<subdomain>.fandom.com/api.php?action=getmap&name=<MapPageName>
-// The response includes a `backgroundImage` (URL + width + height), the
-// map's `revisionId` (used for change detection on re-imports), and the
-// coordinate system metadata (`origin`, `coordinateOrder`).
-//
-// Fandom user-generated content is published under CC-BY-SA-3.0 by default.
-
 const DEFAULT_USER_AGENT =
   'the-box-geo-importer/1.0 (+https://github.com/Wifsimster/the-box)'
 const FANDOM_DEFAULT_LICENSE = 'CC-BY-SA-3.0'
@@ -23,8 +14,6 @@ const FANDOM_DEFAULT_LICENSE = 'CC-BY-SA-3.0'
 export interface ImportFandomMapInput {
   gameId: number
   wikiSubdomain: string
-  // The Fandom Map: page name without the namespace prefix
-  // (e.g. `Avatar_world_map`, not `Map:Avatar_world_map`).
   pageTitle: string
   userAgent?: string
 }
@@ -53,9 +42,6 @@ export async function importFandomMap(
   const { gameId, wikiSubdomain, pageTitle } = input
   const ua = input.userAgent ?? DEFAULT_USER_AGENT
 
-  // Skip if a Fandom row already exists for this game (idempotent re-runs).
-  // Other tiers may also have produced their own candidate — we don't block
-  // on them anymore so the admin can compare maps and pick the best.
   const existing = await geoMapRepository.findBySourceAndGameId(gameId, 'fandom')
   if (existing) {
     return { imported: false, geoMapId: existing.id, reason: 'fandom map already imported' }

@@ -1,24 +1,6 @@
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import { loginAsUser } from './helpers/game-helpers'
 
-// Cross-state contract on POST /api/daily-login/claim. The meeting's
-// Vague 2 #8 was framed as "cross-Zustand-store sync" (header streak
-// badge + rewards drawer + hint button availability). The same risk
-// has a cheaper, more reliable failure mode at the API layer: if the
-// claim endpoint flips the daily-login state but DOESN'T grant the
-// inventory item (or vice-versa), the frontend stores can resync all
-// they want — the data they read is wrong.
-//
-// We assert the server-side cross-state invariant here. A separate
-// follow-up should add a UI-level spec around the same flow once
-// stable test-ids land on DailyRewardBadge / RewardsInboxBell
-// (tracked separately — would touch production code, out of scope
-// for an API-only spec).
-//
-// Re-running without a fresh seed will skip cleanly because
-// canClaim flips to false after the first successful claim. To
-// re-trigger: cd packages/backend && npm run e2e:seed.
-
 interface DailyLoginStatus {
     canClaim: boolean
     currentStreak: number
@@ -45,7 +27,6 @@ test.describe('Daily-login claim — cross-state invariant', () => {
         const page = await ctx.newPage()
         await loginAsUser(page)
 
-        // --- Pre-state ----------------------------------------------------
         const statusBeforeRes = await page.request.get('/api/daily-login/status', {
             failOnStatusCode: false,
         })
@@ -67,14 +48,8 @@ test.describe('Daily-login claim — cross-state invariant', () => {
         const inventoryBefore = ((await inventoryBeforeRes.json()) as { data: InventoryShape }).data
         const powerupsBefore = inventoryBefore.powerups ?? {}
 
-        // The claim payload tells us which items SHOULD be granted. We
-        // assert the inventory diff matches — proves both writes happened
-        // in the same logical transaction.
         const expectedItems = statusBefore.todayReward?.reward?.items ?? []
 
-        // The legacy hint economy was retired 2026-06: the calendar must
-        // never mint a retired item key again (the migration rewired every
-        // grant source to hint_letter / streak_freeze / second_chance).
         const RETIRED_ITEM_KEYS = [
             'hint_year',
             'hint_publisher',
@@ -88,18 +63,13 @@ test.describe('Daily-login claim — cross-state invariant', () => {
                 `daily-login granted '${item.itemKey}', a retired legacy key — grant rewiring regressed`,
             ).not.toContain(item.itemKey)
         }
-        // If today's reward is somehow item-less (e.g. a "rest day"), the
-        // diff assertion below would be vacuous; skip rather than pass on
-        // a hollow assertion.
         if (expectedItems.length === 0) {
             test.skip(true, 'today\'s daily reward has no items — cross-state diff would be hollow')
         }
 
-        // --- Claim --------------------------------------------------------
         const claimRes = await page.request.post('/api/daily-login/claim', { failOnStatusCode: false })
         expect(claimRes.status(), 'claim should succeed when canClaim=true').toBe(200)
 
-        // --- Post-state: daily-login flipped -----------------------------
         const statusAfterRes = await page.request.get('/api/daily-login/status', {
             failOnStatusCode: false,
         })
@@ -113,7 +83,6 @@ test.describe('Daily-login claim — cross-state invariant', () => {
             'streak must be at least the pre-claim value (incremented by 1 normally; equal if grace-period rules apply)',
         ).toBeGreaterThanOrEqual(statusBefore.currentStreak)
 
-        // --- Post-state: inventory grew by exactly the granted items -----
         const inventoryAfterRes = await page.request.get('/api/inventory', { failOnStatusCode: false })
         const inventoryAfter = ((await inventoryAfterRes.json()) as { data: InventoryShape }).data
         const powerupsAfter = inventoryAfter.powerups ?? {}
@@ -127,7 +96,6 @@ test.describe('Daily-login claim — cross-state invariant', () => {
             ).toBe(item.quantity)
         }
 
-        // --- Idempotency: a second claim must reject -----------------------
         const reclaimRes = await page.request.post('/api/daily-login/claim', { failOnStatusCode: false })
         expect(
             reclaimRes.status(),

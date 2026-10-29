@@ -12,18 +12,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { toast } from '@/lib/toast'
 
-// Admin management of geo-agent API keys (issue #331, phase 2). Mints
-// admin-owned, geo-agent-scoped keys for the content-sourcing surface
-// (/api/agent/v1/geo) — distinct from the streamer self-service keys. The
-// plaintext is shown exactly once, at mint.
-
 const SCOPE_OPTIONS: Array<{ scope: ApiKeyScope; label: string }> = [
     { scope: 'geo-agent:read', label: 'read' },
     { scope: 'geo-agent:ingest', label: 'ingest' },
     { scope: 'geo-agent:propose', label: 'propose' },
     { scope: 'geo-agent:curate', label: 'curate' },
     { scope: 'geo-agent:promote', label: 'promote' },
-    // App settings over MCP (list_settings / get_setting / set_setting).
     { scope: 'admin:settings', label: 'settings' },
 ]
 
@@ -45,9 +39,6 @@ export function AgentKeysCard() {
     const [revokeBusy, setRevokeBusy] = useState(false)
     const mounted = useRef(true)
 
-    // Promise callbacks rather than `await` so the state writes are visibly
-    // asynchronous to the effect that calls this on mount (React Compiler's
-    // set-state-in-effect treats writes after `await` as synchronous).
     function load() {
         return fetchAdminJson<ApiKeySummary[]>('/api/admin/agent-keys')
             .then(
@@ -209,7 +200,6 @@ export function AgentKeysCard() {
                     )}
                 </form>
 
-                {/* One-shot plaintext reveal */}
                 {minted && (
                     <div className="space-y-2 rounded-lg bg-warning/10 p-3 text-sm" role="status">
                         <p className="font-medium text-warning">{t('admin.agentKeys.copyNow')}</p>
@@ -231,7 +221,6 @@ export function AgentKeysCard() {
                     </div>
                 )}
 
-                {/* Key list */}
                 {loading ? (
                     <div className="space-y-2" aria-busy="true">
                         {[0, 1].map((i) => (

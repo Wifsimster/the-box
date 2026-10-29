@@ -5,9 +5,6 @@ const TOTAL_SCREENSHOTS = 10
 const BASE_SCORE = 100
 const WRONG_GUESS_PENALTY = 30
 
-/**
- * Calculate speed multiplier based on time taken (same as game service)
- */
 function calculateSpeedMultiplier(timeTakenMs: number): number {
   const timeTakenSeconds = timeTakenMs / 1000
   if (timeTakenSeconds < 3) return 2.0
@@ -17,17 +14,13 @@ function calculateSpeedMultiplier(timeTakenMs: number): number {
   return 1.0
 }
 
-/**
- * Calculate score for a correct guess
- */
 function calculateScore(timeTakenMs: number): number {
   const speedMultiplier = calculateSpeedMultiplier(timeTakenMs)
   const score = Math.round(BASE_SCORE * speedMultiplier)
-  return Math.min(score, 200) // Cap at 200
+  return Math.min(score, 200)
 }
 
 export async function seed(knex: Knex): Promise<void> {
-  // Get test users and admin user
   const testUsers = await knex('user')
     .whereIn('email', [
       'testuser1@test.local',
@@ -36,7 +29,7 @@ export async function seed(knex: Knex): Promise<void> {
       'testuser4@test.local',
       'testuser5@test.local',
       'testadmin@test.local',
-      'admin@thebox.local', // Main admin user
+      'admin@thebox.local',
     ])
     .select('id', 'email', 'username')
 
@@ -45,7 +38,6 @@ export async function seed(knex: Knex): Promise<void> {
     return
   }
 
-  // Get daily challenges (all available, up to 17 days for admin history)
   const challenges = await knex('daily_challenges')
     .orderBy('challenge_date', 'desc')
     .limit(17)
@@ -58,7 +50,6 @@ export async function seed(knex: Knex): Promise<void> {
 
   console.log(`Found ${testUsers.length} test users and ${challenges.length} challenges`)
 
-  // Get tiers for each challenge
   const challengeTiers = new Map<number, number>()
   for (const challenge of challenges) {
     const tiers = await knex('tiers')
@@ -70,61 +61,58 @@ export async function seed(knex: Knex): Promise<void> {
     }
   }
 
-  // Define user playing patterns
-  // Each user has a pattern: which challenges they play and their performance profile
   type UserPattern = {
     userEmail: string
-    challengeIndices: number[] // Which challenges (by index, 0 = today, 6 = 6 days ago) they play
+    challengeIndices: number[]
     performance: 'high' | 'medium' | 'low'
-    playAllDays: boolean // If true, plays all challenges
+    playAllDays: boolean
   }
 
   const userPatterns: UserPattern[] = [
     {
       userEmail: 'testuser1@test.local',
-      challengeIndices: [0, 1, 2, 3, 4, 5, 6], // Plays all 7 days
+      challengeIndices: [0, 1, 2, 3, 4, 5, 6],
       performance: 'high',
       playAllDays: true,
     },
     {
       userEmail: 'testuser2@test.local',
-      challengeIndices: [0, 1, 2, 3, 4, 5], // Plays 6 days, misses day 6
+      challengeIndices: [0, 1, 2, 3, 4, 5],
       performance: 'medium',
       playAllDays: false,
     },
     {
       userEmail: 'testuser3@test.local',
-      challengeIndices: [0, 1, 2, 3, 4], // Plays 5 days, misses days 5-6
+      challengeIndices: [0, 1, 2, 3, 4],
       performance: 'low',
       playAllDays: false,
     },
     {
       userEmail: 'testuser4@test.local',
-      challengeIndices: [0, 1, 2], // New player, only last 3 days
+      challengeIndices: [0, 1, 2],
       performance: 'medium',
       playAllDays: false,
     },
     {
       userEmail: 'testuser5@test.local',
-      challengeIndices: [0, 1, 2, 3, 4, 5, 6], // Plays all 7 days
+      challengeIndices: [0, 1, 2, 3, 4, 5, 6],
       performance: 'medium',
       playAllDays: true,
     },
     {
       userEmail: 'testadmin@test.local',
-      challengeIndices: [0, 1, 2, 3, 4, 5, 6], // Plays all 7 days
+      challengeIndices: [0, 1, 2, 3, 4, 5, 6],
       performance: 'high',
       playAllDays: true,
     },
     {
       userEmail: 'admin@thebox.local',
-      challengeIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], // Plays all 17 days (full history)
+      challengeIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
       performance: 'high',
       playAllDays: true,
     },
   ]
 
-  // Generate session scenarios based on user patterns
   const sessionScenarios: Array<{
     userEmail: string
     challengeDate: string
@@ -141,44 +129,40 @@ export async function seed(knex: Knex): Promise<void> {
       const challenge = challenges[challengeIndex]
       if (!challenge) continue
 
-      // Determine performance metrics based on user pattern
       let correctGuesses: number
       let wrongGuesses: number
       let avgTimeMs: number
       let completed: boolean
 
-      // Add some variation - not all sessions are completed
-      const isInProgress = Math.random() < 0.15 // 15% chance of in-progress
+      const isInProgress = Math.random() < 0.15
 
       if (pattern.performance === 'high') {
         correctGuesses = isInProgress
-          ? Math.floor(Math.random() * 3) + 6 // 6-8 if in progress
-          : Math.floor(Math.random() * 3) + 8 // 8-10 if completed
+          ? Math.floor(Math.random() * 3) + 6
+          : Math.floor(Math.random() * 3) + 8
         wrongGuesses = isInProgress ? Math.floor(Math.random() * 2) : Math.floor(Math.random() * 2)
-        avgTimeMs = Math.floor(Math.random() * 2000) + 1500 // 1500-3500ms (fast)
+        avgTimeMs = Math.floor(Math.random() * 2000) + 1500
         completed = !isInProgress
       } else if (pattern.performance === 'medium') {
         correctGuesses = isInProgress
-          ? Math.floor(Math.random() * 3) + 4 // 4-6 if in progress
-          : Math.floor(Math.random() * 3) + 6 // 6-8 if completed
+          ? Math.floor(Math.random() * 3) + 4
+          : Math.floor(Math.random() * 3) + 6
         wrongGuesses = isInProgress
           ? Math.floor(Math.random() * 3) + 2
-          : Math.floor(Math.random() * 4) + 2 // 2-5 wrong
-        avgTimeMs = Math.floor(Math.random() * 6000) + 5000 // 5000-11000ms (medium)
+          : Math.floor(Math.random() * 4) + 2
+        avgTimeMs = Math.floor(Math.random() * 6000) + 5000
         completed = !isInProgress
       } else {
-        // low performance
         correctGuesses = isInProgress
-          ? Math.floor(Math.random() * 3) + 2 // 2-4 if in progress
-          : Math.floor(Math.random() * 3) + 4 // 4-6 if completed
+          ? Math.floor(Math.random() * 3) + 2
+          : Math.floor(Math.random() * 3) + 4
         wrongGuesses = isInProgress
           ? Math.floor(Math.random() * 4) + 3
-          : Math.floor(Math.random() * 6) + 4 // 4-9 wrong
-        avgTimeMs = Math.floor(Math.random() * 8000) + 12000 // 12000-20000ms (slow)
+          : Math.floor(Math.random() * 6) + 4
+        avgTimeMs = Math.floor(Math.random() * 8000) + 12000
         completed = !isInProgress
       }
 
-      // Ensure challenge_date is a string in YYYY-MM-DD format
       const challengeDateStr =
         typeof challenge.challenge_date === 'string'
           ? challenge.challenge_date
@@ -204,7 +188,6 @@ export async function seed(knex: Knex): Promise<void> {
       continue
     }
 
-    // Normalize challenge dates for comparison (handle both Date objects and strings)
     const normalizeDate = (date: string | Date): string => {
       if (typeof date === 'string') return date
       if (date instanceof Date) return date.toISOString().split('T')[0]!
@@ -228,7 +211,6 @@ export async function seed(knex: Knex): Promise<void> {
       continue
     }
 
-    // Check if session already exists
     const existingSession = await knex('game_sessions')
       .where('user_id', user.id)
       .where('daily_challenge_id', challenge.id)
@@ -241,7 +223,6 @@ export async function seed(knex: Knex): Promise<void> {
       continue
     }
 
-    // Get tier screenshots
     const tierScreenshots = await knex('tier_screenshots')
       .where('tier_id', tierId)
       .orderBy('position', 'asc')
@@ -252,7 +233,6 @@ export async function seed(knex: Knex): Promise<void> {
       continue
     }
 
-    // Get screenshot game IDs for correct guesses
     const screenshotGameIds = await knex('screenshots')
       .whereIn(
         'id',
@@ -264,17 +244,14 @@ export async function seed(knex: Knex): Promise<void> {
       screenshotGameIds.map((s) => [s.id, s.game_id])
     )
 
-    // Create game session with realistic timestamps based on challenge date
     const gameSessionId = randomBytes(16).toString('hex')
-    // Start time should be on the challenge date, with some variation (morning to evening)
-    // challengeDate is in format "YYYY-MM-DD", parse it properly
     const challengeDateStr = String(scenario.challengeDate)
     const [year, month, day] = challengeDateStr.split('-').map(Number)
-    const challengeDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)) // Noon UTC
-    const hourOffset = Math.floor(Math.random() * 12) - 6 // -6 to +6 hours from noon
+    const challengeDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
+    const hourOffset = Math.floor(Math.random() * 12) - 6
     const startedAt = new Date(challengeDate.getTime() + hourOffset * 60 * 60 * 1000)
     const completedAt = scenario.completed
-      ? new Date(startedAt.getTime() + Math.floor(Math.random() * 10 + 3) * 60 * 1000) // 3-13 minutes later
+      ? new Date(startedAt.getTime() + Math.floor(Math.random() * 10 + 3) * 60 * 1000)
       : null
 
     let totalScore = 0
@@ -288,7 +265,6 @@ export async function seed(knex: Knex): Promise<void> {
       scoreEarned: number
     }> = []
 
-    // Generate guesses
     let correctCount = 0
     let wrongCount = 0
     let currentPosition = 1
@@ -298,11 +274,9 @@ export async function seed(knex: Knex): Promise<void> {
       const screenshotId = tierScreenshot.screenshot_id
       const position = tierScreenshot.position
 
-      // Determine if this should be a correct guess
       const shouldBeCorrect = correctCount < scenario.correctGuesses
 
       if (shouldBeCorrect) {
-        // Correct guess
         const gameId = screenshotToGameId.get(screenshotId)
         const timeTakenMs = scenario.avgTimeMs + Math.floor(Math.random() * 2000 - 1000)
         const scoreEarned = calculateScore(timeTakenMs)
@@ -321,7 +295,6 @@ export async function seed(knex: Knex): Promise<void> {
         correctCount++
         currentPosition = position + 1
       } else if (wrongCount < scenario.wrongGuesses && !scenario.completed) {
-        // Wrong guess (only if not completed or we need more wrong guesses)
         const timeTakenMs = scenario.avgTimeMs + Math.floor(Math.random() * 3000)
         const scoreEarned = 0
         totalScore = Math.max(0, totalScore - WRONG_GUESS_PENALTY)
@@ -337,16 +310,13 @@ export async function seed(knex: Knex): Promise<void> {
         })
 
         wrongCount++
-        // Don't advance position on wrong guess
       }
 
-      // Stop if we've reached the required counts and it's not completed
       if (!scenario.completed && correctCount >= scenario.correctGuesses && wrongCount >= scenario.wrongGuesses) {
         break
       }
     }
 
-    // Insert game session
     await knex('game_sessions').insert({
       id: gameSessionId,
       user_id: user.id,
@@ -359,7 +329,6 @@ export async function seed(knex: Knex): Promise<void> {
       completed_at: completedAt,
     })
 
-    // Create tier session
     const tierSessionId = randomBytes(16).toString('hex')
     await knex('tier_sessions').insert({
       id: tierSessionId,
@@ -373,7 +342,6 @@ export async function seed(knex: Knex): Promise<void> {
       completed_at: completedAt,
     })
 
-    // Insert guesses
     let sessionElapsedMs = 0
     for (const guess of guesses) {
       sessionElapsedMs += guess.timeTakenMs
@@ -390,7 +358,6 @@ export async function seed(knex: Knex): Promise<void> {
       })
     }
 
-    // Update user total_score and last_played_at if completed
     if (scenario.completed) {
       const currentUserScore = await knex('user')
         .where('id', user.id)
@@ -413,7 +380,6 @@ export async function seed(knex: Knex): Promise<void> {
     )
   }
 
-  // Add additional history entries for admin users (testadmin and main admin)
   const adminUsers = testUsers.filter((u) => 
     u.email === 'testadmin@test.local' || u.email === 'admin@thebox.local'
   )
@@ -421,16 +387,14 @@ export async function seed(knex: Knex): Promise<void> {
   for (const adminUser of adminUsers) {
     console.log(`Creating additional history entries for ${adminUser.email}...`)
     
-    // Get challenges from 7-16 days ago (beyond the initial 7 days)
     const olderChallenges = await knex('daily_challenges')
       .orderBy('challenge_date', 'desc')
-      .offset(7) // Skip the first 7 (today through 6 days ago)
-      .limit(10) // Get next 10 challenges
+      .offset(7)
+      .limit(10)
       .select('id', 'challenge_date')
 
     if (olderChallenges.length > 0) {
       for (const challenge of olderChallenges) {
-        // Check if session already exists
         const existingSession = await knex('game_sessions')
           .where('user_id', adminUser.id)
           .where('daily_challenge_id', challenge.id)
@@ -443,7 +407,6 @@ export async function seed(knex: Knex): Promise<void> {
           continue
         }
 
-        // Get tier for this challenge
         const tiers = await knex('tiers')
           .where('daily_challenge_id', challenge.id)
           .orderBy('tier_number', 'asc')
@@ -457,7 +420,6 @@ export async function seed(knex: Knex): Promise<void> {
 
         const tierId = tiers.id
 
-        // Get tier screenshots
         const tierScreenshots = await knex('tier_screenshots')
           .where('tier_id', tierId)
           .orderBy('position', 'asc')
@@ -468,7 +430,6 @@ export async function seed(knex: Knex): Promise<void> {
           continue
         }
 
-        // Get screenshot game IDs
         const screenshotGameIds = await knex('screenshots')
           .whereIn(
             'id',
@@ -480,16 +441,14 @@ export async function seed(knex: Knex): Promise<void> {
           screenshotGameIds.map((s) => [s.id, s.game_id])
         )
 
-        // Generate admin performance (high performance, mostly completed)
-        const isInProgress = Math.random() < 0.1 // 10% chance of in-progress
+        const isInProgress = Math.random() < 0.1
         const correctGuesses = isInProgress
-          ? Math.floor(Math.random() * 3) + 7 // 7-9 if in progress
-          : Math.floor(Math.random() * 3) + 8 // 8-10 if completed
+          ? Math.floor(Math.random() * 3) + 7
+          : Math.floor(Math.random() * 3) + 8
         const wrongGuesses = isInProgress ? Math.floor(Math.random() * 2) : Math.floor(Math.random() * 2)
-        const avgTimeMs = Math.floor(Math.random() * 2000) + 1500 // 1500-3500ms (fast)
+        const avgTimeMs = Math.floor(Math.random() * 2000) + 1500
         const completed = !isInProgress
 
-        // Create game session with realistic timestamps
         const gameSessionId = randomBytes(16).toString('hex')
         const challengeDateStr =
           typeof challenge.challenge_date === 'string'
@@ -516,7 +475,6 @@ export async function seed(knex: Knex): Promise<void> {
           scoreEarned: number
         }> = []
 
-        // Generate guesses
         let correctCount = 0
         let wrongCount = 0
         let currentPosition = 1
@@ -527,7 +485,6 @@ export async function seed(knex: Knex): Promise<void> {
           const position = tierScreenshot.position
 
           if (correctCount < correctGuesses) {
-            // Correct guess
             const gameId = screenshotToGameId.get(screenshotId)
             const timeTakenMs = avgTimeMs + Math.floor(Math.random() * 2000 - 1000)
             const scoreEarned = calculateScore(timeTakenMs)
@@ -546,7 +503,6 @@ export async function seed(knex: Knex): Promise<void> {
             correctCount++
             currentPosition = position + 1
           } else if (wrongCount < wrongGuesses && !completed) {
-            // Wrong guess
             const timeTakenMs = avgTimeMs + Math.floor(Math.random() * 3000)
             const scoreEarned = 0
             totalScore = Math.max(0, totalScore - WRONG_GUESS_PENALTY)
@@ -569,7 +525,6 @@ export async function seed(knex: Knex): Promise<void> {
           }
         }
 
-        // Insert game session
         await knex('game_sessions').insert({
           id: gameSessionId,
           user_id: adminUser.id,
@@ -582,7 +537,6 @@ export async function seed(knex: Knex): Promise<void> {
           completed_at: completedAt,
         })
 
-        // Create tier session
         const tierSessionId = randomBytes(16).toString('hex')
         await knex('tier_sessions').insert({
           id: tierSessionId,
@@ -596,7 +550,6 @@ export async function seed(knex: Knex): Promise<void> {
           completed_at: completedAt,
         })
 
-        // Insert guesses
         let sessionElapsedMs = 0
         for (const guess of guesses) {
           sessionElapsedMs += guess.timeTakenMs
@@ -613,7 +566,6 @@ export async function seed(knex: Knex): Promise<void> {
           })
         }
 
-        // Update user total_score and last_played_at if completed
         if (completed) {
           const currentUserScore = await knex('user')
             .where('id', adminUser.id)
@@ -640,10 +592,8 @@ export async function seed(knex: Knex): Promise<void> {
     }
   }
 
-  // Update admin user stats to reflect all game sessions
   const mainAdminUser = testUsers.find((u) => u.email === 'admin@thebox.local')
   if (mainAdminUser) {
-    // Calculate total stats from all sessions
     const allAdminSessions = await knex('game_sessions')
       .where('user_id', mainAdminUser.id)
       .where('is_completed', true)
@@ -653,7 +603,6 @@ export async function seed(knex: Knex): Promise<void> {
     if (allAdminSessions.length > 0) {
       const totalScore = allAdminSessions.reduce((sum, s) => sum + s.total_score, 0)
       
-      // Calculate streak (consecutive days with completed sessions)
       let currentStreak = 0
       let longestStreak = 0
       let tempStreak = 0
@@ -679,7 +628,6 @@ export async function seed(knex: Knex): Promise<void> {
       }
       longestStreak = Math.max(longestStreak, tempStreak)
       
-      // Calculate current streak (from most recent session)
       const mostRecentSession = allAdminSessions[allAdminSessions.length - 1]
       if (mostRecentSession) {
         const today = new Date()

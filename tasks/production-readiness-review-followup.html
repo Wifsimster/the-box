@@ -1,12 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SUMMARY: Follow-up review after PR #206 merged (2026-05-11). 8 of 11
-  prior blockers verified clean. NEW launch-blocker set: B5 still open
-  (concurrent submitGuess), image proxy enumeration (H12), first-call
-  NULL fallback in the B4 server timer, Knex SSL missing for remote DBs,
-  and first-user admin race. Mostly small fixes — estimate 1-2 eng-days
-  to clear and re-test.
--->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -294,7 +286,6 @@
   </tbody>
 </table>
 
-<!-- ======================= BLOCKERS ======================= -->
 <h2 id="blockers">Open blockers</h2>
 
 <div class="issue blocker">
@@ -447,7 +438,6 @@
   </p>
 </div>
 
-<!-- ======================= HIGH ======================= -->
 <h2 id="high">High severity</h2>
 
 <div class="issue high">
@@ -545,7 +535,6 @@ app.use('/api/billing/webhook', express.raw({ type: 'application/json', limit: '
   </p>
 </div>
 
-<!-- ======================= MEDIUM ======================= -->
 <h2 id="medium">Medium severity</h2>
 
 <div class="issue medium">
@@ -611,7 +600,6 @@ app.use('/api/billing/webhook', express.raw({ type: 'application/json', limit: '
   </p>
 </div>
 
-<!-- ======================= FALSE POSITIVES ======================= -->
 <h2 id="fp">False positives surfaced by the re-audit</h2>
 <p>
   Flagged by one of the re-audit lanes, dismissed on second read:
@@ -648,7 +636,6 @@ app.use('/api/billing/webhook', express.raw({ type: 'application/json', limit: '
   </li>
 </ul>
 
-<!-- ======================= CHECKLIST ======================= -->
 <h2 id="checklist">Pre-launch checklist (delta on top of PR #206)</h2>
 <ul class="checklist">
   <li>B5 &mdash; <code>submitGuess</code> wrapped in a Knex transaction; unique partial index added on <code>guesses(tier_session_id, position) WHERE is_correct</code>.</li>

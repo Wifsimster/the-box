@@ -21,16 +21,6 @@ export interface MapsPipelineResult {
   reason?: string
 }
 
-/**
- * Orchestrator for the multi-source map fetch pipeline. Idempotent: re-running
- * for the same game advances state by one step, never loops.
- *
- * Stage transitions:
- *   queued | blocked → fetching_map (try map providers in priority order)
- *   fetching_map (with at least one map written) → fetching_candidates
- *   fetching_candidates → awaiting_curation
- *   awaiting_curation → ready (only via admin selection)
- */
 export async function runMapsPipeline(input: {
   gameId: number
   correlationId?: string
@@ -46,7 +36,6 @@ export async function runMapsPipeline(input: {
     })
   }
 
-  // Terminal-ish stages: orchestrator does nothing on its own.
   if (state.currentStage === 'awaiting_curation') {
     log.debug({ gameId }, 'awaiting curation; nothing to do')
     return { gameId, stage: 'awaiting_curation' }
@@ -55,7 +44,6 @@ export async function runMapsPipeline(input: {
     return { gameId, stage: 'ready' }
   }
 
-  // Block-with-cooldown: skip until the timer expires.
   if (
     state.currentStage === 'blocked' &&
     state.nextEligibleAt &&
@@ -64,7 +52,6 @@ export async function runMapsPipeline(input: {
     return { gameId, stage: 'blocked', reason: 'cooldown' }
   }
 
-  // Decide the kind of source to attempt next based on what we already have.
   const enabledMaps = await geoMapRepository.listEnabledByGameId(gameId)
   const hasMap = enabledMaps.length > 0
   const targetKind = hasMap ? 'candidates' : 'map'
@@ -76,10 +63,6 @@ export async function runMapsPipeline(input: {
     return await advanceWhenExhausted(gameId, hasMap)
   }
 
-  // Update state to "fetching_*" and enqueue the source-specific child.
-  // `runSourceFetch` advances the pipeline after a recorded outcome on the
-  // success path; on terminal retry exhaustion the geo-worker 'failed'
-  // listener calls `advancePipeline` instead (see geo.worker.ts).
   const stage: MapPipelineStage = targetKind === 'map' ? 'fetching_map' : 'fetching_candidates'
   await geoPipelineStateRepository.upsert({
     gameId,
@@ -89,9 +72,6 @@ export async function runMapsPipeline(input: {
   })
 
   const childKind = `maps:fetch-from-${chosen.source}` as const
-  // Use a deterministic-enough jobId to dedupe accidental double-enqueues
-  // within the same second. Re-runs after the second elapses are intentional.
-  // BullMQ rejects custom ids containing `:`, so we hyphen-separate.
   const jobId = `maps-fetch-from-${chosen.source}-${gameId}-${Math.floor(Date.now() / 1000)}`
   await geoQueue.add(
     childKind,
@@ -111,10 +91,6 @@ export async function runMapsPipeline(input: {
   return { gameId, stage, enqueuedSource: chosen.source }
 }
 
-/**
- * Re-enqueue the orchestrator after a child finishes. Called by per-source
- * workers; keeps the pipeline driving itself forward.
- */
 export async function advancePipeline(input: {
   gameId: number
   correlationId?: string
@@ -135,16 +111,14 @@ async function pickNextSource(
   sources: GeoSourceConfig[],
 ): Promise<GeoSourceConfig | null> {
   for (const source of sources) {
-    if (source.source === 'manual') continue // Manual is admin-only, never auto.
+    if (source.source === 'manual') continue
 
-    // Skip sources whose circuit is OPEN — they're known-broken right now.
     const cb = await getState(source.source)
     if (cb === 'open') {
       log.debug({ gameId, source: source.source }, 'skip source: circuit open')
       continue
     }
 
-    // Skip sources still cooling down from a recent failure.
     const inCooldown = await geoIngestAttemptRepository.isInCooldown(
       gameId,
       source.source,
@@ -165,7 +139,6 @@ async function advanceWhenExhausted(
   hasMap: boolean,
 ): Promise<MapsPipelineResult> {
   if (!hasMap) {
-    // No source produced a map; block for 30 minutes then we'll re-evaluate.
     await geoPipelineStateRepository.upsert({
       gameId,
       currentStage: 'blocked',
@@ -176,8 +149,6 @@ async function advanceWhenExhausted(
     return { gameId, stage: 'blocked', reason: 'no-map-source' }
   }
 
-  // Have at least one map; transition to curation regardless of candidate
-  // status. Admin can always retry candidates manually if needed.
   await geoPipelineStateRepository.upsert({
     gameId,
     currentStage: 'awaiting_curation',

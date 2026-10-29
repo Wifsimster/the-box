@@ -2,20 +2,8 @@ import type { Redis } from 'ioredis'
 import { getRedis } from './redis.client.js'
 import { logger } from '../logger/logger.js'
 
-// Per-source token bucket. Each external provider (Steam, RAWG, MapGenie, ...)
-// gets its own bucket so a slow provider can't starve a fast one. Lua-evaluated
-// for atomicity across replicas; in-process libraries like `bottleneck` would
-// only throttle within a single Node process.
-
 const log = logger.child({ module: 'rate-limiter' })
 
-// KEYS[1] = tokens key
-// KEYS[2] = last_refill_ms key
-// ARGV[1] = capacity (max tokens)
-// ARGV[2] = refill_per_sec (float)
-// ARGV[3] = now_ms
-// ARGV[4] = cost
-// Returns: { allowed (0|1), retry_after_ms }
 const TOKEN_BUCKET_LUA = `
 local capacity = tonumber(ARGV[1])
 local rate = tonumber(ARGV[2])
@@ -48,11 +36,8 @@ return { allowed, retry }
 `
 
 export interface BucketOptions {
-  /** Max tokens the bucket holds. */
   capacity: number
-  /** Tokens added per second. */
   refillPerSec: number
-  /** Tokens consumed by this call. Default 1. */
   cost?: number
 }
 
@@ -78,7 +63,6 @@ async function evalScript(redis: Redis, source: string, opts: BucketOptions): Pr
     String(Date.now()),
     String(opts.cost ?? 1),
   ]
-  // Try EVALSHA for fewer bytes on the wire; fall back to EVAL on NOSCRIPT.
   if (scriptSha) {
     try {
       const result = (await redis.evalsha(scriptSha, 2, keyTokens(source), keyLast(source), ...args)) as [number, number]
@@ -93,18 +77,11 @@ async function evalScript(redis: Redis, source: string, opts: BucketOptions): Pr
   return result
 }
 
-/**
- * Try to consume tokens without blocking. Returns immediately.
- */
 export async function tryAcquire(source: string, opts: BucketOptions): Promise<AcquireResult> {
   const [allowed, retry] = await evalScript(getRedis(), source, opts)
   return { allowed: allowed === 1, retryAfterMs: retry }
 }
 
-/**
- * Block until tokens can be consumed. Sleeps with small random jitter to avoid
- * thundering-herd when many workers wake up together.
- */
 export async function acquire(source: string, opts: BucketOptions): Promise<void> {
   for (;;) {
     const { allowed, retryAfterMs } = await tryAcquire(source, opts)
