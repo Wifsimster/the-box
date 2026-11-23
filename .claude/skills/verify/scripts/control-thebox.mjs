@@ -640,9 +640,20 @@ async function currentPosition(page) {
   return parseInt(text || '0', 10) || null
 }
 
+const RESULT_CARD_NEXT = /^(next round|review skipped|continue|round suivant|voir les passées|continuer)\b/i
+
+async function advanceResultCard(page) {
+  const next = page.getByRole('button', { name: RESULT_CARD_NEXT }).first()
+  if (!(await next.isVisible().catch(() => false))) return false
+  await next.click().catch(() => {})
+  await sleep(800)
+  const keepPlaying = page.getByRole('button', { name: /continue playing|continuer à jouer/i }).first()
+  if (await keepPlaying.isVisible().catch(() => false)) { await keepPlaying.click().catch(() => {}); await sleep(800) }
+  return true
+}
+
 async function ensureOpenPosition(page) {
-  const next = page.getByRole('button', { name: /next round|manche suivante/i }).first()
-  if (await next.isVisible().catch(() => false)) { await next.click().catch(() => {}); await sleep(800) }
+  await advanceResultCard(page)
   const label = (await page.locator('[aria-current="true"]').first().getAttribute('aria-label').catch(() => '')) || ''
   if (!/:\s*correct/i.test(label)) return null
   const open = page.getByRole('group', { name: /screenshot progress/i }).getByRole('button', { name: /not visited|in progress/i }).first()
@@ -712,9 +723,7 @@ game_sessions row. Needed before the leaderboard can show the player (it lists c
         steps.push({ position: r.position, status: r.response.status, isCorrect: r.response.body?.data?.isCorrect, totalScore: r.response.body?.data?.totalScore })
         if (!r.ok) fail(`Guess at position ${r.position} failed with HTTP ${r.response.status}.`, 'Run `control-thebox network-log --filter /api/game --status-min 400` and read the backend log.', { steps, response: r.response })
         if (r.response.body?.data?.isCompleted) break
-        const next = page.getByRole('button', { name: /next round|manche suivante/i }).first()
-        if (await next.isVisible().catch(() => false)) await next.click().catch(() => {})
-        await sleep(800)
+        await advanceResultCard(page)
       }
       await sleep(2000)
       await dismissModals(page)
